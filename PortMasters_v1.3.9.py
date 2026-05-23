@@ -6,14 +6,15 @@ import os
 import math
 import sys
 
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom Button with Juice Support
+# ─────────────────────────────────────────────────────────────────────────────
 class CustomButton(tk.Frame):
-    """A custom button widget to ensure cross-platform visual consistency,
-    specifically fixing macOS background color rendering issues and allowing dynamic text sizing."""
+    """A custom button widget to ensure cross-platform visual consistency, specifically fixing macOS background color rendering issues and allowing dynamic text sizing."""
 
     def __init__(self, parent, text="", command=None, font=None, bg="#424242", fg="white",
                  relief=tk.RAISED, borderwidth=2, padx=15, pady=10, state=tk.NORMAL,
-                 cursor="hand2", wraplength=0, **kwargs):
+                 cursor="hand2", wraplength=0, juice_callback=None, **kwargs):
         kwargs.pop('width', None)
         kwargs.pop('height', None)
 
@@ -25,6 +26,7 @@ class CustomButton(tk.Frame):
         self.fg = fg
         self.disabled_bg = "#888888"
         self.disabled_fg = "#CCCCCC"
+        self.juice_callback = juice_callback
 
         self.hover_bg = self._adjust_color(self.base_bg, 1.2)
 
@@ -82,6 +84,13 @@ class CustomButton(tk.Frame):
         if self.state == tk.NORMAL and self._clicking:
             self._clicking = False
             super().config(relief=tk.RAISED)
+            if self.juice_callback:
+                try:
+                    cx = self.winfo_rootx() + self.winfo_width() // 2
+                    cy = self.winfo_rooty() + self.winfo_height() // 2
+                    self.juice_callback(cx, cy)
+                except Exception:
+                    pass
             if self.command:
                 self.command()
 
@@ -109,6 +118,8 @@ class CustomButton(tk.Frame):
                 self.label.config(bg=self.base_bg)
         if "command" in kwargs:
             self.command = kwargs.pop("command")
+        if "juice_callback" in kwargs:
+            self.juice_callback = kwargs.pop("juice_callback")
         if kwargs:
             super().config(**kwargs)
 
@@ -120,6 +131,90 @@ class CustomButton(tk.Frame):
         return super().__getitem__(key)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Boon Manager (Weighted RNG Pool)
+# ─────────────────────────────────────────────────────────────────────────────
+class BoonManager:
+    def __init__(self, game_state_provider):
+        self.game_state_provider = game_state_provider
+        self.boons = [
+            {
+                "id": "silk_wind", "name": "Silk Winds", "icon": "🌬️",
+                "desc": "Transport cost for Silk & Silk products is halved this round.",
+                "modifiers": {"transport_silk_discount": 0.5},
+                "weight_func": lambda gs: 2.5 if gs["inventory"].get("Silk", 0) > 2 or len(gs["master_weavers"]) > 0 else 0.8
+            },
+            {
+                "id": "favorable_tides", "name": "Favorable Tides", "icon": "🌊",
+                "desc": "Base transport cost reduced by 4 Gold this round.",
+                "modifiers": {"transport_flat_discount": 4},
+                "weight_func": lambda gs: 1.5
+            },
+            {
+                "id": "merchant_charm", "name": "Merchant's Charm", "icon": "✨",
+                "desc": "15% discount on all port purchases this round.",
+                "modifiers": {"purchase_discount": 0.15},
+                "weight_func": lambda gs: 2.0 if gs["money"] > 40 else 0.5
+            },
+            {
+                "id": "artisan_inspiration", "name": "Artisan's Inspiration", "icon": "🔨",
+                "desc": "All workers produce +1 extra item this round.",
+                "modifiers": {"worker_bonus_production": 1},
+                "weight_func": lambda gs: 3.0 if (len(gs["weavers"]) + len(gs["master_weavers"]) + len(gs["sachet_makers"])) > 0 else 0.0
+            },
+            {
+                "id": "emergency_loan", "name": "Emergency Loan", "icon": "💰",
+                "desc": "Gain 40 Gold immediately. No strings attached.",
+                "modifiers": {"instant_gold": 40},
+                "weight_func": lambda gs: 4.0 if gs["money"] < 30 else 0.2
+            },
+            {
+                "id": "tax_shelter", "name": "Tax Shelter", "icon": "📜",
+                "desc": "Income tax rate reduced to 5% this round.",
+                "modifiers": {"income_tax_override": 0.05},
+                "weight_func": lambda gs: 1.5
+            },
+            {
+                "id": "hemp_monopoly", "name": "Hemp Monopoly", "icon": "🧶",
+                "desc": "Hemp purchase prices reduced by 2 Gold per unit.",
+                "modifiers": {"hemp_price_reduction": 2},
+                "weight_func": lambda gs: 2.0 if gs["inventory"].get("Hemp", 0) < 5 or len(gs["weavers"]) > 0 else 1.0
+            },
+            {
+                "id": "master_apprentice", "name": "Master's Apprentice", "icon": "🎓",
+                "desc": "Hiring workers costs 50% less this round.",
+                "modifiers": {"hire_discount": 0.5},
+                "weight_func": lambda gs: 1.5
+            }
+        ]
+        
+    def get_draft_choices(self, count=3):
+        gs = self.game_state_provider()
+        weighted_boons = []
+        for boon in self.boons:
+            weight = boon["weight_func"](gs)
+            if weight > 0:
+                weighted_boons.append((boon, weight))
+                
+        choices = []
+        available = list(weighted_boons)
+        for _ in range(count):
+            if not available: break
+            total_w = sum(w for _, w in available)
+            r = random.uniform(0, total_w)
+            current = 0
+            for i, (boon, w) in enumerate(available):
+                current += w
+                if current >= r:
+                    choices.append(boon)
+                    available.pop(i)
+                    break
+        return choices
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main Game Class
+# ─────────────────────────────────────────────────────────────────────────────
 class PortMasters:
     """PortMasters – A maritime trade tycoon game with production-ready GUI."""
 
@@ -147,30 +242,14 @@ class PortMasters:
         self.window.minsize(1400, 850)
 
         self.colors = {
-            "bg_light": "#E6F2FF",
-            "bg_dark": "#1A3C8C",
-            "accent_blue": "#2E5AA7",
-            "accent_gold": "#FFD700",
-            "accent_red": "#FF6B6B",
-            "accent_green": "#4CAF50",
-            "text_dark": "#1A237E",
-            "text_light": "#FFFFFF",
-            "button_primary": "#2E5AA7",
-            "button_success": "#4CAF50",
-            "button_warning": "#FF9800",
-            "button_danger": "#FF5252",
-            "button_dark_grey": "#424242",
-            "hemp": "#8B7355",
-            "silk": "#DC143C",
-            "tea": "#228B22",
-            "linen_clothes": "#D2691E",
-            "cotton_clothes": "#4169E1",
-            "silk_brocade": "#8B008B",
-            "sachet": "#FF1493",
-            "worker_bg": "#FFF8DC",
-            "card_bg": "#F0F8FF",
-            "card_header": "#E6F2FF",
-            "separator": "#2E5AA7",
+            "bg_light": "#E6F2FF", "bg_dark": "#1A3C8C", "accent_blue": "#2E5AA7",
+            "accent_gold": "#FFD700", "accent_red": "#FF6B6B", "accent_green": "#4CAF50",
+            "text_dark": "#1A237E", "text_light": "#FFFFFF", "button_primary": "#2E5AA7",
+            "button_success": "#4CAF50", "button_warning": "#FF9800", "button_danger": "#FF5252",
+            "button_dark_grey": "#424242", "hemp": "#8B7355", "silk": "#DC143C", "tea": "#228B22",
+            "linen_clothes": "#D2691E", "cotton_clothes": "#4169E1", "silk_brocade": "#8B008B",
+            "sachet": "#FF1493", "worker_bg": "#FFF8DC", "card_bg": "#F0F8FF",
+            "card_header": "#E6F2FF", "separator": "#2E5AA7",
         }
         self.BUTTON_FONT = self.FONT_BUTTON
         self.window.configure(bg=self.colors["bg_light"])
@@ -212,13 +291,9 @@ class PortMasters:
         self.resource_types = ["Hemp", "Silk", "Tea"]
         self.product_types = ["Linen Clothes", "Cotton Clothes", "Brocade", "Sachet"]
         self.resource_colors = {
-            "Hemp": self.colors["hemp"],
-            "Silk": self.colors["silk"],
-            "Tea": self.colors["tea"],
-            "Linen Clothes": self.colors["linen_clothes"],
-            "Cotton Clothes": self.colors["cotton_clothes"],
-            "Brocade": self.colors["silk_brocade"],
-            "Sachet": self.colors["sachet"]
+            "Hemp": self.colors["hemp"], "Silk": self.colors["silk"], "Tea": self.colors["tea"],
+            "Linen Clothes": self.colors["linen_clothes"], "Cotton Clothes": self.colors["cotton_clothes"],
+            "Brocade": self.colors["silk_brocade"], "Sachet": self.colors["sachet"]
         }
         self.resource_icons = {
             "Hemp": "🧶", "Silk": "👘", "Tea": "🍵",
@@ -232,10 +307,8 @@ class PortMasters:
             "Tea": {"ports": ["Guangzhou Port", "Quanzhou Port"], "base_price": (10, 14)}
         }
         self.product_prices = {
-            "Linen Clothes": (30, 42),
-            "Cotton Clothes": (50, 65),
-            "Brocade": (70, 90),
-            "Sachet": (95, 120)
+            "Linen Clothes": (30, 42), "Cotton Clothes": (50, 65),
+            "Brocade": (70, 90), "Sachet": (95, 120)
         }
         self.resource_probabilities = {"Hemp": 0.4, "Silk": 0.35, "Tea": 0.25}
 
@@ -252,6 +325,17 @@ class PortMasters:
         self.purchase_buttons = []
         self.order_buttons = []
         self.save_file = "portmasters_save.json"
+        
+        # ── Boon & Modifier State ─────────────────────────────────────
+        self.modifier_flags = {}
+        self.boon_manager = BoonManager(self.get_game_state_for_boons)
+
+        # 🔮 INTEL SYSTEM: Broker's Whisper attributes
+        self.phase2_demand_tags = []      # Pre-generated tags for Phase 2 orders
+        self.revealed_intel = []          # List of dicts: {"item": "Tea", "port": "Guangzhou Port"}
+        self.intel_cost = 5               # Gold cost per rumor
+        self._intel_order_used = False    # Flag: has revealed intel been used for guaranteed order?
+        self.rumor_window = None          # Reference to the open Rumor Board Toplevel window
 
         self.setup_styles()
         self.create_widgets()
@@ -262,6 +346,96 @@ class PortMasters:
                 self.load_game()
                 return
         self.show_welcome()
+
+    def get_game_state_for_boons(self):
+        return {
+            "money": self.money, "inventory": self.inventory,
+            "weavers": self.weavers, "master_weavers": self.master_weavers,
+            "sachet_makers": self.sachet_makers, "ship_level": self.ship_level,
+            "revealed_intel": self.revealed_intel
+        }
+
+    def apply_modifiers(self, modifiers):
+        self.modifier_flags = modifiers
+        if "instant_gold" in modifiers:
+            self.money += modifiers["instant_gold"]
+            self.log_message(f"💰 Boon applied: Gained {modifiers['instant_gold']} Gold!")
+            self.update_display()
+
+    # ── Juice / UI Polish ─────────────────────────────────────────────
+    def trigger_juice(self, root_x, root_y):
+        print("[SFX: Deep bass thud and magical chime]")
+        self.shake_window()
+        self.trigger_particle_burst(root_x, root_y)
+
+    def shake_window(self):
+        try:
+            geo = self.window.geometry().split('+')
+            if len(geo) >= 3:
+                x, y = int(geo[1]), int(geo[2])
+            else:
+                x, y = 100, 100
+            w, h = geo[0].split('x')
+            
+            steps = [(-4, -4), (4, 4), (-2, 2), (2, -2), (0, 0)]
+            for i, (dx, dy) in enumerate(steps):
+                self.window.after(i * 30, lambda nx=x+dx, ny=y+dy, w=w, h=h: 
+                                  self.window.geometry(f"{w}x{h}+{nx}+{ny}"))
+        except Exception:
+            pass
+
+    def trigger_particle_burst(self, root_x, root_y):
+        wx = self.window.winfo_rootx()
+        wy = self.window.winfo_rooty()
+        x = root_x - wx
+        y = root_y - wy
+        
+        canvas = tk.Canvas(self.window, highlightthickness=0, bg=self.colors["bg_light"])
+        canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        canvas.bind("<Button-1>", lambda e: canvas.destroy())
+        
+        particles = []
+        colors = ["#FFD700", "#FFA500", "#4CAF50", "#2E5AA7", "#FFFFFF", "#E6F2FF"]
+        for _ in range(35):
+            px = x + random.randint(-10, 10)
+            py = y + random.randint(-10, 10)
+            r = random.randint(5, 15)
+            color = random.choice(colors)
+            p = canvas.create_oval(px-r, py-r, px+r, py+r, fill=color, outline="")
+            particles.append((p, px, py, r, random.uniform(-8, 8), random.uniform(-10, -2)))
+            
+        sparkles = ["✨", "⭐", "💫"]
+        texts = []
+        for _ in range(5):
+            sx = x + random.randint(-40, 40)
+            sy = y + random.randint(-40, 40)
+            t = canvas.create_text(sx, sy, text=random.choice(sparkles), font=("Segoe UI", random.randint(16, 24)))
+            texts.append((t, sx, sy, random.uniform(-3, 3), random.uniform(-5, -1)))
+
+        def animate(step=0):
+            if step > 15:
+                try: canvas.destroy()
+                except: pass
+                return
+            for p, px, py, r, vx, vy in particles:
+                nx = px + vx * step
+                ny = py + vy * step + 1.5 * step 
+                nr = max(0, r - step * 0.6)
+                try: canvas.coords(p, nx-nr, ny-nr, nx+nr, ny+nr)
+                except: pass
+                
+            for t, sx, sy, vx, vy in texts:
+                nx = sx + vx * step
+                ny = sy + vy * step
+                try: canvas.coords(t, nx, ny)
+                except: pass
+                
+            try:
+                self.window.after(25, lambda: animate(step+1))
+            except:
+                pass
+            
+        animate()
 
     # ── Keyboard shortcuts ────────────────────────────────────────────
     def setup_keyboard_shortcuts(self):
@@ -286,7 +460,9 @@ class PortMasters:
             "total_revenue": self.total_revenue, "total_costs": self.total_costs,
             "material_costs": self.material_costs, "worker_wages": self.worker_wages,
             "maintenance_costs": self.maintenance_costs,
-            "vat_paid": self.vat_paid, "income_tax_paid": self.income_tax_paid
+            "vat_paid": self.vat_paid, "income_tax_paid": self.income_tax_paid,
+            "phase2_demand_tags": self.phase2_demand_tags,
+            "revealed_intel": self.revealed_intel
         }
         try:
             with open(self.save_file, "w", encoding="utf-8") as f:
@@ -323,6 +499,13 @@ class PortMasters:
             self.maintenance_costs = game_data.get("maintenance_costs", 0)
             self.vat_paid = game_data.get("vat_paid", 0)
             self.income_tax_paid = game_data.get("income_tax_paid", 0)
+            self.modifier_flags = {}
+            
+            self.phase2_demand_tags = game_data.get("phase2_demand_tags", [])
+            self.revealed_intel = game_data.get("revealed_intel", [])
+            self._intel_order_used = False
+            self.rumor_window = None
+            
             self.log_message("📂 Save Loaded!")
             self.update_display()
             if self.phase == 0:
@@ -335,6 +518,8 @@ class PortMasters:
                 self.start_phase3()
             elif self.phase == 4:
                 self.start_phase4()
+            elif self.phase == 5:
+                self.start_boon_drafting()
             else:
                 self.show_worker_management()
         except Exception as e:
@@ -347,16 +532,33 @@ class PortMasters:
             os.remove(self.save_file)
             self.log_message("🗑️ Save Deleted")
 
-    # ── Cost calculations ─────────────────────────────────────────────
-    def calculate_transport_cost(self, total_items):
+    # ── Cost calculations (with Modifier Injection) ───────────────────
+    def calculate_transport_cost(self, total_items, has_silk=False):
         base_cost = total_items * 2
         discount = self.ship_level * 5
-        return max(5, base_cost - discount)
+        
+        if "transport_flat_discount" in self.modifier_flags:
+            discount += self.modifier_flags["transport_flat_discount"]
+            
+        final_cost = max(5, base_cost - discount)
+        
+        if has_silk and "transport_silk_discount" in self.modifier_flags:
+            final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
+            
+        return final_cost
 
-    def show_transport_cost_detail(self, total_items):
+    def show_transport_cost_detail(self, total_items, has_silk=False):
         base_cost = total_items * 2
         discount = self.ship_level * 5
-        final_cost = self.calculate_transport_cost(total_items)
+        
+        if "transport_flat_discount" in self.modifier_flags:
+            discount += self.modifier_flags["transport_flat_discount"]
+            
+        final_cost = max(5, base_cost - discount)
+        
+        if has_silk and "transport_silk_discount" in self.modifier_flags:
+            final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
+            
         return {
             "total_items": total_items, "base_cost": base_cost,
             "discount": discount, "final_cost": final_cost,
@@ -370,54 +572,48 @@ class PortMasters:
             avg_price = sum(self.commodities[material]["base_price"]) / 2
             material_cost += avg_price * amount
         worker_cost = 0
-        if recipe["worker_type"] == "weaver":
-            worker_cost = self.WEAVER_WAGE
-        elif recipe["worker_type"] == "master":
-            worker_cost = self.MASTER_WEAVER_WAGE
-        elif recipe["worker_type"] == "sachet_maker":
-            worker_cost = self.SACHET_MAKER_WAGE
+        if recipe["worker_type"] == "weaver": worker_cost = self.WEAVER_WAGE
+        elif recipe["worker_type"] == "master": worker_cost = self.MASTER_WEAVER_WAGE
+        elif recipe["worker_type"] == "sachet_maker": worker_cost = self.SACHET_MAKER_WAGE
         taxable_amount = selling_price - material_cost - worker_cost
         if taxable_amount > 0:
             vat = math.floor(taxable_amount * 0.05)
-            self.log_message(
-                f"🧮 VAT: 5% × ({selling_price} - {material_cost:.1f}(Mat) - {worker_cost}(Wage)) = {vat}")
+            self.log_message(f"🧮 VAT: 5% × ({selling_price} - {material_cost:.1f}(Mat) - {worker_cost}(Wage)) = {vat}")
             return vat
         return 0
 
     def calculate_income_tax(self, pre_tax_profit):
+        rate = self.modifier_flags.get("income_tax_override", 0.1)
         if pre_tax_profit > 0:
-            return math.floor(pre_tax_profit * 0.1)
+            return math.floor(pre_tax_profit * rate)
         return 0
 
     # ── Worker management ─────────────────────────────────────────────
+    def get_hire_cost(self, worker_type):
+        if worker_type == "weaver": wage = self.WEAVER_WAGE
+        elif worker_type == "master": wage = self.MASTER_WEAVER_WAGE
+        elif worker_type == "sachet_maker": wage = self.SACHET_MAKER_WAGE
+        else: return 0
+        if "hire_discount" in self.modifier_flags:
+            wage = int(wage * (1 - self.modifier_flags["hire_discount"]))
+        return wage
+
     def hire_worker(self, worker_type):
-        if worker_type == "weaver":
-            wage = self.WEAVER_WAGE
-            if self.money >= wage:
-                self.money -= wage
+        wage = self.get_hire_cost(worker_type)
+        if self.money >= wage:
+            self.money -= wage
+            if worker_type == "weaver":
                 self.weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.worker_wages += wage
                 self.log_message(f"👩‍🔧 Hired a Weaver! Wage: {wage} Gold / Round")
-                self.update_display()
-                return True
-        elif worker_type == "master":
-            wage = self.MASTER_WEAVER_WAGE
-            if self.money >= wage:
-                self.money -= wage
+            elif worker_type == "master":
                 self.master_weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.worker_wages += wage
                 self.log_message(f"👩‍🎨 Hired a Master Weaver! Wage: {wage} Gold / Round")
-                self.update_display()
-                return True
-        elif worker_type == "sachet_maker":
-            wage = self.SACHET_MAKER_WAGE
-            if self.money >= wage:
-                self.money -= wage
+            elif worker_type == "sachet_maker":
                 self.sachet_makers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.worker_wages += wage
                 self.log_message(f"🌸 Hired a Sachet Maker! Wage: {wage} Gold / Round")
-                self.update_display()
-                return True
+            self.worker_wages += wage
+            self.update_display()
+            return True
         self.log_message("❌ Insufficient funds to hire workers!")
         return False
 
@@ -428,8 +624,7 @@ class PortMasters:
             worker_list, wage, worker_name = self.master_weavers, self.MASTER_WEAVER_WAGE, "Master Weaver"
         elif worker_type == "sachet_maker":
             worker_list, wage, worker_name = self.sachet_makers, self.SACHET_MAKER_WAGE, "Sachet Maker"
-        else:
-            return False
+        else: return False
         if index < 0 or index >= len(worker_list):
             self.log_message("❌ Invalid worker ID!")
             return False
@@ -437,8 +632,7 @@ class PortMasters:
             self.money -= wage
             worker = worker_list.pop(index)
             self.log_message(f"💔 Dismissed a {worker_name}. Severance: {wage} Gold")
-            if worker['task']:
-                self.log_message(f"  This worker was making: {worker['task']}")
+            if worker['task']: self.log_message(f"  This worker was making: {worker['task']}")
             self.update_display()
             return True
         else:
@@ -461,8 +655,7 @@ class PortMasters:
                     worker['task'] = task
                     worker['progress'] = 0
                     material_list = [f"{self.resource_icons[m]}{m}×{a}" for m, a in recipe["materials"].items()]
-                    self.log_message(
-                        f"📋 Assigned: Produce {self.resource_icons[task]}{task} (Req: {' + '.join(material_list)})")
+                    self.log_message(f"📋 Assigned: Produce {self.resource_icons[task]}{task} (Req: {' + '.join(material_list)})")
                     self.update_display()
                     return True
                 else:
@@ -472,18 +665,19 @@ class PortMasters:
         return False
 
     def process_production(self):
+        bonus = self.modifier_flags.get("worker_bonus_production", 0)
         for weaver in self.weavers:
             if weaver['task']:
-                if weaver.get('is_skilled', False):
-                    product = weaver['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 2
-                    weaver['produced_count'] = weaver.get('produced_count', 0) + 2
-                    weaver['double_production_this_round'] = True
+                base_prod = 2 if weaver.get('is_skilled', False) else 1
+                amount = base_prod + bonus
+                product = weaver['task']
+                self.inventory[product] = self.inventory.get(product, 0) + amount
+                weaver['produced_count'] = weaver.get('produced_count', 0) + amount
+                if amount > base_prod:
+                    self.log_message(f"✅ Skilled Weaver finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
+                elif weaver.get('is_skilled', False):
                     self.log_message(f"✅ Skilled Weaver finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    product = weaver['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 1
-                    weaver['produced_count'] = weaver.get('produced_count', 0) + 1
                     self.log_message(f"✅ Weaver finished {self.resource_icons[product]}{product}!")
                     if weaver.get('produced_count', 0) >= 2:
                         weaver['is_skilled'] = True
@@ -492,16 +686,16 @@ class PortMasters:
                 weaver['progress'] = 0
         for master in self.master_weavers:
             if master['task']:
-                if master.get('is_skilled', False):
-                    product = master['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 2
-                    master['produced_count'] = master.get('produced_count', 0) + 2
-                    master['double_production_this_round'] = True
+                base_prod = 2 if master.get('is_skilled', False) else 1
+                amount = base_prod + bonus
+                product = master['task']
+                self.inventory[product] = self.inventory.get(product, 0) + amount
+                master['produced_count'] = master.get('produced_count', 0) + amount
+                if amount > base_prod:
+                    self.log_message(f"✅ Skilled Master finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
+                elif master.get('is_skilled', False):
                     self.log_message(f"✅ Skilled Master finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    product = master['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 1
-                    master['produced_count'] = master.get('produced_count', 0) + 1
                     self.log_message(f"✅ Master finished {self.resource_icons[product]}{product}!")
                     if master.get('produced_count', 0) >= 2:
                         master['is_skilled'] = True
@@ -510,16 +704,16 @@ class PortMasters:
                 master['progress'] = 0
         for maker in self.sachet_makers:
             if maker['task']:
-                if maker.get('is_skilled', False):
-                    product = maker['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 2
-                    maker['produced_count'] = maker.get('produced_count', 0) + 2
-                    maker['double_production_this_round'] = True
+                base_prod = 2 if maker.get('is_skilled', False) else 1
+                amount = base_prod + bonus
+                product = maker['task']
+                self.inventory[product] = self.inventory.get(product, 0) + amount
+                maker['produced_count'] = maker.get('produced_count', 0) + amount
+                if amount > base_prod:
+                    self.log_message(f"✅ Skilled Maker finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
+                elif maker.get('is_skilled', False):
                     self.log_message(f"✅ Skilled Maker finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    product = maker['task']
-                    self.inventory[product] = self.inventory.get(product, 0) + 1
-                    maker['produced_count'] = maker.get('produced_count', 0) + 1
                     self.log_message(f"✅ Maker finished {self.resource_icons[product]}{product}!")
                     if maker.get('produced_count', 0) >= 2:
                         maker['is_skilled'] = True
@@ -551,19 +745,15 @@ class PortMasters:
                 self.log_message(f"💪 Maker High Yield (2 items), Wage → {base_wage} Gold")
             maker_wages += base_wage
         total_wages = weaver_wages + master_wages + maker_wages
-        if total_wages == 0:
-            return True
+        if total_wages == 0: return True
         if self.money >= total_wages:
             self.money -= total_wages
             total_paid = total_wages
             self.worker_wages += total_wages
             self.round_costs += total_wages
-            if weaver_wages > 0:
-                self.log_message(f"💰 Paid wages for {len(self.weavers)} Weavers: {weaver_wages} Gold")
-            if master_wages > 0:
-                self.log_message(f"💰 Paid wages for {len(self.master_weavers)} Masters: {master_wages} Gold")
-            if maker_wages > 0:
-                self.log_message(f"💰 Paid wages for {len(self.sachet_makers)} Makers: {maker_wages} Gold")
+            if weaver_wages > 0: self.log_message(f"💰 Paid wages for {len(self.weavers)} Weavers: {weaver_wages} Gold")
+            if master_wages > 0: self.log_message(f"💰 Paid wages for {len(self.master_weavers)} Masters: {master_wages} Gold")
+            if maker_wages > 0: self.log_message(f"💰 Paid wages for {len(self.sachet_makers)} Makers: {maker_wages} Gold")
             self._clear_wage_markers()
             self.update_display()
             return True
@@ -578,28 +768,78 @@ class PortMasters:
             if 'double_production_this_round' in worker:
                 del worker['double_production_this_round']
 
-    # ── Order generation ──────────────────────────────────────────────
-    def generate_raw_material_order(self):
+    # ── 🔮 INTEL SYSTEM: Order generation with constraint injection ──
+    def _generate_phase2_demand_tags(self, count=5):
+        """Generate demand tags that will influence Phase 2 orders (Max 5)"""
+        tags = []
+        all_items = self.resource_types + self.product_types
+        for _ in range(count):
+            tag = random.choice(all_items)
+            if tag not in tags:
+                tags.append(tag)
+        return tags
+
+    def purchase_intel(self):
+        """🔮 INTEL SYSTEM: Spend gold to reveal a Phase 2 demand rumor"""
+        if not self.phase2_demand_tags:
+            self.log_message("🔮 The Broker has no more whispers...")
+            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+                self._populate_rumor_list()
+            return
+        if self.money < self.intel_cost:
+            self.log_message(f"❌ Need {self.intel_cost} Gold for a rumor")
+            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+                self._populate_rumor_list()
+            return
+        
+        # 🔮 FIX: Pick a tag and REMOVE it from the hidden pool so it cannot be picked again
+        revealed_item = random.choice(self.phase2_demand_tags)
+        self.phase2_demand_tags.remove(revealed_item)
+        
+        # 🔮 FIX: Pick the port ONCE and save it with the item so it doesn't get overwritten
+        port = random.choice(self.ports)
+        
+        self.money -= self.intel_cost
+        self.revealed_intel.append({"item": revealed_item, "port": port})
+        
+        self.log_message(f"🗣️ Broker's Whisper: 'Word from {port}: High demand for {revealed_item}!'")
+        self.update_display()
+        
+        # Refresh Toplevel if open
+        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            self._populate_rumor_list()
+
+    def generate_raw_material_order(self, resource_filter=None):
         num_resources = random.randint(1, 3)
         resources = []
         available_resources = self.resource_types.copy()
         demand_port = random.choice(self.ports)
         total_items = 0
-        for _ in range(num_resources):
-            if not available_resources:
-                break
-            resource = random.choice(available_resources)
-            available_resources.remove(resource)
+        
+        if resource_filter and resource_filter in self.resource_types:
             required = random.randint(2, 5)
             total_items += required
-            resources.append({"type": resource, "required": required})
+            resources.append({"type": resource_filter, "required": required})
+        else:
+            for _ in range(num_resources):
+                if not available_resources: break
+                resource = random.choice(available_resources)
+                available_resources.remove(resource)
+                required = random.randint(2, 5)
+                total_items += required
+                resources.append({"type": resource, "required": required})
+        
         base_reward = sum(r["required"] * 5 for r in resources)
         reward = base_reward + random.randint(10, 25)
         return {"demand_port": demand_port, "resources": resources, "reward": reward,
                 "total_items": total_items, "is_product_order": False}
 
-    def generate_product_order(self):
-        product = random.choice(self.product_types)
+    def generate_product_order(self, product_filter=None):
+        if product_filter and product_filter in self.product_types:
+            product = product_filter
+        else:
+            product = random.choice(self.product_types)
+            
         required = random.randint(1, 3)
         demand_port = random.choice(self.ports)
         base_price = random.randint(*self.product_prices[product])
@@ -609,6 +849,17 @@ class PortMasters:
                 "reward": reward, "total_items": required, "is_product_order": True}
 
     def generate_mixed_order(self):
+        """Generate Phase 2 order, respecting revealed intel constraints"""
+        if self.revealed_intel and not self._intel_order_used:
+            # 🔮 FIX: Extract item from the dictionary
+            intel_data = random.choice(self.revealed_intel)
+            tag = intel_data["item"]
+            self._intel_order_used = True
+            if tag in self.resource_types:
+                return self.generate_raw_material_order(resource_filter=tag)
+            elif tag in self.product_types:
+                return self.generate_product_order(product_filter=tag)
+        
         if random.random() < 0.5 or not self.product_types:
             return self.generate_raw_material_order()
         else:
@@ -623,8 +874,7 @@ class PortMasters:
         probabilities = list(self.resource_probabilities.values())
         port = random.choice(self.ports)
         for _ in range(num_resources):
-            if not available_resources:
-                break
+            if not available_resources: break
             resource = random.choices(available_resources, weights=probabilities)[0]
             idx = available_resources.index(resource)
             available_resources.pop(idx)
@@ -658,14 +908,26 @@ class PortMasters:
                        "material_details": " + ".join(material_details)}]
         return {"port": port, "resources": resources, "total_cost": total_cost, "is_product_card": True}
 
+    # ── Modifier Helper for Purchases ─────────────────────────────────
+    def get_card_final_cost(self, card):
+        final_cost = card["total_cost"]
+        if "purchase_discount" in self.modifier_flags:
+            final_cost = int(final_cost * (1 - self.modifier_flags["purchase_discount"]))
+        if "hemp_price_reduction" in self.modifier_flags:
+            for r in card["resources"]:
+                if r["type"] == "Hemp":
+                    final_cost -= r["quantity"] * self.modifier_flags["hemp_price_reduction"]
+        return max(0, final_cost)
+
     # ── Purchase / Order execution ────────────────────────────────────
     def purchase_card_specific(self, card):
         if card["id"] in self.purchased_cards:
             return
-        if self.money >= card["total_cost"]:
-            self.money -= card["total_cost"]
-            self.round_costs += card["total_cost"]
-            self.total_costs += card["total_cost"]
+        final_cost = self.get_card_final_cost(card)
+        if self.money >= final_cost:
+            self.money -= final_cost
+            self.round_costs += final_cost
+            self.total_costs += final_cost
             for resource_info in card["resources"]:
                 self.inventory[resource_info["type"]] += resource_info["quantity"]
             self.purchased_cards.add(card["id"])
@@ -676,18 +938,20 @@ class PortMasters:
                         f"🛒 Bought Product at {card['port']}: "
                         f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}"
                         f"(@{r['price']} Gold/item, Mat Cost {r.get('material_cost', '?')} Gold), "
-                        f"Total {card['total_cost']} Gold")
+                        f"Total {final_cost} Gold")
                     self.log_message("   💡 Tip: VAT applies when selling finished products")
             else:
                 resources_text = " + ".join(
                     f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}({r['price']} Gold/item)"
                     for r in card["resources"])
-                self.log_message(f"🛒 Bought at {card['port']}: {resources_text}, Total {card['total_cost']} Gold")
+                self.log_message(f"🛒 Bought at {card['port']}: {resources_text}, Total {final_cost} Gold")
+            if final_cost < card["total_cost"]:
+                self.log_message(f"   ✨ Boon Discount Applied! Saved {card['total_cost'] - final_cost} Gold")
             self.update_display()
             self.update_purchase_buttons()
             self.log_message(f"📊 Purchased {self.purchase_count} cargo batches")
         else:
-            self.log_message(f"❌ Insufficient funds! Need {card['total_cost']} Gold, Have {self.money} Gold")
+            self.log_message(f"❌ Insufficient funds! Need {final_cost} Gold, Have {self.money} Gold")
 
     def complete_order(self, order):
         if order["id"] in self.completed_orders:
@@ -696,8 +960,11 @@ class PortMasters:
             if self.inventory.get(resource_info["type"], 0) < resource_info["required"]:
                 self.log_message(f"❌ Inventory short! Need {resource_info['type']}×{resource_info['required']}")
                 return
-        transport_cost = self.calculate_transport_cost(order["total_items"])
-        transport_detail = self.show_transport_cost_detail(order["total_items"])
+                
+        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
+        transport_cost = self.calculate_transport_cost(order["total_items"], has_silk)
+        transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
+        
         for resource_info in order["resources"]:
             self.inventory[resource_info["type"]] -= resource_info["required"]
         self.money -= transport_cost
@@ -777,11 +1044,21 @@ class PortMasters:
         if income_tax > 0:
             self.money -= income_tax
             self.income_tax_paid += income_tax
-            self.log_message(f"🏛️ Income Tax Paid (10%): {income_tax} Gold")
+            self.log_message(f"🏛️ Income Tax Paid ({self.modifier_flags.get('income_tax_override', 0.1)*100:.0f}%): {income_tax} Gold")
         else:
             self.log_message("🏛️ No profit, no income tax due")
         if self.vat_paid > 0:
             self.log_message(f"🧾 VAT Paid this round: {self.vat_paid} Gold")
+            
+        self.modifier_flags = {}
+        
+        self.phase2_demand_tags = []
+        self.revealed_intel = []
+        self._intel_order_used = False
+        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            self.rumor_window.destroy()
+            self.rumor_window = None
+        
         self.round_revenue = 0
         self.round_costs = 0
         self.maintenance_costs = 0
@@ -800,7 +1077,7 @@ class PortMasters:
             self.purchased_cards.clear()
             self.completed_orders.clear()
             self.update_display()
-            self.show_welcome()
+            self.start_boon_drafting()
             self.update_button_states()
 
     # ── Helper: inventory row in worker mgmt ──────────────────────────
@@ -814,6 +1091,94 @@ class PortMasters:
                  fg=color, width=15, anchor="w").pack(side=tk.LEFT)
         tk.Label(frame, text=str(self.inventory.get(item, 0)), font=self.FONT_BODY_BOLD,
                  bg=self.colors["card_bg"], fg=color, width=5).pack(side=tk.RIGHT)
+
+    # ── 🔮 INTEL SYSTEM: Rumor Board Toplevel Window ──────────────────
+    def show_rumor_board(self):
+        """🔮 INTEL SYSTEM: Open the Broker's Rumor Board in a separate window"""
+        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            self.rumor_window.lift()
+            return
+
+        self.rumor_window = tk.Toplevel(self.window)
+        self.rumor_window.title("🗣️ Broker's Rumor Board")
+        self.rumor_window.geometry("500x400")
+        self.rumor_window.transient(self.window)
+        self.rumor_window.grab_set()
+        self.rumor_window.configure(bg=self.colors["bg_light"])
+
+        # Header
+        tk.Label(self.rumor_window, text="🗣️ Broker's Rumor Board", font=self.FONT_HERO,
+                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(pady=10)
+        tk.Label(self.rumor_window, text="Spend gold to reveal Phase 2 demand rumors!",
+                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(pady=(0, 10))
+
+        # Buy Button
+        CustomButton(self.rumor_window, text=f"🔮 Buy Rumor ({self.intel_cost}💰)",
+                     font=self.BUTTON_FONT, bg=self.colors["accent_gold"],
+                     fg=self.colors["text_dark"], relief=tk.RAISED, borderwidth=2,
+                     padx=20, pady=10, juice_callback=self.trigger_juice,
+                     command=self.purchase_intel).pack(pady=10)
+
+        # Scrollable List Container
+        list_frame = tk.Frame(self.rumor_window, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        canvas = tk.Canvas(list_frame, highlightthickness=0, bg=self.colors["card_bg"])
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
+        self.rumor_list_frame = tk.Frame(canvas, bg=self.colors["card_bg"])
+
+        self.rumor_list_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Bind mousewheel
+        def on_mousewheel(event):
+            if sys.platform == 'darwin':
+                delta = -1 * event.delta
+            else:
+                delta = int(-1 * (event.delta / 120))
+            canvas.yview_scroll(delta, "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        self._populate_rumor_list()
+
+        # Close button
+        CustomButton(self.rumor_window, text="Close Board", font=self.BUTTON_FONT,
+                     bg=self.colors["button_dark_grey"], fg="white",
+                     padx=20, pady=10, command=self.rumor_window.destroy).pack(pady=10)
+
+    def _populate_rumor_list(self):
+        """Helper to refresh the list of rumors inside the Toplevel window"""
+        if not hasattr(self, 'rumor_list_frame'): return
+        
+        for widget in self.rumor_list_frame.winfo_children():
+            widget.destroy()
+
+        if self.revealed_intel:
+            tk.Label(self.rumor_list_frame, text="📜 Revealed Intel:",
+                     font=self.FONT_SMALL_BOLD, bg=self.colors["card_bg"],
+                     fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=10, pady=(5, 2))
+            # 🔮 FIX: Use the saved port and item from the dictionary
+            for intel in self.revealed_intel:
+                label = tk.Label(self.rumor_list_frame,
+                               text=f"• 🗣️ '{intel['port']} wants {intel['item']}'",
+                               font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                               fg=self.colors["text_dark"], anchor=tk.W, justify=tk.LEFT)
+                label.pack(anchor=tk.W, padx=25, pady=2)
+        else:
+            tk.Label(self.rumor_list_frame, text="  ✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.",
+                     font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                     fg="#888888", anchor=tk.W, justify=tk.LEFT).pack(anchor=tk.W, padx=10, pady=20)
+                     
+        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            # Force canvas update to adjust scrollbar
+            self.rumor_list_frame.update_idletasks()
+            canvas = self.rumor_list_frame.master
+            canvas.configure(scrollregion=canvas.bbox("all"))
 
     # ── Worker management screen ──────────────────────────────────────
     def show_worker_management(self, in_phase=False):
@@ -832,7 +1197,6 @@ class PortMasters:
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
 
-        # Title
         title_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         title_frame.pack(fill=tk.X, pady=self.PAD_XL)
         tk.Label(title_frame, text="👥 Worker Management", font=self.FONT_HERO,
@@ -842,7 +1206,6 @@ class PortMasters:
         tk.Label(title_frame, text=funds_text, font=self.FONT_SUBTITLE,
                  bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack()
 
-        # Inventory
         inv_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         inv_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
         tk.Label(inv_frame, text="📦 Current Inventory", font=self.FONT_CARD_TITLE,
@@ -860,10 +1223,8 @@ class PortMasters:
         for product in self.product_types:
             self.create_inventory_row(products_frame, product)
 
-        # Separator
         tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(fill=tk.X, padx=50, pady=self.PAD_LG)
 
-        # Hire section
         hire_frame = tk.Frame(scrollable_frame, bg=self.colors["worker_bg"], relief=tk.RAISED, borderwidth=2)
         hire_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
         tk.Label(hire_frame, text="🔨 Hire Workers", font=("Segoe UI", 18, "bold"),
@@ -887,20 +1248,24 @@ class PortMasters:
         hire_buttons_frame = tk.Frame(hire_frame, bg=self.colors["worker_bg"])
         hire_buttons_frame.pack(pady=15)
         refresh_func = self.show_worker_management_in_phase if in_phase else self.show_worker_management
-        CustomButton(hire_buttons_frame, text=f"👩‍🔧 Hire Weaver ({self.WEAVER_WAGE}💰)",
+        
+        weaver_cost = self.get_hire_cost("weaver")
+        master_cost = self.get_hire_cost("master")
+        maker_cost = self.get_hire_cost("sachet_maker")
+        
+        CustomButton(hire_buttons_frame, text=f"👩‍🔧 Hire Weaver ({weaver_cost}💰)",
                      font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("weaver"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"👩‍🎨 Hire Master Weaver ({self.MASTER_WEAVER_WAGE}💰)",
+        CustomButton(hire_buttons_frame, text=f"👩‍🎨 Hire Master Weaver ({master_cost}💰)",
                      font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("master"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"🌸 Hire Sachet Maker ({self.SACHET_MAKER_WAGE}💰)",
+        CustomButton(hire_buttons_frame, text=f"🌸 Hire Sachet Maker ({maker_cost}💰)",
                      font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("sachet_maker"), refresh_func()]).pack(side=tk.LEFT, padx=10)
 
-        # Worker status
         if self.weavers or self.master_weavers or self.sachet_makers:
             status_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
             status_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
@@ -1056,7 +1421,6 @@ class PortMasters:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.configure(style="DarkFrame.TLabelframe")
 
-        # ── Title bar ─────────────────────────────────────────────────
         title_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
         title_frame.grid(row=0, column=0, columnspan=3, pady=(0, self.PAD_SM), sticky=(tk.W, tk.E))
 
@@ -1075,7 +1439,6 @@ class PortMasters:
                  text="Shortcuts: Ctrl+S Save | Ctrl+N Next | Ctrl+H Workers | Ctrl+R Restart | F1 Help",
                  font=("Segoe UI", 8), bg=self.colors["bg_dark"], fg="#AAC4E8").pack(side=tk.RIGHT)
 
-        # ── Content area ──────────────────────────────────────────────
         content_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
         content_frame.grid(row=1, column=0, columnspan=3,
                            sticky=(tk.W, tk.E, tk.N, tk.S), pady=self.PAD_MD)
@@ -1095,7 +1458,6 @@ class PortMasters:
         content_frame.columnconfigure(1, weight=1)
         content_frame.rowconfigure(0, weight=1)
 
-    # ── Status panel (left sidebar) ──────────────────────────────────
     def create_status_panel(self, parent):
         status_panel = ttk.LabelFrame(parent, text="📊 Navigation Log",
                                        padding="10", style="DarkFrame.TLabelframe")
@@ -1203,7 +1565,6 @@ class PortMasters:
         label_value.pack(side=tk.RIGHT, padx=(0, 5))
         self.inventory_labels[item] = label_value
 
-    # ── Phase panel (main content) ───────────────────────────────────
     def create_phase_panel(self, parent):
         self.phase_frame = ttk.LabelFrame(parent, text="🌊 Trade Phases",
                                            padding=self.PAD_LG, style="DarkFrame.TLabelframe")
@@ -1211,7 +1572,6 @@ class PortMasters:
         self.phase_content = ttk.Frame(self.phase_frame, style="DarkFrame.TLabelframe")
         self.phase_content.pack(fill=tk.BOTH, expand=True)
 
-    # ── Control panel ─────────────────────────────────────────────────
     def create_control_panel(self, parent):
         control_panel = ttk.Frame(parent, style="DarkFrame.TLabelframe")
         control_panel.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(self.PAD_MD, 0))
@@ -1249,7 +1609,6 @@ class PortMasters:
                          relief=tk.RAISED, borderwidth=2,
                          padx=20, pady=10, cursor="hand2", command=command).pack(side=tk.LEFT, padx=2)
 
-    # ── Log panel ─────────────────────────────────────────────────────
     def create_log_panel(self, parent):
         log_frame = ttk.LabelFrame(parent, text="📜 Voyage Log",
                                     padding=self.PAD_SM, style="DarkFrame.TLabelframe")
@@ -1275,7 +1634,6 @@ class PortMasters:
         self.purchase_buttons.clear()
         self.order_buttons.clear()
 
-    # ── Display update ────────────────────────────────────────────────
     def update_display(self):
         self.round_label.config(text=f"🌊 Round {self.current_round}/{self.max_rounds}")
         self.money_label.config(text=f"💰 Funds: {self.money} Gold")
@@ -1285,6 +1643,56 @@ class PortMasters:
         self.transport_label.config(text=f"⚓ Freight: max(5, Items×2 - {discount}) Gold")
         for item, label in self.inventory_labels.items():
             label.config(text=str(self.inventory.get(item, 0)))
+
+    # ── Boon Drafting Phase ───────────────────────────────────────────
+    def start_boon_drafting(self):
+        self.phase = 5
+        self.clear_phase_content()
+        self.log_message("\n🧭=== The Navigator's Compass ===")
+        self.log_message("Choose a Boon to bend the rules of the upcoming voyage...")
+        
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
+        
+        tk.Label(main_container, text="🧭 The Navigator's Compass", font=self.FONT_HERO,
+                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
+        tk.Label(main_container, text="Draft a Boon to synergize with your strategy",
+                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
+                 
+        boons = self.boon_manager.get_draft_choices(3)
+        
+        cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
+        cards_frame.pack(fill=tk.BOTH, expand=True)
+        
+        for i in range(3):
+            cards_frame.columnconfigure(i, weight=1, uniform="boon_col")
+            
+        for i, boon in enumerate(boons):
+            self.create_boon_card(cards_frame, boon, 0, i)
+            
+        self.update_button_states()
+
+    def create_boon_card(self, parent, boon, row, col):
+        card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
+        card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
+        
+        tk.Label(card, text=boon["icon"], font=("Segoe UI", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
+        tk.Label(card, text=boon["name"], font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"],
+                 fg=self.colors["bg_dark"]).pack(pady=5)
+        tk.Label(card, text=boon["desc"], font=self.FONT_BODY, bg=self.colors["card_bg"],
+                 fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
+                 
+        btn = CustomButton(card, text="🔒 Lock In Boon", font=self.BUTTON_FONT,
+                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
+                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
+                           juice_callback=self.trigger_juice,
+                           command=lambda b=boon: self.select_boon(b))
+        btn.pack(fill=tk.X, pady=(10, 0))
+
+    def select_boon(self, boon):
+        self.log_message(f"🧭 Boon Selected: {boon['icon']} {boon['name']}")
+        self.apply_modifiers(boon["modifiers"])
+        self.show_welcome()
 
     # ── Welcome screen ────────────────────────────────────────────────
     def show_welcome(self):
@@ -1327,7 +1735,8 @@ class PortMasters:
             "🚢 8 Voyages, each has 4 Phases: Buy → Trade → Maintain → Upgrade",
             "⚓ Freight Cost: max(5, ItemCount×2 - ShipLevel×5)",
             "💾 Press Ctrl+S to save progress",
-            "🎯 Goal: Accumulate Wealth and Reputation!"
+            "🎯 Goal: Accumulate Wealth and Reputation!",
+            "🔮 NEW: Visit Broker in Phase 1 to buy demand rumors!"
         ]
         for tip in tips:
             tk.Label(tips_frame, text=tip, font=self.FONT_BODY,
@@ -1335,7 +1744,6 @@ class PortMasters:
 
         self.update_button_states()
 
-    # ── Instructions ──────────────────────────────────────────────────
     def show_instructions(self):
         instructions = """
         ⚓ PortMasters - Rules
@@ -1356,8 +1764,14 @@ class PortMasters:
         • VAT: 5% on finished product profit margin
         • Income Tax: 10% on voyage net profit
 
+        🔮 Broker's Whisper (NEW!):
+        • Phase 1: Click "Broker's Rumor Board" to open the window
+        • Spend 5 Gold to buy a "rumor" about Phase 2 demand
+        • Revealed intel guarantees matching orders will appear
+        • Feel like a genius when your hoarded cargo matches demand!
+
         🌊 Voyage Phases:
-        1. Port Purchase - Buy resources at ports
+        1. Port Purchase - Buy resources at ports (+ Broker rumors)
         2. Trade Transaction - Complete orders
         3. Maintenance - Pay upkeep fees
         4. Upgrade - Improve ships to lower costs
@@ -1373,11 +1787,17 @@ class PortMasters:
         """
         messagebox.showinfo("⚓ Navigation Guide", instructions)
 
-    # ── Phase 1: Port Purchase ────────────────────────────────────────
     def start_phase1(self):
         self.phase = 1
         self.purchase_count = 0
         self.purchased_cards.clear()
+        
+        # 🔮 FIX: Generate 5 tags instead of 4
+        self.phase2_demand_tags = self._generate_phase2_demand_tags(count=5)
+        self.revealed_intel = []
+        self._intel_order_used = False
+        self.rumor_window = None
+        
         self.clear_phase_content()
         self.log_message(f"\n⚓=== Round {self.current_round} - Phase 1: Port Purchase ===")
         self.log_message(f"💰 Current Funds: {self.money} Gold")
@@ -1396,14 +1816,19 @@ class PortMasters:
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
         tk.Label(header, text="⚓ Port Goods Purchase", font=self.FONT_TITLE,
-                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(anchor=tk.W)
+                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(side=tk.LEFT, anchor=tk.W)
+        
+        # 🔮 INTEL SYSTEM: Button to open Rumor Board Toplevel
+        CustomButton(header, text="🔮 Broker's Rumor Board", font=self.BUTTON_FONT,
+                     bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
+                     relief=tk.RAISED, borderwidth=2, padx=15, pady=8,
+                     command=self.show_rumor_board).pack(side=tk.RIGHT)
 
         cards_container = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_container.pack(fill=tk.BOTH, expand=True)
         self.create_scrollable_cards(cards_container, self.resource_cards, self.create_purchase_card)
         self.create_phase_bottom_buttons(main_container, "✅ Complete Purchase, Continue", self.complete_phase1)
 
-    # ── Phase 2: Trade Transactions ───────────────────────────────────
     def start_phase2(self):
         self.phase = 2
         self.order_count = 0
@@ -1432,7 +1857,6 @@ class PortMasters:
         self.create_scrollable_cards(cards_container, self.customer_cards, self.create_order_card)
         self.create_phase_bottom_buttons(main_container, "✅ Complete Trades, Continue", self.complete_phase2)
 
-    # ── Scrollable card grid ──────────────────────────────────────────
     def create_scrollable_cards(self, parent, cards, card_creator):
         canvas = tk.Canvas(parent, highlightthickness=0, bg=self.colors["bg_light"])
         scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
@@ -1463,7 +1887,6 @@ class PortMasters:
         else:
             return 1, index - 3
 
-    # ── Purchase card widget ──────────────────────────────────────────
     def create_purchase_card(self, parent, card, row, col):
         card_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         card_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
@@ -1494,15 +1917,21 @@ class PortMasters:
                          font=self.FONT_SMALL, bg=self.colors["card_bg"],
                          fg=self.colors["accent_red"]).pack(anchor=tk.W)
 
+        final_cost = self.get_card_final_cost(card)
         total_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         total_frame.pack(fill=tk.X, padx=15, pady=self.PAD_MD)
-        tk.Label(total_frame, text=f"💰 Total: {card['total_cost']} Gold",
+        
+        cost_text = f"💰 Total: {final_cost} Gold"
+        if final_cost < card["total_cost"]:
+            cost_text += f" (Was {card['total_cost']})"
+            
+        tk.Label(total_frame, text=cost_text,
                  font=self.FONT_STAT, bg=self.colors["card_bg"],
                  fg=self.colors["accent_red"]).pack(anchor=tk.W)
 
         is_purchased = card["id"] in self.purchased_cards
-        can_afford = self.money >= card["total_cost"] and not is_purchased
-        btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({card['total_cost']}💰)"
+        can_afford = self.money >= final_cost and not is_purchased
+        btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
         btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
         btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
 
@@ -1513,9 +1942,8 @@ class PortMasters:
                            padx=15, pady=15, wraplength=280,
                            state=btn_state, command=lambda c=card: self.purchase_card_specific(c))
         btn.pack(fill=tk.X, expand=True)
-        self.purchase_buttons.append({"button": btn, "card_id": card["id"], "total_cost": card["total_cost"]})
+        self.purchase_buttons.append({"button": btn, "card_id": card["id"], "card_ref": card})
 
-    # ── Order card widget ─────────────────────────────────────────────
     def create_order_card(self, parent, order, row, col):
         order_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         order_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
@@ -1538,7 +1966,8 @@ class PortMasters:
                      bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, self.PAD_MD))
             self.create_resource_info_row(item_frame, resource_info, show_inventory=True, font_size=11)
 
-        transport_detail = self.show_transport_cost_detail(order["total_items"])
+        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
+        transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
         transport_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         transport_frame.pack(fill=tk.X, padx=15, pady=5)
         tk.Label(transport_frame,
@@ -1580,7 +2009,6 @@ class PortMasters:
         btn.pack(fill=tk.X, expand=True)
         self.order_buttons.append({"button": btn, "order_id": order["id"], "net_profit": net_profit})
 
-    # ── Resource info row helper ──────────────────────────────────────
     def create_resource_info_row(self, parent, resource_info, show_inventory=False, font_size=10):
         resource = resource_info["type"]
         color = self.resource_colors.get(resource, "black")
@@ -1607,7 +2035,6 @@ class PortMasters:
                      font=("Segoe UI", font_size - 1), bg=self.colors["card_bg"],
                      fg=inv_color).pack(side=tk.LEFT, padx=(5, 0))
 
-    # ── Phase bottom buttons ──────────────────────────────────────────
     def create_phase_bottom_buttons(self, parent, text, command):
         bottom_frame = tk.Frame(parent, bg=self.colors["bg_light"])
         bottom_frame.pack(fill=tk.X, pady=(self.PAD_XL, 5))
@@ -1615,15 +2042,17 @@ class PortMasters:
                      bg=self.colors["button_primary"], fg="white", relief=tk.RAISED,
                      borderwidth=2, padx=30, pady=15, command=command).pack(pady=5)
 
-    # ── Purchase / order button refresh ───────────────────────────────
     def update_purchase_buttons(self):
         for btn_info in self.purchase_buttons:
             card_id = btn_info["card_id"]
-            total_cost = btn_info["total_cost"]
+            card = btn_info["card_ref"]
             button = btn_info["button"]
             is_purchased = card_id in self.purchased_cards
-            can_afford = self.money >= total_cost and not is_purchased
-            btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({total_cost}💰)"
+            
+            final_cost = self.get_card_final_cost(card)
+            can_afford = self.money >= final_cost and not is_purchased
+            
+            btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
             btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
             btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
             button.config(text=btn_text, state=btn_state, bg=btn_bg)
@@ -1659,7 +2088,6 @@ class PortMasters:
             self.log_message(f"✅ Trading ended, completed {self.order_count} trades")
         self.start_phase3()
 
-    # ── Phase 3: Maintenance ──────────────────────────────────────────
     def start_phase3(self):
         self.phase = 3
         self.clear_phase_content()
@@ -1710,7 +2138,6 @@ class PortMasters:
                      padx=30, pady=15, command=btn_command).pack(pady=20)
         self.update_button_states()
 
-    # ── Bankruptcy screen ─────────────────────────────────────────────
     def show_bankruptcy_screen(self):
         self.game_over = True
         self.clear_phase_content()
@@ -1787,10 +2214,15 @@ class PortMasters:
         3. Maker Wage: {} Gold / Round
         4. Hire only as needed
 
+        🔮 Broker's Whisper Strategy:
+        1. Buy rumors early if you have spare gold
+        2. Hoard revealed items to guarantee Phase 2 profits
+        3. Balance intel purchases with other investments
+
         🛒 Buying Strategy:
         1. Reserve funds for maintenance+wages first
         2. Select high value-for-money goods
-        3. Prioritize port specialties
+        3. Prioritize port specialties + revealed intel
 
         🤝 Trading Strategy:
         1. Prioritize highest profit orders
@@ -1807,7 +2239,6 @@ class PortMasters:
                    self.SACHET_MAKER_WAGE, self.fixed_cost)
         messagebox.showinfo("💡 Trade Strategy Advice", tips)
 
-    # ── Phase 4: Ship Upgrade ─────────────────────────────────────────
     def start_phase4(self):
         self.phase = 4
         self.clear_phase_content()
@@ -1838,7 +2269,6 @@ class PortMasters:
         columns_container.columnconfigure(0, weight=1)
         columns_container.columnconfigure(1, weight=1)
 
-        # Current status card
         current_card = tk.Frame(columns_container, bg=self.colors["card_header"],
                                 relief=tk.RAISED, borderwidth=3, padx=30, pady=30)
         current_card.grid(row=0, column=0, padx=(0, 20), pady=10, sticky="nsew")
@@ -1866,7 +2296,6 @@ class PortMasters:
         tk.Label(current_card, text=formula_text, font=("Segoe UI", 15, "italic"),
                  bg=self.colors["card_header"], fg=self.colors["accent_red"]).pack(pady=self.PAD_MD)
 
-        # Upgrade options card
         upgrade_card = tk.Frame(columns_container, bg=self.colors["card_bg"],
                                 relief=tk.RAISED, borderwidth=3, padx=30, pady=30)
         upgrade_card.grid(row=0, column=1, padx=(20, 0), pady=10, sticky="nsew")
@@ -1930,7 +2359,6 @@ class PortMasters:
                      font=("Segoe UI", 18), bg=self.colors["card_bg"],
                      fg=self.colors["accent_green"]).pack(pady=15)
 
-        # Bottom buttons
         bottom_container = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         bottom_container.pack(fill=tk.X, pady=(30, 20))
         buttons_frame = tk.Frame(bottom_container, bg=self.colors["bg_light"])
@@ -2003,7 +2431,6 @@ class PortMasters:
         self.log_message("⏭️ Skipped Ship Upgrade")
         self.end_round()
 
-    # ── End game ──────────────────────────────────────────────────────
     def end_game(self):
         self.log_message("\n" + "=" * 50)
         self.log_message("🎮 PortMasters - Game Over!")
@@ -2051,7 +2478,6 @@ class PortMasters:
         self.delete_save()
         self.update_button_states()
 
-    # ── Restart ───────────────────────────────────────────────────────
     def restart_game(self):
         if messagebox.askyesno("Restart Voyage", "Confirm restarting the maritime journey?"):
             self.inventory = {"Hemp": 8, "Silk": 5, "Tea": 3,
@@ -2080,12 +2506,20 @@ class PortMasters:
             self.income_tax_paid = 0
             self.round_revenue = 0
             self.round_costs = 0
+            self.modifier_flags = {}
+            
+            self.phase2_demand_tags = []
+            self.revealed_intel = []
+            self._intel_order_used = False
+            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+                self.rumor_window.destroy()
+            self.rumor_window = None
+            
             self.log_text.delete(1.0, tk.END)
             self.update_display()
             self.show_welcome()
             self.delete_save()
 
-    # ── Button state management ───────────────────────────────────────
     def update_button_states(self):
         if self.game_over:
             self.start_btn.config(state=tk.DISABLED, text="⚠️ Game Over")
@@ -2100,6 +2534,9 @@ class PortMasters:
         elif self.phase in [3, 4]:
             self.start_btn.config(state=tk.DISABLED, text="🚢 On Voyage...")
             self.next_btn.config(state=tk.NORMAL, text="⏭️ Continue Voyage")
+        elif self.phase == 5:
+            self.start_btn.config(state=tk.DISABLED, text="🧭 Drafting Boon...")
+            self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
 
     def next_phase(self):
         phase_actions = {
@@ -2116,5 +2553,4 @@ class PortMasters:
         self.window.mainloop()
 
 
-if __name__ == "__main__":
-    PortMasters().run()
+if __name__ == "__main__": PortMasters().run()
