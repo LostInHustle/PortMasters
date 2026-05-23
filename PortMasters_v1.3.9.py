@@ -330,6 +330,12 @@ class PortMasters:
         self.modifier_flags = {}
         self.boon_manager = BoonManager(self.get_game_state_for_boons)
 
+        # 🔮 INTEL SYSTEM: Broker's Whisper attributes
+        self.phase2_demand_tags = []      # Pre-generated tags for Phase 2 orders
+        self.revealed_intel = []          # Tags player has purchased via Broker
+        self.intel_cost = 5               # Gold cost per rumor
+        self._intel_order_used = False    # Flag: has revealed intel been used for guaranteed order?
+
         self.setup_styles()
         self.create_widgets()
         self.setup_keyboard_shortcuts()
@@ -344,7 +350,9 @@ class PortMasters:
         return {
             "money": self.money, "inventory": self.inventory,
             "weavers": self.weavers, "master_weavers": self.master_weavers,
-            "sachet_makers": self.sachet_makers, "ship_level": self.ship_level
+            "sachet_makers": self.sachet_makers, "ship_level": self.ship_level,
+            # 🔮 INTEL SYSTEM: Include intel state for boon weighting if needed
+            "revealed_intel": self.revealed_intel
         }
 
     def apply_modifiers(self, modifiers):
@@ -452,7 +460,10 @@ class PortMasters:
             "total_revenue": self.total_revenue, "total_costs": self.total_costs,
             "material_costs": self.material_costs, "worker_wages": self.worker_wages,
             "maintenance_costs": self.maintenance_costs,
-            "vat_paid": self.vat_paid, "income_tax_paid": self.income_tax_paid
+            "vat_paid": self.vat_paid, "income_tax_paid": self.income_tax_paid,
+            # 🔮 INTEL SYSTEM: Save intel state
+            "phase2_demand_tags": self.phase2_demand_tags,
+            "revealed_intel": self.revealed_intel
         }
         try:
             with open(self.save_file, "w", encoding="utf-8") as f:
@@ -489,7 +500,13 @@ class PortMasters:
             self.maintenance_costs = game_data.get("maintenance_costs", 0)
             self.vat_paid = game_data.get("vat_paid", 0)
             self.income_tax_paid = game_data.get("income_tax_paid", 0)
-            self.modifier_flags = {} # Reset boons on load
+            self.modifier_flags = {}  # Reset boons on load
+            
+            # 🔮 INTEL SYSTEM: Load intel state
+            self.phase2_demand_tags = game_data.get("phase2_demand_tags", [])
+            self.revealed_intel = game_data.get("revealed_intel", [])
+            self._intel_order_used = False
+            
             self.log_message("📂 Save Loaded!")
             self.update_display()
             if self.phase == 0:
@@ -752,27 +769,74 @@ class PortMasters:
             if 'double_production_this_round' in worker:
                 del worker['double_production_this_round']
 
-    # ── Order generation ──────────────────────────────────────────────
-    def generate_raw_material_order(self):
+    # ── 🔮 INTEL SYSTEM: Order generation with constraint injection ──
+    def _generate_phase2_demand_tags(self, count=4):
+        """Generate demand tags that will influence Phase 2 orders"""
+        tags = []
+        all_items = self.resource_types + self.product_types
+        for _ in range(count):
+            tag = random.choice(all_items)
+            if tag not in tags:  # Avoid duplicates
+                tags.append(tag)
+        return tags
+
+    def purchase_intel(self):
+        """🔮 INTEL SYSTEM: Spend gold to reveal a Phase 2 demand rumor"""
+        if not self.phase2_demand_tags:
+            self.log_message("🔮 The Broker has no more whispers...")
+            return False
+        if self.money < self.intel_cost:
+            self.log_message(f"❌ Need {self.intel_cost} Gold for a rumor")
+            return False
+        
+        self.money -= self.intel_cost
+        # Reveal a random hidden tag
+        revealed = random.choice(self.phase2_demand_tags)
+        # Move from hidden to revealed (but keep in phase2_demand_tags for order generation)
+        if revealed not in self.revealed_intel:
+            self.revealed_intel.append(revealed)
+        
+        port = random.choice(self.ports)
+        self.log_message(f"🗣️ Broker's Whisper: 'Word from {port}: High demand for {revealed}!'")
+        self.update_rumor_board()
+        self.update_display()
+        return True
+
+    def generate_raw_material_order(self, resource_filter=None):
+        """Generate a raw material order, optionally filtered by resource type"""
         num_resources = random.randint(1, 3)
         resources = []
         available_resources = self.resource_types.copy()
         demand_port = random.choice(self.ports)
         total_items = 0
-        for _ in range(num_resources):
-            if not available_resources: break
-            resource = random.choice(available_resources)
-            available_resources.remove(resource)
+        
+        # 🔮 INTEL SYSTEM: If filter provided, force that resource
+        if resource_filter and resource_filter in self.resource_types:
             required = random.randint(2, 5)
             total_items += required
-            resources.append({"type": resource, "required": required})
+            resources.append({"type": resource_filter, "required": required})
+        else:
+            for _ in range(num_resources):
+                if not available_resources: break
+                resource = random.choice(available_resources)
+                available_resources.remove(resource)
+                required = random.randint(2, 5)
+                total_items += required
+                resources.append({"type": resource, "required": required})
+        
         base_reward = sum(r["required"] * 5 for r in resources)
         reward = base_reward + random.randint(10, 25)
         return {"demand_port": demand_port, "resources": resources, "reward": reward,
                 "total_items": total_items, "is_product_order": False}
 
-    def generate_product_order(self):
-        product = random.choice(self.product_types)
+    def generate_product_order(self, product_filter=None):
+        """Generate a product order, optionally filtered by product type"""
+        # 🔮 INTEL SYSTEM: If filter provided, force that product
+        if product_filter and product_filter in self.product_types:
+            product = product_filter
+        else:
+            product = random.choice(self.product_types)
+            
         required = random.randint(1, 3)
         demand_port = random.choice(self.ports)
         base_price = random.randint(*self.product_prices[product])
@@ -782,6 +846,18 @@ class PortMasters:
                 "reward": reward, "total_items": required, "is_product_order": True}
 
     def generate_mixed_order(self):
+        """Generate Phase 2 order, respecting revealed intel constraints"""
+        # 🔮 INTEL SYSTEM: If we have revealed intel and haven't used it yet
+        if self.revealed_intel and not self._intel_order_used:
+            # Force generate an order matching a revealed tag
+            tag = random.choice(self.revealed_intel)
+            self._intel_order_used = True  # Only guarantee ONE order per round
+            if tag in self.resource_types:
+                return self.generate_raw_material_order(resource_filter=tag)
+            elif tag in self.product_types:
+                return self.generate_product_order(product_filter=tag)
+        
+        # Normal random generation
         if random.random() < 0.5 or not self.product_types:
             return self.generate_raw_material_order()
         else:
@@ -975,6 +1051,11 @@ class PortMasters:
         # Clear Boons for next round
         self.modifier_flags = {}
         
+        # 🔮 INTEL SYSTEM: Reset intel state for new round
+        self.phase2_demand_tags = []
+        self.revealed_intel = []
+        self._intel_order_used = False
+        
         self.round_revenue = 0
         self.round_costs = 0
         self.maintenance_costs = 0
@@ -1007,6 +1088,51 @@ class PortMasters:
                  fg=color, width=15, anchor="w").pack(side=tk.LEFT)
         tk.Label(frame, text=str(self.inventory.get(item, 0)), font=self.FONT_BODY_BOLD,
                  bg=self.colors["card_bg"], fg=color, width=5).pack(side=tk.RIGHT)
+
+    # ── 🔮 INTEL SYSTEM: Rumor Board UI Widget ────────────────────────
+    def create_rumor_board(self, parent):
+        """🔮 INTEL SYSTEM: Create the Rumor Board widget for Phase 1"""
+        board_frame = ttk.LabelFrame(parent, text="🗣️ Broker's Rumor Board",
+                                      padding=self.PAD_MD, style="DarkFrame.TLabelframe")
+        board_frame.pack(fill=tk.X, pady=(0, self.PAD_MD))
+        
+        # Intel purchase button with juice effect
+        btn_frame = tk.Frame(board_frame, bg=self.colors["bg_light"])
+        btn_frame.pack(fill=tk.X, pady=(0, self.PAD_SM))
+        
+        CustomButton(btn_frame, text=f"🔮 Buy Rumor ({self.intel_cost}💰)",
+                     font=self.BUTTON_FONT, bg=self.colors["accent_gold"],
+                     fg=self.colors["text_dark"], relief=tk.RAISED, borderwidth=2,
+                     padx=15, pady=8, juice_callback=self.trigger_juice,
+                     command=self.purchase_intel).pack(side=tk.LEFT)
+        
+        # Revealed intel display area
+        self.rumor_display_frame = tk.Frame(board_frame, bg=self.colors["card_bg"])
+        self.rumor_display_frame.pack(fill=tk.X, pady=self.PAD_SM)
+        self.update_rumor_board()  # Initial render
+        
+        return board_frame
+
+    def update_rumor_board(self):
+        """🔮 INTEL SYSTEM: Refresh the rumor board display"""
+        # Clear existing labels
+        for widget in self.rumor_display_frame.winfo_children():
+            widget.destroy()
+        
+        if self.revealed_intel:
+            tk.Label(self.rumor_display_frame, text="📜 Revealed Intel:",
+                     font=self.FONT_SMALL_BOLD, bg=self.colors["card_bg"],
+                     fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=10, pady=(5, 2))
+            for intel in self.revealed_intel:
+                label = tk.Label(self.rumor_display_frame, 
+                               text=f"• 🗣️ '{random.choice(self.ports)} wants {intel}'",
+                               font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                               fg=self.colors["text_dark"], anchor=tk.W, justify=tk.LEFT)
+                label.pack(anchor=tk.W, padx=25, pady=2)
+        else:
+            tk.Label(self.rumor_display_frame, text="  ✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.",
+                     font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                     fg="#888888", anchor=tk.W, justify=tk.LEFT).pack(anchor=tk.W, padx=10, pady=5)
 
     # ── Worker management screen ──────────────────────────────────────
     def show_worker_management(self, in_phase=False):
@@ -1563,7 +1689,8 @@ class PortMasters:
             "🚢 8 Voyages, each has 4 Phases: Buy → Trade → Maintain → Upgrade",
             "⚓ Freight Cost: max(5, ItemCount×2 - ShipLevel×5)",
             "💾 Press Ctrl+S to save progress",
-            "🎯 Goal: Accumulate Wealth and Reputation!"
+            "🎯 Goal: Accumulate Wealth and Reputation!",
+            "🔮 NEW: Visit Broker in Phase 1 to buy demand rumors!"
         ]
         for tip in tips:
             tk.Label(tips_frame, text=tip, font=self.FONT_BODY,
@@ -1591,8 +1718,13 @@ class PortMasters:
         • VAT: 5% on finished product profit margin
         • Income Tax: 10% on voyage net profit
 
+        🔮 Broker's Whisper (NEW!):
+        • Phase 1: Spend 5 Gold to buy a "rumor" about Phase 2 demand
+        • Revealed intel guarantees matching orders will appear
+        • Feel like a genius when your hoarded cargo matches demand!
+
         🌊 Voyage Phases:
-        1. Port Purchase - Buy resources at ports
+        1. Port Purchase - Buy resources at ports (+ Broker rumors)
         2. Trade Transaction - Complete orders
         3. Maintenance - Pay upkeep fees
         4. Upgrade - Improve ships to lower costs
@@ -1612,6 +1744,12 @@ class PortMasters:
         self.phase = 1
         self.purchase_count = 0
         self.purchased_cards.clear()
+        
+        # 🔮 INTEL SYSTEM: Pre-generate Phase 2 demand tags
+        self.phase2_demand_tags = self._generate_phase2_demand_tags(count=4)
+        self.revealed_intel = []
+        self._intel_order_used = False
+        
         self.clear_phase_content()
         self.log_message(f"\n⚓=== Round {self.current_round} - Phase 1: Port Purchase ===")
         self.log_message(f"💰 Current Funds: {self.money} Gold")
@@ -1626,6 +1764,9 @@ class PortMasters:
     def show_purchase_interface(self):
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
+
+        # 🔮 INTEL SYSTEM: Add Rumor Board at top of Phase 1 UI
+        self.create_rumor_board(main_container)
 
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
@@ -1645,7 +1786,7 @@ class PortMasters:
         self.log_message(f"\n🤝=== Round {self.current_round} - Phase 2: Trade Transaction ===")
         self.customer_cards = []
         for i in range(5):
-            order = self.generate_mixed_order()
+            order = self.generate_mixed_order()  # 🔮 Now respects revealed intel
             order["id"] = i
             self.customer_cards.append(order)
         self.show_orders_interface()
@@ -2022,10 +2163,15 @@ class PortMasters:
         3. Maker Wage: {} Gold / Round
         4. Hire only as needed
 
+        🔮 Broker's Whisper Strategy:
+        1. Buy rumors early if you have spare gold
+        2. Hoard revealed items to guarantee Phase 2 profits
+        3. Balance intel purchases with other investments
+
         🛒 Buying Strategy:
         1. Reserve funds for maintenance+wages first
         2. Select high value-for-money goods
-        3. Prioritize port specialties
+        3. Prioritize port specialties + revealed intel
 
         🤝 Trading Strategy:
         1. Prioritize highest profit orders
@@ -2310,6 +2456,12 @@ class PortMasters:
             self.round_revenue = 0
             self.round_costs = 0
             self.modifier_flags = {}
+            
+            # 🔮 INTEL SYSTEM: Reset intel state
+            self.phase2_demand_tags = []
+            self.revealed_intel = []
+            self._intel_order_used = False
+            
             self.log_text.delete(1.0, tk.END)
             self.update_display()
             self.show_welcome()
