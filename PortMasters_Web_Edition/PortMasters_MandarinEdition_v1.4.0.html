@@ -1,0 +1,1892 @@
+<!-- PortMasters_MandarinEdition_v1.4.0.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PortMasters - 海上丝绸之路贸易大亨</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #E6F2FF;
+  color: #1A237E;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+#app {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 8px;
+  min-height: 100vh;
+}
+.header {
+  grid-column: 1 / -1;
+  background: #1A3C8C;
+  color: #FFD700;
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.header h1 { font-size: 22px; font-weight: bold; }
+.header .subtitle { color: white; font-size: 12px; }
+.header .shortcuts { color: #AAC4E8; font-size: 10px; }
+
+.status-panel {
+  grid-row: 2;
+  background: #F0F8FF;
+  border: 2px solid #2E5AA7;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+.status-section {
+  background: #F0F8FF;
+  border: 1px solid #2E5AA7;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.status-section h3 {
+  color: #1A3C8C;
+  font-size: 13px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #2E5AA7;
+  padding-bottom: 4px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+}
+.stat-value { font-weight: bold; color: #2E5AA7; }
+.stat-money { color: #4CAF50; font-weight: bold; font-size: 14px; }
+.stat-score { color: #1A237E; }
+.inv-item {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 11px;
+}
+.inv-item .icon { margin-right: 4px; }
+.inv-item .name { flex: 1; }
+.inv-item .count { font-weight: bold; min-width: 30px; text-align: right; }
+
+.phase-panel {
+  grid-row: 2;
+  background: #F0F8FF;
+  border: 2px solid #2E5AA7;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+  position: relative;
+}
+
+.control-panel {
+  grid-column: 1 / -1;
+  background: #1A3C8C;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.log-panel {
+  grid-column: 1 / -1;
+  background: #F8F9FA;
+  border: 1px solid #2E5AA7;
+  border-radius: 8px;
+  padding: 8px;
+  height: 140px;
+  overflow-y: auto;
+  font-size: 11px;
+  font-family: "Consolas", monospace;
+}
+.log-entry { padding: 2px 4px; border-bottom: 1px dotted #ddd; }
+
+.btn {
+  background: #2E5AA7;
+  color: white;
+  border: 2px solid;
+  border-color: #5a85d6 #1a3c8c #1a3c8c #5a85d6;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.1s;
+  user-select: none;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.2); }
+.btn:active:not(:disabled) {
+  border-color: #1a3c8c #5a85d6 #5a85d6 #1a3c8c;
+  transform: translateY(1px);
+}
+.btn:disabled { background: #888; cursor: not-allowed; opacity: 0.7; }
+.btn-success { background: #4CAF50; border-color: #7cd67f #2d7a30 #2d7a30 #7cd67f; }
+.btn-warning { background: #FF9800; border-color: #ffb84d #b36b00 #b36b00 #ffb84d; color: white; }
+.btn-danger { background: #FF5252; border-color: #ff8585 #c62828 #c62828 #ff8585; }
+.btn-gold { background: #FFD700; color: #1A237E; border-color: #ffe766 #b39700 #b39700 #ffe766; }
+.btn-grey { background: #424242; border-color: #666 #222 #222 #666; }
+.btn-lg { padding: 12px 24px; font-size: 14px; }
+.btn-xl { padding: 15px 30px; font-size: 16px; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  padding: 10px;
+}
+.card {
+  background: #F0F8FF;
+  border: 2px solid #2E5AA7;
+  border-radius: 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.card-header {
+  background: #E6F2FF;
+  padding: 10px 14px;
+  border-bottom: 2px solid #2E5AA7;
+  font-weight: bold;
+  font-size: 14px;
+  color: #1A3C8C;
+  text-align: center;
+}
+.card-body { padding: 12px 14px; flex: 1; }
+.card-footer { padding: 10px 14px; border-top: 1px solid #ddd; }
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.resource-row .icon { font-size: 16px; margin-right: 6px; }
+.resource-row .name { font-weight: bold; min-width: 70px; }
+.resource-row .qty { margin: 0 6px; }
+.resource-row .price { color: #666; margin-left: auto; }
+.resource-row .inv-status { margin-left: 8px; font-size: 11px; }
+
+.hero-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1A3C8C;
+  text-align: center;
+  margin: 20px 0 10px;
+}
+.subtitle-text {
+  font-size: 14px;
+  color: #2E5AA7;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.center-block {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal {
+  background: #E6F2FF;
+  border: 3px solid #2E5AA7;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.modal h2 { color: #1A3C8C; margin-bottom: 16px; text-align: center; }
+.modal pre {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.boon-card, .module-card {
+  background: #F0F8FF;
+  border: 3px solid #2E5AA7;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.boon-card:hover, .module-card:hover { transform: translateY(-4px); }
+.boon-icon, .module-icon { font-size: 48px; margin: 10px 0; }
+.boon-name, .module-name { font-size: 16px; font-weight: bold; color: #1A3C8C; margin: 8px 0; }
+.boon-desc, .module-desc { font-size: 12px; color: #333; margin: 10px 0; min-height: 60px; }
+
+.tip-list { text-align: left; max-width: 600px; margin: 20px auto; }
+.tip-list div { padding: 4px 0; font-size: 13px; }
+
+.separator { height: 2px; background: #2E5AA7; margin: 16px 0; }
+
+.profit-positive { color: #4CAF50; font-weight: bold; }
+.profit-negative { color: #FF5252; font-weight: bold; }
+
+#particles-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.shake { animation: shake 0.3s; }
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, -4px); }
+  40% { transform: translate(4px, 4px); }
+  60% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+
+.worker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 12px;
+}
+
+.inv-section-title {
+  color: #2E5AA7;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 4px 0;
+  border-bottom: 1px solid #2E5AA7;
+  margin: 6px 0 4px;
+}
+
+@media (max-width: 900px) {
+  #app { grid-template-columns: 1fr; }
+  .status-panel { max-height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="header">
+    <div>
+      <h1>⚓ PortMasters 🚢</h1>
+      <div class="subtitle">⚓ 航海贸易 | 🚢 船只升级 | 👥 工匠制作 | 🧾 税收系统</div>
+    </div>
+    <div class="shortcuts">快捷键: Ctrl+S保存 | Ctrl+N下一阶段 | Ctrl+H工匠管理 | Ctrl+R重新开始 | F1帮助</div>
+  </div>
+  
+  <div class="status-panel" id="status-panel"></div>
+  <div class="phase-panel" id="phase-panel"></div>
+  
+  <div class="control-panel" id="control-panel"></div>
+  <div class="log-panel" id="log-panel"></div>
+</div>
+
+<canvas id="particles-canvas"></canvas>
+<div id="modal-root"></div>
+
+<script>
+// =====================================================================
+// PortMasters - HTML Replica (Blizzard Engineering Patch v1.2 - State Machine Fix)
+// =====================================================================
+
+const ICONS = {
+  "麻布": "🧶", "丝绸": "👘", "茶叶": "🍵",
+  "麻衣": "👔", "布衣": "👕", "绫罗绸缎": "👗", "香囊": "🌸"
+};
+const COLORS = {
+  "麻布": "#8B7355", "丝绸": "#DC143C", "茶叶": "#228B22",
+  "麻衣": "#D2691E", "布衣": "#4169E1", "绫罗绸缎": "#8B008B", "香囊": "#FF1493"
+};
+const RESOURCES = ["麻布", "丝绸", "茶叶"];
+const PRODUCTS = ["麻衣", "布衣", "绫罗绸缎", "香囊"];
+const PORTS = ["泉州港", "广州港", "宁波港", "扬州港", "杭州港"];
+
+const RECIPES = {
+  "麻衣": { materials: {"麻布": 2}, value: 15, worker_type: "weaver" },
+  "布衣": { materials: {"麻布": 2, "丝绸": 1}, value: 35, worker_type: "weaver" },
+  "绫罗绸缎": { materials: {"丝绸": 3}, value: 60, worker_type: "master" },
+  "香囊": { materials: {"丝绸": 1, "茶叶": 2}, value: 80, worker_type: "sachet_maker" }
+};
+
+const COMMODITIES = {
+  "麻布": { ports: ["泉州港", "宁波港"], basePrice: [3, 6] },
+  "丝绸": { ports: ["杭州港", "扬州港"], basePrice: [6, 10] },
+  "茶叶": { ports: ["广州港", "泉州港"], basePrice: [10, 14] }
+};
+
+const PRODUCT_PRICES = {
+  "麻衣": [30, 42], "布衣": [50, 65],
+  "绫罗绸缎": [70, 90], "香囊": [95, 120]
+};
+
+const RESOURCE_PROBS = { "麻布": 0.4, "丝绸": 0.35, "茶叶": 0.25 };
+
+const WAGES = { weaver: 8, master: 12, sachet_maker: 20 };
+
+const BOONS = [
+  { id: "silk_wind", name: "丝路顺风", icon: "🌬️", desc: "本回合运输丝绸及成品时，运费减半。", modifiers: {transport_silk_discount: 0.5} },
+  { id: "favorable_tides", name: "顺风顺水", icon: "🌊", desc: "本回合基础运费减少4金币。", modifiers: {transport_flat_discount: 4} },
+  { id: "merchant_charm", name: "商贾魅力", icon: "✨", desc: "本回合港口采购所有商品享85折优惠。", modifiers: {purchase_discount: 0.15} },
+  { id: "artisan_inspiration", name: "匠人灵感", icon: "🔨", desc: "本回合所有工人每回合额外多生产1件商品。", modifiers: {worker_bonus_production: 1} },
+  { id: "emergency_loan", name: "紧急钱庄", icon: "💰", desc: "立即获得40金币周转资金。", modifiers: {instant_gold: 40} },
+  { id: "tax_shelter", name: "免税令", icon: "📜", desc: "本回合结算所得税率降至5%。", modifiers: {income_tax_override: 0.05} },
+  { id: "hemp_monopoly", name: "麻布专营", icon: "🧶", desc: "本回合麻布采购单价降低2金币。", modifiers: {hemp_price_reduction: 2} },
+  { id: "master_apprentice", name: "学徒传承", icon: "🎓", desc: "本回合雇佣工匠工资减半。", modifiers: {hire_discount: 0.5} }
+];
+
+const MODULES = [
+  { id: "smugglers_hold", name: "走私暗舱", icon: "🏴‍☠️", desc: "采购成本-15%。所得税+20%。" },
+  { id: "bulk_hauler", name: "散货索具", icon: "🏗️", desc: "每件货物运费-1。船只升级费用+15金币。" },
+  { id: "artisans_workshop", name: "工匠工坊", icon: "🛠️", desc: "工人产量+1。工资+20%。" },
+  { id: "tax_evasion", name: "避税账本", icon: "📕", desc: "所得税与增值税减半。15%概率在订单完成时罚款20金币(稽查)。" },
+  { id: "silk_monopoly", name: "丝路垄断", icon: "👘", desc: "丝绸运费为0。丝绸产品订单报酬+20%。" },
+  { id: "brokers_network", name: "牙行网络", icon: "🕵️", desc: "情报花费2金币。每次购买揭示2条密语。" },
+  { id: "salvage_crane", name: "打捞起重机", icon: "♻️", desc: "30%概率在订单完成时退还运费。" },
+  { id: "overdrive_engine", name: "超载引擎", icon: "⚙️", desc: "运费-5金币。维护费+10金币。" }
+];
+
+// =====================================================================
+// Game State
+// =====================================================================
+const game = {
+  inventory: { "麻布": 8, "丝绸": 5, "茶叶": 3, "麻衣": 0, "布衣": 0, "绫罗绸缎": 0, "香囊": 0 },
+  money: 100, score: 0,
+  currentRound: 1, maxRounds: 8,
+  totalRevenue: 0, totalCosts: 0,
+  materialCosts: 0, workerWages: 0, maintenanceCosts: 0,
+  vatPaid: 0, incomeTaxPaid: 0,
+  roundRevenue: 0, roundCosts: 0,
+  weavers: [], masterWeavers: [], sachetMakers: [],
+  fixedCost: 15,
+  shipLevel: 0, shipUpgradeCost: [15, 25, 40],
+  shipUpgradePenalty: 0, maintenancePenalty: 0,
+  phase: 0,
+  resourceCards: [], customerCards: [],
+  purchasedCards: new Set(), completedOrders: new Set(),
+  purchaseCount: 0, orderCount: 0,
+  gameOver: false,
+  modifierFlags: {},
+  phase2DemandTags: [], revealedIntel: [], intelCost: 5,
+  intelOrderUsed: false,
+  equippedModules: []
+};
+
+const logs = [];
+
+// =====================================================================
+// Utility
+// =====================================================================
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function choice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function weightedChoice(items) {
+  const total = items.reduce((s, [, w]) => s + w, 0);
+  let r = Math.random() * total;
+  for (const [item, w] of items) { r -= w; if (r <= 0) return item; }
+  return items[0][0];
+}
+
+function log(msg) {
+  logs.push(msg);
+  if (logs.length > 500) logs.shift();
+  renderLog();
+}
+
+function hasModule(id) { return game.equippedModules.some(m => m.id === id); }
+
+// =====================================================================
+// Calculations
+// =====================================================================
+function calcTransportCost(totalItems, hasSilk = false) {
+  let base = totalItems * 2;
+  let discount = game.shipLevel * 5;
+  if (game.modifierFlags.transport_flat_discount) discount += game.modifierFlags.transport_flat_discount;
+  let cost = Math.max(5, base - discount);
+  if (hasSilk && game.modifierFlags.transport_silk_discount) {
+    cost = Math.max(5, Math.floor(cost * game.modifierFlags.transport_silk_discount));
+  }
+  if (hasModule('bulk_hauler')) cost = Math.max(0, cost - totalItems);
+  if (hasModule('overdrive_engine')) cost = Math.max(0, cost - 5);
+  if (hasModule('silk_monopoly') && hasSilk) cost = 0;
+  return Math.max(0, cost);
+}
+
+function calcVAT(product, sellingPrice) {
+  const recipe = RECIPES[product];
+  let matCost = 0;
+  for (const [m, a] of Object.entries(recipe.materials)) {
+    const avg = (COMMODITIES[m].basePrice[0] + COMMODITIES[m].basePrice[1]) / 2;
+    matCost += avg * a;
+  }
+  let workerCost = WAGES[recipe.worker_type];
+  const taxable = sellingPrice - matCost - workerCost;
+  if (taxable > 0) {
+    let vat = Math.floor(taxable * 0.05);
+    if (hasModule('tax_evasion')) vat = Math.floor(vat * 0.5);
+    return vat;
+  }
+  return 0;
+}
+
+function calcIncomeTax(preTax) {
+  if (preTax <= 0) return 0;
+  const rate = game.modifierFlags.income_tax_override || 0.1;
+  let tax = Math.floor(preTax * rate);
+  if (hasModule('smugglers_hold')) tax = Math.floor(tax * 1.2);
+  if (hasModule('tax_evasion')) tax = Math.floor(tax * 0.5);
+  return tax;
+}
+
+function getCardFinalCost(card) {
+  let cost = card.totalCost;
+  if (game.modifierFlags.purchase_discount) {
+    cost = Math.floor(cost * (1 - game.modifierFlags.purchase_discount));
+  }
+  if (game.modifierFlags.hemp_price_reduction) {
+    for (const r of card.resources) {
+      if (r.type === "麻布") cost -= r.quantity * game.modifierFlags.hemp_price_reduction;
+    }
+  }
+  if (hasModule('smugglers_hold')) cost = Math.floor(cost * 0.85);
+  return Math.max(0, cost);
+}
+
+function getHireCost(type) {
+  let wage = WAGES[type];
+  if (game.modifierFlags.hire_discount) wage = Math.floor(wage * (1 - game.modifierFlags.hire_discount));
+  return wage;
+}
+
+// =====================================================================
+// Order/Card Generation
+// =====================================================================
+function genRawOrder(filter = null) {
+  const num = rand(1, 3);
+  const resources = [];
+  const available = [...RESOURCES];
+  const port = choice(PORTS);
+  let total = 0;
+  if (filter && RESOURCES.includes(filter)) {
+    const req = rand(2, 5);
+    total += req;
+    resources.push({ type: filter, required: req });
+  } else {
+    for (let i = 0; i < num; i++) {
+      if (!available.length) break;
+      const r = choice(available);
+      available.splice(available.indexOf(r), 1);
+      const req = rand(2, 5);
+      total += req;
+      resources.push({ type: r, required: req });
+    }
+  }
+  const base = resources.reduce((s, r) => s + r.required * 5, 0);
+  const reward = base + rand(10, 25);
+  return { demandPort: port, resources, reward, totalItems: total, isProductOrder: false };
+}
+
+function genProductOrder(filter = null) {
+  const product = (filter && PRODUCTS.includes(filter)) ? filter : choice(PRODUCTS);
+  const req = rand(1, 3);
+  const port = choice(PORTS);
+  const basePrice = rand(...PRODUCT_PRICES[product]);
+  return {
+    demandPort: port,
+    resources: [{ type: product, required: req }],
+    reward: basePrice * req,
+    totalItems: req,
+    isProductOrder: true
+  };
+}
+
+function genMixedOrder() {
+  if (game.revealedIntel.length && !game.intelOrderUsed) {
+    const intel = choice(game.revealedIntel);
+    game.intelOrderUsed = true;
+    if (RESOURCES.includes(intel.item)) return genRawOrder(intel.item);
+    if (PRODUCTS.includes(intel.item)) return genProductOrder(intel.item);
+  }
+  return Math.random() < 0.5 ? genRawOrder() : genProductOrder();
+}
+
+function genResourceCard() {
+  if (Math.random() < 0.3) return genProductPurchaseCard();
+  const num = rand(1, 3);
+  const resources = [];
+  const available = Object.keys(RESOURCE_PROBS);
+  const probs = Object.values(RESOURCE_PROBS);
+  const port = choice(PORTS);
+  for (let i = 0; i < num; i++) {
+    if (!available.length) break;
+    let r = Math.random(), acc = 0, chosen = available[0];
+    for (let j = 0; j < available.length; j++) {
+      acc += probs[j];
+      if (r <= acc) { chosen = available[j]; break; }
+    }
+    const idx = available.indexOf(chosen);
+    available.splice(idx, 1);
+    probs.splice(idx, 1);
+    const qty = rand(1, 3);
+    const [min, max] = COMMODITIES[chosen].basePrice;
+    const base = rand(min, max);
+    const price = COMMODITIES[chosen].ports.includes(port) ? base - 1 : base + 1;
+    resources.push({ type: chosen, quantity: qty, price });
+  }
+  const total = resources.reduce((s, r) => s + r.quantity * r.price, 0);
+  return { port, resources, totalCost: total, isProductCard: false };
+}
+
+function genProductPurchaseCard() {
+  const product = choice(PRODUCTS);
+  const qty = rand(1, 2);
+  const port = choice(PORTS);
+  const recipe = RECIPES[product];
+  let matCost = 0;
+  const details = [];
+  for (const [m, a] of Object.entries(recipe.materials)) {
+    const avg = (COMMODITIES[m].basePrice[0] + COMMODITIES[m].basePrice[1]) / 2;
+    matCost += avg * a;
+    details.push(`${m}×${a}`);
+  }
+  const markup = 1.4 + Math.random() * 0.4;
+  let unitPrice = Math.floor(matCost * markup);
+  const [min, max] = PRODUCT_PRICES[product];
+  unitPrice = Math.max(min, Math.min(unitPrice, max));
+  return {
+    port, resources: [{
+      type: product, quantity: qty, price: unitPrice,
+      materialCost: matCost, materialDetails: details.join(" + ")
+    }],
+    totalCost: unitPrice * qty, isProductCard: true
+  };
+}
+
+// =====================================================================
+// Game Actions
+// =====================================================================
+function applyBoon(boon) {
+  game.modifierFlags = boon.modifiers;
+  if (boon.modifiers.instant_gold) {
+    game.money += boon.modifiers.instant_gold;
+    log(`💰 福缘生效：立刻获得 ${boon.modifiers.instant_gold} 金币！`);
+  }
+  render();
+}
+
+function purchaseCard(card) {
+  if (game.purchasedCards.has(card.id)) return;
+  const cost = getCardFinalCost(card);
+  if (game.money < cost) { log(`❌ 资金不足！需要${cost}金币，当前${game.money}金币`); return; }
+  game.money -= cost;
+  game.roundCosts += cost;
+  game.totalCosts += cost;
+  for (const r of card.resources) game.inventory[r.type] += r.quantity;
+  game.purchasedCards.add(card.id);
+  game.purchaseCount++;
+  if (card.isProductCard) {
+    const r = card.resources[0];
+    log(`🛒 在${card.port}采购成品: ${ICONS[r.type]}${r.type}×${r.quantity}(@${r.price}💰/个, 原料成本${r.materialCost}💰)，总花费${cost}金币`);
+    log("   💡 提示：该成品出售时需缴纳增值税");
+  } else {
+    const txt = card.resources.map(r => `${ICONS[r.type]}${r.type}×${r.quantity}(${r.price}💰/个)`).join(" + ");
+    log(`🛒 在${card.port}采购: ${txt}，总花费${cost}金币`);
+    if (cost < card.totalCost) log(`   ✨ 折扣生效！节省了 ${card.totalCost - cost} 金币`);
+  }
+  log(`📊 已采购 ${game.purchaseCount} 批货物`);
+  triggerJuice();
+  render();
+}
+
+function completeOrder(order) {
+  if (game.completedOrders.has(order.id)) return;
+  for (const r of order.resources) {
+    if ((game.inventory[r.type] || 0) < r.required) {
+      log(`❌ 库存不足！需要${r.type}×${r.required}`);
+      return;
+    }
+  }
+  const hasSilk = order.resources.some(r => ["丝绸", "绫罗绸缎", "香囊", "布衣"].includes(r.type));
+  let transport = calcTransportCost(order.totalItems, hasSilk);
+  for (const r of order.resources) game.inventory[r.type] -= r.required;
+  let reward = order.reward;
+  let totalVat = 0;
+  if (order.isProductOrder) {
+    const product = order.resources[0].type;
+    const unitVat = calcVAT(product, reward / order.resources[0].required);
+    totalVat = unitVat * order.resources[0].required;
+    reward -= totalVat;
+    game.vatPaid += totalVat;
+    log(`🧾 成品销售增值税: ${totalVat}金币`);
+  }
+  game.money -= transport;
+  game.roundCosts += transport;
+  game.totalCosts += transport;
+  const origTransport = transport;
+  if (hasModule('silk_monopoly') && hasSilk) {
+    reward = Math.floor(reward * 1.2);
+    log("👘 丝路垄断：报酬+20%！");
+  }
+  if (hasModule('salvage_crane') && Math.random() < 0.3) {
+    game.money += transport;
+    log(`♻️ 打捞起重机：退还了${transport}金币运费！`);
+    transport = 0;
+  }
+  if (hasModule('tax_evasion') && Math.random() < 0.15) {
+    game.money -= 20;
+    log("🚨 稽查！避税账本触发，损失20金币！");
+  }
+  if (transport !== origTransport) {
+    const diff = origTransport - transport;
+    game.money += diff;
+    game.roundCosts -= diff;
+    game.totalCosts -= diff;
+  }
+  game.money += reward;
+  game.roundRevenue += reward;
+  game.totalRevenue += reward;
+  game.score += Math.floor(reward - transport);
+  game.completedOrders.add(order.id);
+  game.orderCount++;
+  const txt = order.resources.map(r => `${ICONS[r.type]}${r.type}×${r.required}`).join(" + ");
+  log(`📦 完成${order.demandPort}的订单: ${txt}`);
+  log(`   💰 报酬: ${reward}金币 - ⚓ 运费: ${transport}金币 = 📊 净利润: ${reward - transport}金币`);
+  log(`📊 已完成 ${game.orderCount} 笔交易`);
+  triggerJuice();
+  render();
+}
+
+function hireWorker(type) {
+  const wage = getHireCost(type);
+  if (game.money < wage) { log("❌ 资金不足，无法雇佣工人！"); return; }
+  const names = { weaver: "织女", master: "纺织大师", sachet_maker: "香囊师" };
+  const icons = { weaver: "👩‍🔧", master: "👩‍🎨", sachet_maker: "🌸" };
+  const list = type === 'weaver' ? game.weavers : type === 'master' ? game.masterWeavers : game.sachetMakers;
+  list.push({ task: null, progress: 0, producedCount: 0, isSkilled: false });
+  log(`${icons[type]} 雇佣了一名${names[type]}！工资: ${wage}金币/回合（每回合结算时支付）`);
+  triggerJuice();
+  render();
+}
+
+function fireWorker(type, idx) {
+  const list = type === 'weaver' ? game.weavers : type === 'master' ? game.masterWeavers : game.sachetMakers;
+  const wage = WAGES[type];
+  const names = { weaver: "织女", master: "纺织大师", sachet_maker: "香囊师" };
+  if (idx < 0 || idx >= list.length) return;
+  if (game.money < wage) { log(`❌ 资金不足，无法支付${names[type]}的遣散费: ${wage}金币`); return; }
+  game.money -= wage;
+  const worker = list.splice(idx, 1)[0];
+  log(`💔 解雇了一名${names[type]}，支付遣散费: ${wage}金币`);
+  if (worker.task) log(`  该工人原本正在制作: ${worker.task}`);
+  render();
+}
+
+function assignTask(type, task) {
+  const list = type === 'weaver' ? game.weavers : type === 'master' ? game.masterWeavers : game.sachetMakers;
+  const recipe = RECIPES[task];
+  for (const worker of list) {
+    if (worker.task === null) {
+      let can = true;
+      for (const [m, a] of Object.entries(recipe.materials)) {
+        if ((game.inventory[m] || 0) < a) { can = false; break; }
+      }
+      if (!can) { log(`❌ 材料不足，无法生产${task}！`); return; }
+      for (const [m, a] of Object.entries(recipe.materials)) game.inventory[m] -= a;
+      worker.task = task;
+      worker.progress = 0;
+      const matTxt = Object.entries(recipe.materials).map(([m, a]) => `${ICONS[m]}${m}×${a}`).join(' + ');
+      log(`📋 为工人分配任务：生产${ICONS[task]}${task}（原料：${matTxt}）`);
+      render();
+      return;
+    }
+  }
+  log("❌ 所有工人都已分配任务！");
+}
+
+function processProduction() {
+  const bonus = game.modifierFlags.worker_bonus_production || 0;
+  const allLists = [
+    { list: game.weavers, name: "织女", type: "weaver" },
+    { list: game.masterWeavers, name: "纺织大师", type: "master" },
+    { list: game.sachetMakers, name: "香囊师", type: "sachet_maker" }
+  ];
+  for (const { list, name, type } of allLists) {
+    for (const w of list) {
+      if (w.task) {
+        let base = w.isSkilled ? 2 : 1;
+        let amt = base + bonus;
+        if (hasModule('artisans_workshop')) amt += 1;
+        game.inventory[w.task] = (game.inventory[w.task] || 0) + amt;
+        w.producedCount = (w.producedCount || 0) + amt;
+        if (amt > base) log(`✅ ${name}(熟练)完成了 ${amt} 件${ICONS[w.task]}${w.task}的制作！（加成）`);
+        else if (w.isSkilled) log(`✅ ${name}(熟练)完成了2件${ICONS[w.task]}${w.task}的制作！`);
+        else log(`✅ ${name}完成了${ICONS[w.task]}${w.task}的制作！`);
+        if (w.producedCount >= 2 && !w.isSkilled) {
+          w.isSkilled = true;
+          log(`⭐ ${name}经验提升！现在每回合可生产2件产品！`);
+        }
+        w.task = null;
+        w.progress = 0;
+      }
+    }
+  }
+}
+
+function payWages() {
+  let total = 0;
+  const countWorkers = (list, type) => {
+    let w = 0;
+    for (const _ of list) {
+      let wage = WAGES[type];
+      if (hasModule('artisans_workshop')) wage = Math.floor(wage * 1.2);
+      w += wage;
+    }
+    return w;
+  };
+  const ww = countWorkers(game.weavers, 'weaver');
+  const mw = countWorkers(game.masterWeavers, 'master');
+  const sw = countWorkers(game.sachetMakers, 'sachet_maker');
+  total = ww + mw + sw;
+  if (total === 0) return true;
+  if (game.money >= total) {
+    game.money -= total;
+    game.workerWages += total;
+    game.roundCosts += total;
+    if (ww > 0) log(`💰 支付了${game.weavers.length}名织女的工资：${ww}金币`);
+    if (mw > 0) log(`💰 支付了${game.masterWeavers.length}名纺织大师的工资：${mw}金币`);
+    if (sw > 0) log(`💰 支付了${game.sachetMakers.length}名香囊师的工资：${sw}金币`);
+    return true;
+  }
+  log(`⚠️ 资金不足！应付工资: ${total}金币，当前资金: ${game.money}金币`);
+  log("💥 无法支付工人工资，工匠们罢工离去...");
+  log("💥 商队信誉崩塌，被迫破产！");
+  return "bankruptcy";
+}
+
+function payMaintenance() {
+  const cost = game.fixedCost + game.maintenancePenalty;
+  if (game.money >= cost) {
+    game.money -= cost;
+    game.maintenanceCosts += cost;
+    game.roundCosts += cost;
+    game.totalCosts += cost;
+    log(`💸 支付了船只维护费: ${cost}金币`);
+    return true;
+  }
+  if (game.money > 0) {
+    const paid = game.money;
+    game.money = 0;
+    game.maintenanceCosts += paid;
+    game.roundCosts += paid;
+    game.totalCosts += paid;
+    log(`⚠️ 强制支付了 ${paid}金币（需要 ${cost}金币）`);
+    log("⚠️ 资金耗尽！无法继续航行...");
+    return "bankruptcy";
+  }
+  return "bankruptcy";
+}
+
+function endRound() {
+  log(`\n📊=== 第${game.currentRound}航程结算 ===`);
+  log(`💰 本航程总收入: ${game.roundRevenue}金币`);
+  const totalCost = game.roundCosts + game.maintenanceCosts + game.workerWages;
+  log(`💸 本航程总成本: ${totalCost}金币`);
+  log(`   🔧 维护费: ${game.maintenanceCosts}金币`);
+  log(`   📦 材料费: ${game.materialCosts}金币`);
+  log(`   👥 工人工资: ${game.workerWages}金币`);
+  const preTax = game.roundRevenue - totalCost;
+  log(`📈 税前净利润: ${preTax}金币`);
+  const tax = calcIncomeTax(preTax);
+  if (tax > 0) {
+    game.money -= tax;
+    game.incomeTaxPaid += tax;
+    const rate = (game.modifierFlags.income_tax_override || 0.1) * 100;
+    log(`🏛️ 缴纳所得税（${rate.toFixed(0)}%）: ${tax}金币`);
+  } else log("🏛️ 无盈利，无需缴纳所得税");
+  if (game.vatPaid > 0) log(`🧾 本航程已缴增值税: ${game.vatPaid}金币`);
+  
+  game.modifierFlags = {};
+  game.phase2DemandTags = [];
+  game.revealedIntel = [];
+  game.intelOrderUsed = false;
+  game.roundRevenue = 0;
+  game.roundCosts = 0;
+  game.maintenanceCosts = 0;
+  game.materialCosts = 0;
+  game.workerWages = 0;
+  game.currentRound++;
+  if (game.currentRound > game.maxRounds) { endGame(); return; }
+  log(`\n🔄=== 第${game.currentRound}航程准备开始 ===`);
+  game.phase = 0;
+  game.purchaseCount = 0;
+  game.orderCount = 0;
+  game.resourceCards = [];
+  game.customerCards = [];
+  game.purchasedCards.clear();
+  game.completedOrders.clear();
+  startBoonDrafting();
+}
+
+function purchaseIntel() {
+  if (!game.phase2DemandTags.length) { log("🔮 牙行已无更多密语..."); render(); return; }
+  if (game.money < game.intelCost) { log(`❌ 需要${game.intelCost}金币才能购买消息`); render(); return; }
+  const count = hasModule('brokers_network') ? 2 : 1;
+  for (let i = 0; i < count; i++) {
+    if (!game.phase2DemandTags.length) break;
+    const item = choice(game.phase2DemandTags);
+    game.phase2DemandTags.splice(game.phase2DemandTags.indexOf(item), 1);
+    const port = choice(PORTS);
+    game.revealedIntel.push({ item, port });
+    log(`🗣️ 牙行密语：'来自${port}的消息：对${item}的需求量很大！'`);
+    game.money -= game.intelCost;
+  }
+  render();
+}
+
+function upgradeShip() {
+  if (game.shipLevel >= 3) return;
+  const cost = game.shipUpgradeCost[game.shipLevel] + game.shipUpgradePenalty;
+  if (game.money < cost) { alert(`需要 ${cost} 金币`); return; }
+  game.money -= cost;
+  game.shipLevel++;
+  log(`🎉 商船升级到 ${game.shipLevel}级！+1模块槽位，+5运费折扣`);
+  triggerJuice();
+  render();
+}
+
+function equipModule(mod, swapIdx = null) {
+  if (swapIdx !== null) {
+    const old = game.equippedModules[swapIdx];
+    if (old.id === 'bulk_hauler') game.shipUpgradePenalty -= 15;
+    if (old.id === 'overdrive_engine') game.maintenancePenalty -= 10;
+    if (old.id === 'brokers_network') game.intelCost = 5;
+    game.equippedModules[swapIdx] = mod;
+    log(`🔄 将 ${old.name} 替换为 ${mod.name}！`);
+  } else {
+    if (game.equippedModules.length < game.shipLevel) {
+      game.equippedModules.push(mod);
+      log(`✅ 安装了 ${mod.name}！`);
+    } else { log("❌ 没有空槽位！必须替换。"); return; }
+  }
+  if (mod.id === 'bulk_hauler') game.shipUpgradePenalty += 15;
+  if (mod.id === 'overdrive_engine') game.maintenancePenalty += 10;
+  if (mod.id === 'brokers_network') game.intelCost = 2;
+  triggerJuice();
+  render();
+}
+
+// =====================================================================
+// Phase Management
+// =====================================================================
+function startBoonDrafting() {
+  game.phase = 5;
+  log("\n🧭=== 航海家的罗盘 ===");
+  log("选择一项福缘，扭转本航程的规则...");
+  render();
+}
+
+function selectBoon(boon) {
+  log(`🧭 福缘已选定：${boon.icon} ${boon.name}`);
+  applyBoon(boon);
+  startPhase1(); // FIX: Proceed directly to Phase 1 instead of looping back to Welcome
+}
+
+function selectBoonById(id) {
+  const boon = BOONS.find(b => b.id === id);
+  if (boon) selectBoon(boon);
+}
+
+function showWelcome() {
+  game.phase = 0;
+  log("=".repeat(50));
+  log("⚓ 欢迎来到PortMasters海上丝绸之路贸易大亨！");
+  log("🚢 穿梭于各大港口之间，建立您的商业帝国！");
+  log("👥 雇佣工匠，制作精美商品，获取更高利润！");
+  log("=".repeat(50));
+  render();
+}
+
+function startPhase1() {
+  game.phase = 1;
+  game.purchaseCount = 0;
+  game.purchasedCards.clear();
+  game.phase2DemandTags = [];
+  const allItems = [...RESOURCES, ...PRODUCTS];
+  for (let i = 0; i < 5; i++) {
+    let t = choice(allItems);
+    if (!game.phase2DemandTags.includes(t)) game.phase2DemandTags.push(t);
+  }
+  game.revealedIntel = [];
+  game.intelOrderUsed = false;
+  log(`\n⚓=== 第${game.currentRound}航程 - 阶段1: 港口采购 ===`);
+  log(`💰 当前资金: ${game.money}金币`);
+  game.resourceCards = [];
+  for (let i = 0; i < 5; i++) {
+    const c = genResourceCard();
+    c.id = i;
+    game.resourceCards.push(c);
+  }
+  render();
+}
+
+function completePhase1() {
+  if (game.purchaseCount === 0) log("⏭️ 跳过了采购阶段");
+  else log(`✅ 采购结束，共采购 ${game.purchaseCount} 批货物`);
+  game.phase = 'worker_mgmt';
+  render();
+}
+
+function startPhase2() {
+  game.phase = 2;
+  game.orderCount = 0;
+  game.completedOrders.clear();
+  log(`\n🤝=== 第${game.currentRound}航程 - 阶段2: 贸易交易 ===`);
+  game.customerCards = [];
+  for (let i = 0; i < 5; i++) {
+    const o = genMixedOrder();
+    o.id = i;
+    game.customerCards.push(o);
+  }
+  render();
+}
+
+function completePhase2() {
+  if (game.orderCount === 0) log("⏭️ 跳过了交易阶段");
+  else log(`✅ 交易结束，共完成 ${game.orderCount} 笔交易`);
+  startPhase3();
+}
+
+function startPhase3() {
+  game.phase = 3;
+  log("\n👥=== 处理工人生产 ===");
+  processProduction();
+  log("\n💰=== 支付工人工资 ===");
+  const wageResult = payWages();
+  if (wageResult === "bankruptcy") {
+    log("⚠️ 因无法支付工人工资而破产！");
+    game.gameOver = true;
+    game.phase = 'bankruptcy';
+    render();
+    return;
+  }
+  log(`\n🔧=== 第${game.currentRound}航程 - 阶段3: 船只维护 ===`);
+  if (game.money <= 0) {
+    log("⚠️ 资金为0，无法支付维护费！");
+    game.gameOver = true;
+    game.phase = 'bankruptcy';
+    render();
+    return;
+  }
+  render();
+}
+
+function doMaintenance() {
+  const r = payMaintenance();
+  if (r === "bankruptcy") {
+    game.gameOver = true;
+    game.phase = 'bankruptcy';
+    render();
+    return;
+  }
+  startPhase4();
+}
+
+function startPhase4() {
+  game.phase = 4;
+  log(`\n🚢=== 第${game.currentRound}航程 - 阶段4: 船坞与模块 ===`);
+  render();
+}
+
+function skipUpgrade() {
+  log("⏭️ 跳过船坞操作");
+  endRound();
+}
+
+function endGame() {
+  game.gameOver = true;
+  game.phase = 'endgame';
+  log("\n" + "=".repeat(50));
+  log("🎮 PortMasters - 游戏结束!");
+  log(`💰 最终资金: ${game.money}金币`);
+  log(`🏆 最终声望: ${game.score}`);
+  log(`🧾 累计缴税: ${game.vatPaid + game.incomeTaxPaid}金币`);
+  let rating;
+  if (game.score >= 300) rating = "👑 丝绸之路霸主";
+  else if (game.score >= 200) rating = "🏆 海上贸易大亨";
+  else if (game.score >= 100) rating = "⭐ 成功商人";
+  else if (game.score >= 50) rating = "👍 合格商人";
+  else rating = "🌊 新手商人";
+  log(`📈 评级: ${rating}`);
+  log("=".repeat(50));
+  localStorage.removeItem('portmasters_save');
+  render();
+}
+
+function restartGame() {
+  if (!confirm("确定要重新开始海上丝绸之路贸易之旅吗？")) return;
+  Object.assign(game, {
+    inventory: { "麻布": 8, "丝绸": 5, "茶叶": 3, "麻衣": 0, "布衣": 0, "绫罗绸缎": 0, "香囊": 0 },
+    money: 100, score: 0, currentRound: 1,
+    totalRevenue: 0, totalCosts: 0, materialCosts: 0, workerWages: 0, maintenanceCosts: 0,
+    vatPaid: 0, incomeTaxPaid: 0, roundRevenue: 0, roundCosts: 0,
+    weavers: [], masterWeavers: [], sachetMakers: [],
+    shipLevel: 0, shipUpgradePenalty: 0, maintenancePenalty: 0,
+    phase: 0, gameOver: false, purchaseCount: 0, orderCount: 0,
+    resourceCards: [], customerCards: [],
+    purchasedCards: new Set(), completedOrders: new Set(),
+    modifierFlags: {}, phase2DemandTags: [], revealedIntel: [],
+    intelOrderUsed: false, equippedModules: [], intelCost: 5
+  });
+  logs.length = 0;
+  localStorage.removeItem('portmasters_save');
+  showWelcome();
+}
+
+function nextPhase() {
+  if (game.phase === 1) completePhase1();
+  else if (game.phase === 'worker_mgmt') startPhase2(); // FIX: Allow advancing from Worker Mgmt
+  else if (game.phase === 2) completePhase2();
+  else if (game.phase === 3) doMaintenance();
+  else if (game.phase === 4) skipUpgrade();
+}
+
+// =====================================================================
+// Save/Load
+// =====================================================================
+function saveGame() {
+  const data = {
+    ...game,
+    purchasedCards: [...game.purchasedCards],
+    completedOrders: [...game.completedOrders]
+  };
+  try {
+    localStorage.setItem('portmasters_save', JSON.stringify(data));
+    log("💾 游戏已保存！");
+    alert("游戏进度已保存！");
+  } catch (e) {
+    log(`❌ 保存失败: ${e}`);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('portmasters_save');
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    Object.assign(game, d);
+    game.purchasedCards = new Set(d.purchasedCards || []);
+    game.completedOrders = new Set(d.completedOrders || []);
+    log("📂 存档已加载！");
+    render();
+    return true;
+  } catch (e) {
+    log(`❌ 加载失败: ${e}`);
+    return false;
+  }
+}
+
+// =====================================================================
+// Juice Effects
+// =====================================================================
+function triggerJuice() {
+  playSound();
+  shakeWindow();
+  particleBurst();
+}
+
+function playSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(); osc.stop(ctx.currentTime + 0.3);
+  } catch (e) {}
+}
+
+function shakeWindow() {
+  document.getElementById('app').classList.add('shake');
+  setTimeout(() => document.getElementById('app').classList.remove('shake'), 300);
+}
+
+function particleBurst() {
+  const canvas = document.getElementById('particles-canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const particles = [];
+  const colors = ["#FFD700", "#FFA500", "#4CAF50", "#2E5AA7", "#FFFFFF"];
+  const emojis = ["✨", "⭐", "💫", "🪙", "🎋"];
+  for (let i = 0; i < 35; i++) {
+    particles.push({
+      x: cx, y: cy,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (Math.random() - 0.5) * 16 - 4,
+      r: 5 + Math.random() * 10,
+      color: choice(colors),
+      life: 1
+    });
+  }
+  const texts = [];
+  for (let i = 0; i < 5; i++) {
+    texts.push({
+      x: cx + (Math.random() - 0.5) * 80,
+      y: cy + (Math.random() - 0.5) * 80,
+      vx: (Math.random() - 0.5) * 6,
+      vy: -2 - Math.random() * 3,
+      emoji: choice(emojis),
+      life: 1
+    });
+  }
+  let step = 0;
+  const animate = () => {
+    if (step++ > 30) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.03;
+      if (p.life > 0) {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    for (const t of texts) {
+      t.x += t.vx; t.y += t.vy; t.life -= 0.03;
+      if (t.life > 0) {
+        ctx.globalAlpha = t.life;
+        ctx.font = "24px sans-serif";
+        ctx.fillText(t.emoji, t.x, t.y);
+      }
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(animate);
+  };
+  animate();
+}
+
+// =====================================================================
+// Rendering Pipeline
+// =====================================================================
+function render() {
+  try {
+    renderStatus();
+    renderPhase();
+    renderControls();
+    renderLog();
+  } catch (err) {
+    console.error("🚨 Render Pipeline Crash:", err);
+    const p = document.getElementById('phase-panel');
+    if(p) p.innerHTML = `<div style="padding:20px; color:#FF5252; background:#FFF0F0; border:2px solid #FF5252; border-radius:8px; margin:20px;">
+        <h3>⚠️ 渲染管线异常 (Render Pipeline Exception)</h3>
+        <p>${err.message}</p>
+        <button class="btn btn-danger" onclick="render()">🔄 尝试重新渲染</button>
+      </div>`;
+  }
+}
+
+function renderStatus() {
+  const p = document.getElementById('status-panel');
+  const discount = game.shipLevel * 5;
+  let html = `
+    <div class="status-section">
+      <h3>📊 航海日志</h3>
+      <div class="stat-row"><span>🌊 航程</span><span class="stat-value">第 ${game.currentRound}/${game.maxRounds}</span></div>
+      <div class="stat-row"><span>💰 资金</span><span class="stat-money">${game.money} 金币</span></div>
+      <div class="stat-row"><span>🏆 声望</span><span class="stat-score">${game.score}</span></div>
+    </div>
+    <div class="status-section">
+      <h3>🚢 船只状态</h3>
+      <div class="stat-row"><span>商船等级</span><span class="stat-value">${game.shipLevel}级</span></div>
+      <div class="stat-row"><span>运费公式</span><span style="font-size:10px">max(5, n×2 - ${discount})</span></div>
+      <div class="stat-row"><span>模块槽位</span><span class="stat-value">${game.equippedModules.length}/${game.shipLevel}</span></div>
+      ${game.equippedModules.map(m => `<div class="stat-row" style="font-size:10px"><span>${m.icon} ${m.name}</span></div>`).join('')}
+    </div>
+    <div class="status-section">
+      <h3>📦 船舱货物</h3>
+      <div class="inv-section-title">━━ 原材料 ━━</div>
+      ${RESOURCES.map(r => `
+        <div class="inv-item">
+          <span class="icon">${ICONS[r]}</span>
+          <span class="name" style="color:${COLORS[r]}">${r}</span>
+          <span class="count" style="color:${COLORS[r]}">${game.inventory[r] || 0}</span>
+        </div>`).join('')}
+      <div class="inv-section-title">━━ 成品 ━━</div>
+      ${PRODUCTS.map(r => `
+        <div class="inv-item">
+          <span class="icon">${ICONS[r]}</span>
+          <span class="name" style="color:${COLORS[r]}">${r}</span>
+          <span class="count" style="color:${COLORS[r]}">${game.inventory[r] || 0}</span>
+        </div>`).join('')}
+      ${(game.weavers.length || game.masterWeavers.length || game.sachetMakers.length) ? `
+        <div class="inv-section-title">━━ 工匠 ━━</div>
+        <div class="inv-item"><span class="name">👩‍🔧 织女</span><span class="count">${game.weavers.length}</span></div>
+        <div class="inv-item"><span class="name">👩‍🎨 大师</span><span class="count">${game.masterWeavers.length}</span></div>
+        <div class="inv-item"><span class="name">🌸 香囊师</span><span class="count">${game.sachetMakers.length}</span></div>
+      ` : ''}
+    </div>
+  `;
+  p.innerHTML = html;
+}
+
+function renderPhase() {
+  const p = document.getElementById('phase-panel');
+  if (game.phase === 0) renderWelcome(p);
+  else if (game.phase === 5) renderBoonDraft(p);
+  else if (game.phase === 1) renderPurchase(p);
+  else if (game.phase === 'worker_mgmt') renderWorkerMgmt(p);
+  else if (game.phase === 2) renderOrders(p);
+  else if (game.phase === 3) renderMaintenance(p);
+  else if (game.phase === 4) renderShipyard(p);
+  else if (game.phase === 'bankruptcy') renderBankruptcy(p);
+  else if (game.phase === 'endgame') renderEndgame(p);
+  else if (game.phase === 'module_draft') renderModuleDraft(p);
+  else if (game.phase === 'module_swap') renderModuleSwap(p);
+}
+
+function renderWelcome(p) {
+  const hasSave = !!localStorage.getItem('portmasters_save');
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title">⚓ PortMasters 🚢</div>
+      <div class="subtitle-text">🌊 航行八大航程，成为海上霸主！</div>
+      <div style="text-align:center; margin: 20px 0">
+        ${hasSave ? `<button class="btn btn-success btn-xl" onclick="loadGame()">📂 继续航行</button><br><br>` : ''}
+        <button class="btn btn-success btn-xl" onclick="startBoonDrafting()">🚢 扬帆起航</button>
+      </div>
+      <div class="tip-list">
+        <div>📦 初始货物：麻布×8，丝绸×5，茶叶×3</div>
+        <div>💰 初始资金：100金币</div>
+        <div>👥 可雇佣工匠制作高价值成品</div>
+        <div>🧾 成品销售需缴纳增值税，航程结束缴纳所得税</div>
+        <div>🚢 共8个航程，每航程4阶段：采购→交易→维护→升级</div>
+        <div>⚓ 运输费：max(5, 材料数×2 - 船只等级×5)</div>
+        <div>💾 按Ctrl+S保存游戏进度</div>
+        <div>🎯 目标：积累财富，提升声望！</div>
+        <div>🔮 新增：在第1阶段点击"牙行密语板"购买需求消息！</div>
+        <div>🔧 新增：在第4阶段升级船只以解锁模块槽位，打造专属流派！</div>
+        <div>🎨 界面优化：核心管理页面已采用居中块布局，视觉更聚焦！</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBoonDraft(p) {
+  const gs = {
+    money: game.money, inventory: game.inventory,
+    weavers: game.weavers, master_weavers: game.masterWeavers,
+    sachet_makers: game.sachetMakers
+  };
+  const weightFuncs = {
+    silk_wind: () => (gs.inventory["丝绸"] || 0) > 2 || gs.master_weavers.length > 0 ? 2.5 : 0.8,
+    favorable_tides: () => 1.5,
+    merchant_charm: () => gs.money > 40 ? 2.0 : 0.5,
+    artisan_inspiration: () => (gs.weavers.length + gs.master_weavers.length + gs.sachet_makers.length) > 0 ? 3.0 : 0.0,
+    emergency_loan: () => gs.money < 30 ? 4.0 : 0.2,
+    tax_shelter: () => 1.5,
+    hemp_monopoly: () => (gs.inventory["麻布"] || 0) < 5 || gs.weavers.length > 0 ? 2.0 : 1.0,
+    master_apprentice: () => 1.5
+  };
+  const available = BOONS.map(b => [b, weightFuncs[b.id]()]).filter(([, w]) => w > 0);
+  const picks = [];
+  const pool = [...available];
+  for (let i = 0; i < 3; i++) {
+    if (!pool.length) break;
+    picks.push(weightedChoice(pool));
+    pool.splice(pool.findIndex(x => x[0].id === picks[picks.length-1].id), 1);
+  }
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title">🧭 航海家的罗盘</div>
+      <div class="subtitle-text">抽取福缘，契合您的贸易策略</div>
+      <div class="card-grid">
+        ${picks.map(b => `
+          <div class="boon-card">
+            <div class="boon-icon">${b.icon}</div>
+            <div class="boon-name">${b.name}</div>
+            <div class="boon-desc">${b.desc}</div>
+            <button class="btn btn-gold btn-lg" onclick="selectBoonById('${b.id}')">🔒 锁定福缘</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderPurchase(p) {
+  p.innerHTML = `
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <h2 style="color:#1A3C8C">⚓ 港口商品采购</h2>
+        <button class="btn btn-gold" onclick="showRumorBoard()">🔮 牙行密语板</button>
+      </div>
+      <div class="card-grid">
+        ${game.resourceCards.map(c => {
+          const finalCost = getCardFinalCost(c);
+          const purchased = game.purchasedCards.has(c.id);
+          const canAfford = game.money >= finalCost && !purchased;
+          return `
+            <div class="card">
+              <div class="card-header">📍 ${c.port} [${c.isProductCard ? '成品' : '原材料'}]</div>
+              <div class="card-body">
+                ${c.resources.map(r => `
+                  <div class="resource-row">
+                    <span class="icon">${ICONS[r.type]}</span>
+                    <span class="name" style="color:${COLORS[r.type]}">${r.type}</span>
+                    <span class="qty">×${r.quantity}</span>
+                    <span class="price">单价: ${r.price}💰</span>
+                  </div>
+                  ${r.materialCost ? `
+                    <div style="font-size:10px; color:#888; padding-left:24px">📦 原料成本: ${r.materialCost}金币 (${r.materialDetails})</div>
+                    <div style="font-size:10px; color:#FF5252; padding-left:24px">💰 溢价: +${r.price - r.materialCost}金币 (${((r.price - r.materialCost)/r.materialCost*100).toFixed(0)}%)</div>
+                  ` : ''}
+                `).join('')}
+                <div class="separator"></div>
+                <div style="color:#FF5252; font-weight:bold; font-size:14px">
+                  💰 总价: ${finalCost}金币
+                  ${finalCost < c.totalCost ? `<span style="color:#888; font-size:11px">(原价 ${c.totalCost})</span>` : ''}
+                </div>
+              </div>
+              <div class="card-footer">
+                <button class="btn ${canAfford ? 'btn-success' : 'btn-grey'}" style="width:100%" 
+                  ${!canAfford ? 'disabled' : ''} onclick="purchaseCard(game.resourceCards[${c.id}])">
+                  ${purchased ? '✅ 已采购' : `🛒 采购 (${finalCost}💰)`}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div style="text-align:center; margin-top:20px">
+        <button class="btn btn-lg" onclick="completePhase1()">✅ 完成采购，继续航行</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkerMgmt(p) {
+  const weaverCost = getHireCost('weaver');
+  const masterCost = getHireCost('master');
+  const makerCost = getHireCost('sachet_maker');
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title">👥 工匠管理</div>
+      <div class="subtitle-text">💰 当前资金: ${game.money}金币 | 📦 查看下方库存</div>
+      
+      <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
+        <h3 style="color:#1A3C8C; text-align:center">📦 当前库存</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:10px">
+          <div>
+            <strong style="color:#2E5AA7">原材料:</strong>
+            ${RESOURCES.map(r => `<div class="inv-item"><span class="icon">${ICONS[r]}</span><span class="name" style="color:${COLORS[r]}">${r}</span><span class="count" style="color:${COLORS[r]}">${game.inventory[r] || 0}</span></div>`).join('')}
+          </div>
+          <div>
+            <strong style="color:#2E5AA7">成品:</strong>
+            ${PRODUCTS.map(r => `<div class="inv-item"><span class="icon">${ICONS[r]}</span><span class="name" style="color:${COLORS[r]}">${r}</span><span class="count" style="color:${COLORS[r]}">${game.inventory[r] || 0}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      
+      <div class="separator"></div>
+      
+      <div style="background:#FFF8DC; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
+        <h3 style="color:#1A3C8C; text-align:center">🔨 雇佣工匠</h3>
+        <div style="font-size:12px; margin:10px 0">
+          <div><strong>👩‍🔧 织女</strong> — 制作：麻衣(2麻布) 或 布衣(2麻布+1丝绸) — 工资：${WAGES.weaver}金币/回合</div>
+          <div><strong>👩‍🎨 纺织大师</strong> — 制作：麻衣、布衣 或 绫罗绸缎(3丝绸) — 工资：${WAGES.master}金币/回合</div>
+          <div><strong>🌸 香囊师</strong> — 制作：香囊(1丝绸+2茶叶) — 工资：${WAGES.sachet_maker}金币/回合</div>
+        </div>
+        <div style="text-align:center; margin-top:10px">
+          <button class="btn btn-success" onclick="hireWorker('weaver'); render()">👩‍🔧 雇佣织女 (${weaverCost}💰)</button>
+          <button class="btn" onclick="hireWorker('master'); render()">👩‍🎨 雇佣纺织大师 (${masterCost}💰)</button>
+          <button class="btn btn-warning" onclick="hireWorker('sachet_maker'); render()">🌸 雇佣香囊师 (${makerCost}💰)</button>
+        </div>
+      </div>
+      
+      ${(game.weavers.length || game.masterWeavers.length || game.sachetMakers.length) ? `
+        <div class="separator"></div>
+        <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
+          <h3 style="color:#1A3C8C; text-align:center">👥 工匠状态与任务分配</h3>
+          ${renderWorkerList('weaver', game.weavers, '织女', ['麻衣', '布衣'])}
+          ${renderWorkerList('master', game.masterWeavers, '纺织大师', ['麻衣', '布衣', '绫罗绸缎'])}
+          ${renderWorkerList('sachet_maker', game.sachetMakers, '香囊师', ['香囊'])}
+        </div>
+      ` : ''}
+      
+      <div style="text-align:center; margin-top:20px">
+        <button class="btn btn-lg" onclick="startPhase2()">✅ 完成工匠管理，继续航行</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkerList(type, list, name, tasks) {
+  if (!list.length) return '';
+  return `
+    <div style="margin:12px 0">
+      <strong style="color:#2E5AA7">${type === 'weaver' ? '👩‍🔧' : type === 'master' ? '👩‍🎨' : '🌸'} ${name}: ${list.length}人</strong>
+      ${list.map((w, i) => `
+        <div class="worker-row">
+          <span>${name}${i+1}: ${w.task ? `正在制作: ${w.task}${w.isSkilled ? '(熟练)' : ''}` : `空闲${w.isSkilled ? ' ⭐熟练工' : ''}`}</span>
+          <span>
+            ${!w.task ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="fireWorker('${type}', ${i})">解雇 (${WAGES[type]}💰)</button>` : ''}
+          </span>
+        </div>
+      `).join('')}
+      <div style="margin-top:6px">
+        ${tasks.map(t => {
+          const recipe = RECIPES[t];
+          const mats = Object.entries(recipe.materials).map(([m, a]) => `${ICONS[m]}${m}×${a}`).join('+');
+          return `<button class="btn btn-sm" style="margin:2px; padding:6px 12px; font-size:11px" onclick="assignTask('${type}', '${t}')">制作${t} (需${mats})</button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderOrders(p) {
+  p.innerHTML = `
+    <div>
+      <h2 style="color:#1A3C8C; margin-bottom:16px">🤝 贸易订单</h2>
+      <div class="card-grid">
+        ${game.customerCards.map(o => {
+          const canComplete = o.resources.every(r => (game.inventory[r.type] || 0) >= r.required);
+          const completed = game.completedOrders.has(o.id);
+          const hasSilk = o.resources.some(r => ["丝绸", "绫罗绸缎", "香囊", "布衣"].includes(r.type));
+          const transport = calcTransportCost(o.totalItems, hasSilk);
+          let netProfit = o.reward - transport;
+          let totalVat = 0;
+          if (o.isProductOrder) {
+            const product = o.resources[0].type;
+            const unitVat = calcVAT(product, o.reward / o.resources[0].required);
+            totalVat = unitVat * o.resources[0].required;
+            netProfit -= totalVat;
+          }
+          return `
+            <div class="card">
+              <div class="card-header">📍 ${o.demandPort} ${o.isProductOrder ? '成品需求' : '原材料需求'}</div>
+              <div class="card-body">
+                ${o.resources.map(r => {
+                  const has = (game.inventory[r.type] || 0) >= r.required;
+                  return `
+                    <div class="resource-row">
+                      <span style="font-size:14px">${has ? '✅' : '❌'}</span>
+                      <span class="icon">${ICONS[r.type]}</span>
+                      <span class="name" style="color:${COLORS[r.type]}">${r.type}</span>
+                      <span class="qty">×${r.required}</span>
+                      <span class="inv-status" style="color:${has ? 'green' : 'red'}">库存: ${game.inventory[r.type] || 0}</span>
+                    </div>
+                  `;
+                }).join('')}
+                <div style="font-size:11px; color:#FF5252; margin-top:6px">⚓ 运费: ${transport}金币</div>
+                <div class="${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}" style="font-size:13px; margin-top:4px">
+                  💰 报酬: ${o.reward}金币 📊 净利: ${netProfit}金币
+                </div>
+                ${o.isProductOrder ? `<div style="font-size:10px; color:#666">🧾 预计增值税: ${totalVat}金币</div>` : ''}
+              </div>
+              <div class="card-footer">
+                <button class="btn ${canComplete && !completed ? '' : 'btn-grey'}" style="width:100%"
+                  ${!canComplete || completed ? 'disabled' : ''} onclick="completeOrder(game.customerCards[${o.id}])">
+                  ${completed ? '✅ 已完成' : `🤝 交易 (净赚${netProfit}💰)`}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div style="text-align:center; margin-top:20px">
+        <button class="btn btn-lg" onclick="completePhase2()">✅ 完成交易，继续航行</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMaintenance(p) {
+  const cost = game.fixedCost + game.maintenancePenalty;
+  const canAfford = game.money >= cost;
+  p.innerHTML = `
+    <div class="center-block" style="text-align:center">
+      <div class="hero-title">🔧 船只维护</div>
+      <div style="font-size:18px; margin:20px 0">每月固定维护费用: <strong>${cost}金币</strong></div>
+      <div style="font-size:16px; color:#4CAF50; margin:20px 0">当前资金: ${game.money}金币</div>
+      <div class="separator"></div>
+      <button class="btn btn-warning btn-xl" onclick="doMaintenance()">
+        ${canAfford ? `💸 支付 ${cost}金币` : `⚠️ 强制支付 (${game.money}/${cost}金币)`}
+      </button>
+    </div>
+  `;
+}
+
+function renderShipyard(p) {
+  const canUpgrade = game.shipLevel < 3;
+  const upgCost = canUpgrade ? game.shipUpgradeCost[game.shipLevel] + game.shipUpgradePenalty : 0;
+  const affordable = game.money >= upgCost;
+  const canDraft = game.shipLevel > 0;
+  const slotsFull = game.equippedModules.length >= game.shipLevel && game.shipLevel > 0;
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title">🚢 船坞与模块安装</div>
+      <div class="separator"></div>
+      
+      <div style="background:#E6F2FF; border:3px solid #2E5AA7; border-radius:8px; padding:20px; margin:20px 0">
+        <div style="font-size:16px; font-weight:bold; color:#1A3C8C">🚢 船只等级: ${game.shipLevel} | ⚓ 运费折扣: ${game.shipLevel * 5} 金币</div>
+        <div style="font-size:14px; color:#2E5AA7; margin-top:6px">🔌 模块槽位: ${game.equippedModules.length} / ${game.shipLevel}</div>
+        ${game.equippedModules.length ? `
+          <div style="margin-top:12px">
+            ${game.equippedModules.map(m => `<div style="font-size:12px; padding:3px 0">${m.icon} <strong>${m.name}</strong>: ${m.desc}</div>`).join('')}
+          </div>
+        ` : `<div style="font-size:12px; color:#666; margin-top:8px">尚未安装任何模块。升级船只以解锁槽位！</div>`}
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:8px">
+        ${canUpgrade ? `
+          <button class="btn ${affordable ? '' : 'btn-grey'} btn-lg" ${!affordable ? 'disabled' : ''} onclick="upgradeShip()">
+            ⚓ 升级船只 (至${game.shipLevel+1}级) — 花费: ${upgCost} 金币 | +1 槽位, +5 折扣
+          </button>
+        ` : ''}
+        <button class="btn ${canDraft ? 'btn-gold' : 'btn-grey'} btn-lg" ${!canDraft ? 'disabled' : ''} onclick="startModuleDrafting()">
+          ${slotsFull ? '🔄 抽取并替换模块 (槽位已满)' : '🔧 抽取并安装模块'}
+        </button>
+        <button class="btn btn-success btn-lg" onclick="skipUpgrade()">⏭️ 继续航行</button>
+      </div>
+    </div>
+  `;
+}
+
+function startModuleDrafting() {
+  const available = MODULES.filter(m => !game.equippedModules.some(eq => eq.id === m.id));
+  const pool = available.length >= 3 ? available : MODULES;
+  const picks = [];
+  const copy = [...pool];
+  for (let i = 0; i < 3; i++) {
+    if (!copy.length) break;
+    const idx = Math.floor(Math.random() * copy.length);
+    picks.push(copy.splice(idx, 1)[0]);
+  }
+  game._draftChoices = picks;
+  game.phase = 'module_draft';
+  render();
+}
+
+function renderModuleDraft(p) {
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title">🔧 模块抽取</div>
+      <div class="subtitle-text">选择要安装或替换的船只模块。</div>
+      <div class="card-grid">
+        ${game._draftChoices.map((m, i) => `
+          <div class="module-card">
+            <div class="module-icon">${m.icon}</div>
+            <div class="module-name">${m.name}</div>
+            <div class="module-desc">${m.desc}</div>
+            <button class="btn btn-gold btn-lg" onclick="handleModuleSelect(${i})">
+              ${game.equippedModules.length < game.shipLevel ? '✅ 安装' : '🔄 替换'}
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <div style="text-align:center; margin-top:20px">
+        <button class="btn btn-grey" onclick="game.phase=4; render()">⬅️ 返回船坞</button>
+      </div>
+    </div>
+  `;
+}
+
+function handleModuleSelect(idx) {
+  const mod = game._draftChoices[idx];
+  if (game.equippedModules.length < game.shipLevel) {
+    equipModule(mod);
+    game.phase = 4;
+    render();
+  } else {
+    game._newModule = mod;
+    game.phase = 'module_swap';
+    render();
+  }
+}
+
+function renderModuleSwap(p) {
+  p.innerHTML = `
+    <div class="center-block">
+      <div class="hero-title" style="color:#FF5252">🔄 选择要替换的模块</div>
+      <div class="subtitle-text">新模块: ${game._newModule.icon} ${game._newModule.name} - ${game._newModule.desc}</div>
+      <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:20px 0">
+        ${game.equippedModules.map((m, i) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:white; border-radius:4px; margin:6px 0">
+            <div>
+              <strong>${m.icon} ${m.name}</strong>
+              <div style="font-size:11px; color:#666">${m.desc}</div>
+            </div>
+            <button class="btn btn-danger" onclick="equipModule(game._newModule, ${i}); game.phase=4; render()">🗑️ 替换</button>
+          </div>
+        `).join('')}
+      </div>
+      <div style="text-align:center">
+        <button class="btn btn-grey" onclick="game.phase='module_draft'; render()">⬅️ 返回抽取</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderBankruptcy(p) {
+  p.innerHTML = `
+    <div class="center-block" style="text-align:center">
+      <div style="font-size:80px">💥</div>
+      <div class="hero-title" style="color:#FF5252">船队破产！</div>
+      <div class="subtitle-text">${game.money <= 0 ? '资金耗尽，无法支付必要的运营费用' : '资金不足以支付维护费和工人工资'}</div>
+      <div class="separator"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:400px; margin:20px auto; text-align:left">
+        <div>🌊 完成航程:</div><div><strong>${game.currentRound - 1}/${game.maxRounds}</strong></div>
+        <div>💰 最终资金:</div><div><strong>${game.money}金币</strong></div>
+        <div>🏆 最终声望:</div><div><strong>${game.score}</strong></div>
+        <div>🚢 船只等级:</div><div><strong>${game.shipLevel}级</strong></div>
+        <div>🧾 累计缴税:</div><div><strong>${game.vatPaid + game.incomeTaxPaid}金币</strong></div>
+      </div>
+      <div class="separator"></div>
+      <button class="btn btn-xl" onclick="restartGame()">🔄 重新起航</button>
+      <button class="btn btn-warning btn-lg" style="margin-left:10px" onclick="showTips()">💡 贸易策略</button>
+    </div>
+  `;
+}
+
+function renderEndgame(p) {
+  let rating;
+  if (game.score >= 300) rating = "👑 丝绸之路霸主";
+  else if (game.score >= 200) rating = "🏆 海上贸易大亨";
+  else if (game.score >= 100) rating = "⭐ 成功商人";
+  else if (game.score >= 50) rating = "👍 合格商人";
+  else rating = "🌊 新手商人";
+  p.innerHTML = `
+    <div class="center-block" style="text-align:center">
+      <div class="hero-title">🎮 游戏结束!</div>
+      <div style="font-size:22px; font-weight:bold; color:#2E5AA7; margin:20px 0">🏆 最终声望: ${game.score}</div>
+      <div style="font-size:20px; color:#4CAF50; margin:10px 0">💰 最终资金: ${game.money}金币</div>
+      <div style="font-size:20px; color:#FFD700; margin:20px 0">📈 商人评级: ${rating}</div>
+      <div class="separator"></div>
+      <button class="btn btn-xl" onclick="restartGame()">🔄 重新起航</button>
+    </div>
+  `;
+}
+
+function renderControls() {
+  const c = document.getElementById('control-panel');
+  let startText, startDisabled, startAction, nextText, nextDisabled;
+  
+  if (game.gameOver) {
+    startText = "⚠️ 游戏结束"; startDisabled = true; startAction = "";
+    nextText = "⏭️ 继续航行"; nextDisabled = true;
+  } else if (game.phase === 0) {
+    startText = `🚢 开始第${game.currentRound}航程`; startDisabled = false; startAction = "startBoonDrafting()";
+    nextText = "⏭️ 继续航行"; nextDisabled = true;
+  } else if (game.phase === 5) {
+    startText = "🧭 抽取福缘中..."; startDisabled = true; startAction = "";
+    nextText = "⏭️ 继续航行"; nextDisabled = true;
+  } else if ([1, 2, 3, 4, 'worker_mgmt'].includes(game.phase)) {
+    startText = "🚢 航行中..."; startDisabled = true; startAction = "";
+    nextText = "⏭️ 继续航行"; nextDisabled = false;
+  } else {
+    startText = "🚢 航行中..."; startDisabled = true; startAction = "";
+    nextText = "⏭️ 继续航行"; nextDisabled = true;
+  }
+  
+  c.innerHTML = `
+    <button class="btn" ${startDisabled ? 'disabled' : ''} onclick="${startAction}">${startText}</button>
+    <button class="btn" ${nextDisabled ? 'disabled' : ''} onclick="nextPhase()">${nextText}</button>
+    <button class="btn" onclick="showInstructions()">📖 航海指南</button>
+    <button class="btn btn-success" onclick="saveGame()">💾 保存进度</button>
+    <button class="btn" onclick="restartGame()">🔄 重新起航</button>
+  `;
+}
+
+function renderLog() {
+  const l = document.getElementById('log-panel');
+  l.innerHTML = logs.slice(-100).map(m => `<div class="log-entry">${escapeHtml(m)}</div>`).join('');
+  l.scrollTop = l.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// =====================================================================
+// Modals
+// =====================================================================
+function showModal(html) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+}
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+function showInstructions() {
+  showModal(`
+    <h2>⚓ 航海指南</h2>
+    <pre>⚓ PortMasters - 游戏规则
+
+🚢 游戏目标：
+通过8个航程的海上贸易，积累最大财富和声望！
+
+📦 货物系统：
+原材料：麻布(3-6💰)、丝绸(6-10💰)、茶叶(10-14💰)
+成品：麻衣(30-42💰)、布衣(50-65💰)、绫罗绸缎(70-90💰)、香囊(95-120💰)
+
+👥 工匠系统：
+• 织女（8金币/回合）：制作麻衣或布衣
+• 纺织大师（12金币/回合）：制作麻衣、布衣或绫罗绸缎
+• 香囊师（20金币/回合）：制作香囊
+
+🧾 税收系统：
+• 增值税：成品销售利润的5%
+• 所得税：航程净利润的10%
+
+🔮 牙行密语：
+• 第1阶段：点击"牙行密语板"打开独立窗口
+• 花费金币购买关于第2阶段需求的"密语"
+• 探听到的消息将保证生成对应的保底订单
+
+🔧 船只模块 (核心流派)：
+• 第4阶段：升级商船以解锁"模块槽位"
+• 抽取并安装强大的模块，创造独特的协同效应
+• 随时替换模块，根据当前局势调整您的商业帝国！
+
+🌊 每航程4个阶段：
+1. 港口采购 - 在各大港口购买原材料 (+ 牙行密语)
+2. 贸易交易 - 完成原材料或成品订单
+3. 船只维护 - 支付维护费 & 结算工匠生产
+4. 船坞升级 - 升级商船并安装模块
+
+⌨️ 快捷键：
+• Ctrl+S：保存游戏
+• Ctrl+N：进入下一阶段
+• Ctrl+H：管理工匠
+• Ctrl+R：重新开始
+• F1：显示帮助
+
+⚓ 祝您航行顺利，生意兴隆！</pre>
+    <div style="text-align:center; margin-top:16px"><button class="btn" onclick="closeModal()">关闭</button></div>
+  `);
+}
+
+function showRumorBoard() {
+  const html = `
+    <h2>🗣️ 牙行密语板</h2>
+    <div style="text-align:center; color:#2E5AA7; margin-bottom:10px">花费金币以探听下一阶段的货物需求！</div>
+    <div style="text-align:center; margin:12px 0">
+      <button class="btn btn-gold" onclick="purchaseIntel(); showRumorBoard()">🔮 购买消息 (${game.intelCost}💰)</button>
+    </div>
+    <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:6px; padding:12px; min-height:100px">
+      ${game.revealedIntel.length ? `
+        <div style="font-weight:bold; color:#2E5AA7; margin-bottom:8px">📜 已探听消息：</div>
+        ${game.revealedIntel.map(i => `<div style="padding:4px 0; font-size:13px">• 🗣️ '${i.port} 急需 ${i.item}'</div>`).join('')}
+      ` : `<div style="color:#888; text-align:center; padding:20px">✨ 尚未探听任何消息... 花费金币聆听牙行的密语吧。</div>`}
+    </div>
+    <div style="text-align:center; margin-top:16px"><button class="btn btn-grey" onclick="closeModal()">关闭面板</button></div>
+  `;
+  showModal(html);
+}
+
+function showTips() {
+  showModal(`
+    <h2>💡 贸易策略建议</h2>
+    <pre>⚓ 避免破产的贸易策略：
+
+💰 资金管理：
+1. 确保始终有足够备用金支付所有费用
+2. 维护费 + 工人工资是每回合固定支出
+3. 计算总支出后再决定采购量
+
+👥 工匠管理：
+1. 织女工资: ${WAGES.weaver}金币/回合
+2. 纺织大师工资: ${WAGES.master}金币/回合
+3. 香囊师工资: ${WAGES.sachet_maker}金币/回合
+4. 量力而行，不要雇佣过多工人
+
+🔮 牙行密语策略：
+1. 如果资金充裕，尽早购买消息
+2. 囤积探听到的货物，保证第2阶段利润
+3. 平衡购买消息与其他投资的资金分配
+
+🛒 采购策略：
+1. 预留维护费+工资后再采购
+2. 选择性价比高的商品组合
+3. 优先购买港口特产 + 探听到的消息货物
+
+🤝 交易策略：
+1. 优先完成利润高的订单
+2. 注意运输成本对利润的影响
+3. 成品订单利润高但需缴增值税
+
+⚠️ 风险控制：
+1. 计算每回合固定支出：维护费 + 工人工资
+2. 确保资金始终 > 固定支出
+3. 不要过度扩张导致资金链断裂
+
+💾 使用Ctrl+S保存游戏进度！</pre>
+    <div style="text-align:center; margin-top:16px"><button class="btn" onclick="closeModal()">关闭</button></div>
+  `);
+}
+
+// =====================================================================
+// Keyboard Shortcuts
+// =====================================================================
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveGame(); }
+  else if (e.ctrlKey && e.key === 'n') { e.preventDefault(); nextPhase(); }
+  else if (e.ctrlKey && e.key === 'r') { e.preventDefault(); restartGame(); }
+  else if (e.key === 'F1') { e.preventDefault(); showInstructions(); }
+});
+
+// =====================================================================
+// Init
+// =====================================================================
+window.addEventListener('load', () => {
+  if (localStorage.getItem('portmasters_save')) {
+    if (confirm("检测到上次的存档，是否继续游戏？")) {
+      if (loadGame()) return;
+    }
+  }
+  showWelcome();
+});
+</script>
+</body>
+</html>

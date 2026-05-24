@@ -5,6 +5,7 @@ import json
 import os
 import math
 import sys
+import threading
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom Button with Juice Support
@@ -124,6 +125,18 @@ class CustomButton(tk.Frame):
         if key == "state": return self.state
         if key == "text": return self.label.cget("text")
         return super().__getitem__(key)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Wrapped Title Label
+# ─────────────────────────────────────────────────────────────────────────────
+class WrappedTitleLabel(tk.Label):
+    """A Label subclass that dynamically adjusts its wraplength to match its rendered width, ensuring card titles in the Trade Orders window break naturally into multiple lines."""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.bind("<Configure>", self._on_configure)
+
+    def _on_configure(self, event):
+        self.config(wraplength=max(1, event.width - 20))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Boon Manager (Weighted RNG Pool)
@@ -483,7 +496,43 @@ class PortMasters:
 
     # ── Juice / UI Polish ─────────────────────────────────────────────
     def trigger_juice(self, root_x, root_y):
-        print("[SFX: Deep bass thud and magical chime]")
+        def _play():
+            try:
+                import wave, struct, io
+                sr = 44100
+                def tone(freq, ms, vol=0.5, decay_k=8):
+                    n = int(sr * ms / 1000)
+                    return b''.join(
+                        struct.pack('<h', int(32767 * vol
+                            * math.exp(-decay_k * i / n)
+                            * math.sin(2 * math.pi * freq * i / sr)))
+                        for i in range(n)
+                    )
+                gap = b'\x00\x00' * int(sr * 0.04)
+                data = tone(120, 150, vol=0.8, decay_k=10) + gap + tone(1047, 400, vol=0.5, decay_k=5)
+                buf = io.BytesIO()
+                with wave.open(buf, 'wb') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sr)
+                    wf.writeframes(data)
+                wav_bytes = buf.getvalue()
+                try:
+                    import winsound
+                    winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+                except ImportError:
+                    import subprocess, tempfile
+                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                        f.write(wav_bytes)
+                        tmp = f.name
+                    try:
+                        subprocess.run(['afplay', tmp], capture_output=True)
+                    finally:
+                        try: os.unlink(tmp)
+                        except Exception: pass
+            except Exception:
+                pass
+        threading.Thread(target=_play, daemon=True).start()
         self.shake_window()
         self.trigger_particle_burst(root_x, root_y)
 
@@ -730,7 +779,6 @@ class PortMasters:
     def hire_worker(self, worker_type):
         wage = self.get_hire_cost(worker_type)
         if self.money >= wage:
-            self.money -= wage
             if worker_type == "weaver":
                 self.weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
                 self.log_message(f"👩‍🔧 Hired a Weaver! Wage: {wage} Gold / Round")
@@ -1301,6 +1349,8 @@ class PortMasters:
         scrollbar.pack(side="right", fill="y")
         
         def on_mousewheel(event):
+            if not canvas.winfo_exists():
+                return
             if sys.platform == 'darwin':
                 delta = -1 * event.delta
             else:
@@ -1308,7 +1358,7 @@ class PortMasters:
             canvas.yview_scroll(delta, "units")
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-        
+
         self._populate_rumor_list()
         
         CustomButton(self.rumor_window, text="Close Board", font=self.BUTTON_FONT, 
@@ -1559,6 +1609,8 @@ class PortMasters:
     # ── Mousewheel ────────────────────────────────────────────────────
     def bind_mousewheel(self, canvas):
         def on_mousewheel(event):
+            if not canvas.winfo_exists():
+                return
             if sys.platform == 'darwin':
                 delta = -1 * event.delta
             else:
@@ -2141,9 +2193,9 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
         
         order_type = "Finished Product Demand" if order.get("is_product_order") else "Raw Material Demand"
-        tk.Label(port_frame, text=f"📍 {order['demand_port']} {order_type}", 
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
-                 fg=self.colors["bg_dark"], wraplength=320, justify=tk.CENTER).pack(pady=5)
+        WrappedTitleLabel(port_frame, text=f"📍 {order['demand_port']} {order_type}",
+                          font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
+                          fg=self.colors["bg_dark"], justify=tk.CENTER).pack(fill=tk.X, pady=5)
                  
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
@@ -2822,5 +2874,4 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
     def run(self):
         self.window.mainloop()
 
-if __name__ == "__main__": 
-    PortMasters().run()
+if __name__ == "__main__": PortMasters().run()
