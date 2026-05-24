@@ -128,6 +128,18 @@ class CustomButton(tk.Frame):
         return super().__getitem__(key)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 自适应标题标签
+# ─────────────────────────────────────────────────────────────────────────────
+class WrappedTitleLabel(tk.Label):
+    """一个Label子类，动态调整wraplength以匹配实际渲染宽度，确保贸易订单窗口中的卡片标题自然换行。"""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.bind("<Configure>", self._on_configure)
+
+    def _on_configure(self, event):
+        self.config(wraplength=max(1, event.width - 20))
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 福缘管理器 (加权随机池)
 # ─────────────────────────────────────────────────────────────────────────────
 class BoonManager:
@@ -2160,9 +2172,9 @@ class PortMasters:
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
         
         order_type = "成品需求" if order.get("is_product_order") else "原材料需求"
-        tk.Label(port_frame, text=f"📍 {order['demand_port']} {order_type}",
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
-                 fg=self.colors["bg_dark"]).pack(pady=5)
+        WrappedTitleLabel(port_frame, text=f"📍 {order['demand_port']} {order_type}",
+                          font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
+                          fg=self.colors["bg_dark"], justify=tk.CENTER).pack(fill=tk.X, pady=5)
                  
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)

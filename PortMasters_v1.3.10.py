@@ -126,6 +126,18 @@ class CustomButton(tk.Frame):
         return super().__getitem__(key)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Wrapped Title Label
+# ─────────────────────────────────────────────────────────────────────────────
+class WrappedTitleLabel(tk.Label):
+    """A Label subclass that dynamically adjusts its wraplength to match its rendered width, ensuring card titles in the Trade Orders window break naturally into multiple lines."""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.bind("<Configure>", self._on_configure)
+
+    def _on_configure(self, event):
+        self.config(wraplength=max(1, event.width - 20))
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Boon Manager (Weighted RNG Pool)
 # ─────────────────────────────────────────────────────────────────────────────
 class BoonManager:
@@ -2140,9 +2152,9 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
         
         order_type = "Finished Product Demand" if order.get("is_product_order") else "Raw Material Demand"
-        tk.Label(port_frame, text=f"📍 {order['demand_port']} {order_type}", 
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
-                 fg=self.colors["bg_dark"], wraplength=320, justify=tk.CENTER).pack(pady=5)
+        WrappedTitleLabel(port_frame, text=f"📍 {order['demand_port']} {order_type}",
+                          font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
+                          fg=self.colors["bg_dark"], justify=tk.CENTER).pack(fill=tk.X, pady=5)
                  
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
