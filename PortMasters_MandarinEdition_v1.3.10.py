@@ -7,17 +7,15 @@ import math
 import sys
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 自定义按钮组件 (支持特效回调)
+# Custom Button with Juice Support
 # ─────────────────────────────────────────────────────────────────────────────
 class CustomButton(tk.Frame):
-    """自定义按钮组件，确保跨平台视觉一致性，修复macOS背景色渲染问题，支持动态文字大小与点击特效。"""
-
+    """A custom button widget to ensure cross-platform visual consistency, specifically fixing macOS background color rendering issues and allowing dynamic text sizing."""
     def __init__(self, parent, text="", command=None, font=None, bg="#424242", fg="white",
                  relief=tk.RAISED, borderwidth=2, padx=15, pady=10, state=tk.NORMAL,
                  cursor="hand2", wraplength=0, juice_callback=None, **kwargs):
         kwargs.pop('width', None)
         kwargs.pop('height', None)
-
         super().__init__(parent, bg=bg, bd=borderwidth, relief=relief,
                          cursor=cursor if state == tk.NORMAL else "arrow", **kwargs)
         self.command = command
@@ -27,13 +25,10 @@ class CustomButton(tk.Frame):
         self.disabled_bg = "#888888"
         self.disabled_fg = "#CCCCCC"
         self.juice_callback = juice_callback
-
         self.hover_bg = self._adjust_color(self.base_bg, 1.2)
-
         self.label = tk.Label(self, text=text, font=font, bg=self.base_bg, fg=self.fg,
                               padx=padx, pady=pady, wraplength=wraplength, justify=tk.CENTER)
         self.label.pack(fill=tk.BOTH, expand=True)
-
         self._clicking = False
         self._bind_events()
         self._apply_state()
@@ -72,8 +67,8 @@ class CustomButton(tk.Frame):
         if self.state == tk.NORMAL:
             super().config(bg=self.base_bg)
             self.label.config(bg=self.base_bg)
-            self._clicking = False
-            super().config(relief=tk.RAISED)
+        self._clicking = False
+        super().config(relief=tk.RAISED)
 
     def on_click(self, event):
         if self.state == tk.NORMAL:
@@ -124,70 +119,87 @@ class CustomButton(tk.Frame):
             super().config(**kwargs)
 
     def __getitem__(self, key):
-        if key == "state":
-            return self.state
-        if key == "text":
-            return self.label.cget("text")
+        if key == "state": return self.state
+        if key == "text": return self.label.cget("text")
         return super().__getitem__(key)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Responsive Auto-Wrap Label
+# ─────────────────────────────────────────────────────────────────────────────
+class AutoWrapLabel(tk.Label):
+    """A production-ready Label that automatically wraps text based on its actual rendered width.
+    Eliminates the need for hardcoded 'wraplength' magic numbers."""
+    def __init__(self, master=None, **kwargs):
+        # Default to LEFT alignment for multi-line readability unless specified
+        kwargs.setdefault('justify', tk.LEFT)
+        super().__init__(master, **kwargs)
+        self.bind('<Configure>', self._update_wraplength)
+
+    def _update_wraplength(self, event):
+        # event.width is the actual pixel width allocated to the widget by the layout manager
+        # We subtract a tiny buffer (4px) to prevent edge-rendering clipping
+        new_wraplength = max(1, event.width - 4)
+        # Only update if changed to prevent infinite recursion loops
+        if self.cget('wraplength') != new_wraplength:
+            self.config(wraplength=new_wraplength)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 福缘管理器 (加权随机池)
+# Boon Manager (Weighted RNG Pool)
 # ─────────────────────────────────────────────────────────────────────────────
 class BoonManager:
     def __init__(self, game_state_provider):
         self.game_state_provider = game_state_provider
         self.boons = [
             {
-                "id": "silk_wind", "name": "丝路顺风", "icon": "🌬️",
-                "desc": "本回合运输丝绸及成品时，运费减半。",
+                "id": "silk_wind", "name": "Silk Winds", "icon": "🌬️",
+                "desc": "Transport cost for Silk & Silk products is halved this round.",
                 "modifiers": {"transport_silk_discount": 0.5},
-                "weight_func": lambda gs: 2.5 if gs["inventory"].get("丝绸", 0) > 2 or len(gs["master_weavers"]) > 0 else 0.8
+                "weight_func": lambda gs: 2.5 if gs["inventory"].get("Silk", 0) > 2 or len(gs["master_weavers"]) > 0 else 0.8
             },
             {
-                "id": "favorable_tides", "name": "顺风顺水", "icon": "🌊",
-                "desc": "本回合基础运费减少4金币。",
+                "id": "favorable_tides", "name": "Favorable Tides", "icon": "🌊",
+                "desc": "Base transport cost reduced by 4 Gold this round.",
                 "modifiers": {"transport_flat_discount": 4},
                 "weight_func": lambda gs: 1.5
             },
             {
-                "id": "merchant_charm", "name": "商贾魅力", "icon": "✨",
-                "desc": "本回合港口采购所有商品享85折优惠。",
+                "id": "merchant_charm", "name": "Merchant's Charm", "icon": "✨",
+                "desc": "15% discount on all port purchases this round.",
                 "modifiers": {"purchase_discount": 0.15},
                 "weight_func": lambda gs: 2.0 if gs["money"] > 40 else 0.5
             },
             {
-                "id": "artisan_inspiration", "name": "匠人灵感", "icon": "🔨",
-                "desc": "本回合所有工人每回合额外多生产1件商品。",
+                "id": "artisan_inspiration", "name": "Artisan's Inspiration", "icon": "🔨",
+                "desc": "All workers produce +1 extra item this round.",
                 "modifiers": {"worker_bonus_production": 1},
                 "weight_func": lambda gs: 3.0 if (len(gs["weavers"]) + len(gs["master_weavers"]) + len(gs["sachet_makers"])) > 0 else 0.0
             },
             {
-                "id": "emergency_loan", "name": "紧急钱庄", "icon": "💰",
-                "desc": "立即获得40金币周转资金。",
+                "id": "emergency_loan", "name": "Emergency Loan", "icon": "💰",
+                "desc": "Gain 40 Gold immediately. No strings attached.",
                 "modifiers": {"instant_gold": 40},
                 "weight_func": lambda gs: 4.0 if gs["money"] < 30 else 0.2
             },
             {
-                "id": "tax_shelter", "name": "免税令", "icon": "📜",
-                "desc": "本回合结算所得税率降至5%。",
+                "id": "tax_shelter", "name": "Tax Shelter", "icon": "📜",
+                "desc": "Income tax rate reduced to 5% this round.",
                 "modifiers": {"income_tax_override": 0.05},
                 "weight_func": lambda gs: 1.5
             },
             {
-                "id": "hemp_monopoly", "name": "麻布专营", "icon": "🧶",
-                "desc": "本回合麻布采购单价降低2金币。",
+                "id": "hemp_monopoly", "name": "Hemp Monopoly", "icon": "🧶",
+                "desc": "Hemp purchase prices reduced by 2 Gold per unit.",
                 "modifiers": {"hemp_price_reduction": 2},
-                "weight_func": lambda gs: 2.0 if gs["inventory"].get("麻布", 0) < 5 or len(gs["weavers"]) > 0 else 1.0
+                "weight_func": lambda gs: 2.0 if gs["inventory"].get("Hemp", 0) < 5 or len(gs["weavers"]) > 0 else 1.0
             },
             {
-                "id": "master_apprentice", "name": "学徒传承", "icon": "🎓",
-                "desc": "本回合雇佣工匠工资减半。",
+                "id": "master_apprentice", "name": "Master's Apprentice", "icon": "🎓",
+                "desc": "Hiring workers costs 50% less this round.",
                 "modifiers": {"hire_discount": 0.5},
                 "weight_func": lambda gs: 1.5
             }
         ]
-        
+
     def get_draft_choices(self, count=3):
         gs = self.game_state_provider()
         weighted_boons = []
@@ -195,7 +207,6 @@ class BoonManager:
             weight = boon["weight_func"](gs)
             if weight > 0:
                 weighted_boons.append((boon, weight))
-                
         choices = []
         available = list(weighted_boons)
         for _ in range(count):
@@ -211,17 +222,15 @@ class BoonManager:
                     break
         return choices
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# 船只模块 (协同引擎)
+# Ship Modules (The Synergy Engine)
 # ─────────────────────────────────────────────────────────────────────────────
 class ShipModule:
     def __init__(self):
         self.id = "base"
-        self.name = "基础模块"
+        self.name = "Base Module"
         self.icon = "📦"
-        self.desc = "没有任何作用。"
-        
+        self.desc = "Does nothing."
     def on_purchase(self, game, card): pass
     def on_order_complete(self, game, order, reward, transport_cost): return reward, transport_cost
     def modify_transport_cost(self, game, cost, items, has_silk): return cost
@@ -236,18 +245,18 @@ class ShipModule:
 class SmugglersHold(ShipModule):
     def __init__(self):
         self.id = "smugglers_hold"
-        self.name = "走私暗舱"
+        self.name = "Smuggler's Hold"
         self.icon = "🏴‍☠️"
-        self.desc = "采购成本-15%。所得税+20%。"
+        self.desc = "Purchase costs -15%. Income Tax +20%."
     def modify_purchase_cost(self, game, cost, card): return int(cost * 0.85)
     def modify_income_tax(self, game, tax): return int(tax * 1.2)
 
 class BulkHaulerRigging(ShipModule):
     def __init__(self):
         self.id = "bulk_hauler"
-        self.name = "散货索具"
+        self.name = "Bulk Hauler Rigging"
         self.icon = "🏗️"
-        self.desc = "每件货物运费-1。船只升级费用+15金币。"
+        self.desc = "Transport cost -1 per item. Ship upgrades cost +15 Gold."
     def modify_transport_cost(self, game, cost, items, has_silk): return max(0, cost - items)
     def on_equip(self, game): game.ship_upgrade_penalty += 15
     def on_unequip(self, game): game.ship_upgrade_penalty -= 15
@@ -255,104 +264,100 @@ class BulkHaulerRigging(ShipModule):
 class ArtisansWorkshop(ShipModule):
     def __init__(self):
         self.id = "artisans_workshop"
-        self.name = "工匠工坊"
+        self.name = "Artisan's Workshop"
         self.icon = "🛠️"
-        self.desc = "工人产量+1。工资+20%。"
+        self.desc = "Workers produce +1 item. Wages +20%."
     def modify_production(self, game, worker_type, amount): return amount + 1
     def modify_wages(self, game, worker_type, wage): return int(wage * 1.2)
 
 class TaxEvasionLedger(ShipModule):
     def __init__(self):
         self.id = "tax_evasion"
-        self.name = "避税账本"
+        self.name = "Tax Evasion Ledger"
         self.icon = "📕"
-        self.desc = "所得税与增值税减半。15%概率在订单完成时罚款20金币(稽查)。"
+        self.desc = "Income Tax & VAT halved. 15% chance to lose 20 Gold on order complete (Audit)."
     def modify_vat(self, game, vat): return int(vat * 0.5)
     def modify_income_tax(self, game, tax): return int(tax * 0.5)
     def on_order_complete(self, game, order, reward, transport_cost):
         if random.random() < 0.15:
             game.money -= 20
-            game.log_message("🚨 稽查！避税账本触发，损失20金币！")
+            game.log_message("🚨 AUDIT! Tax Evasion Ledger triggered. Lost 20 Gold!")
         return reward, transport_cost
 
 class SilkRoadMonopoly(ShipModule):
     def __init__(self):
         self.id = "silk_monopoly"
-        self.name = "丝路垄断"
+        self.name = "Silk Road Monopoly"
         self.icon = "👘"
-        self.desc = "丝绸运费为0。丝绸产品订单报酬+20%。"
+        self.desc = "Silk transport cost is 0. Silk product orders yield +20% reward."
     def modify_transport_cost(self, game, cost, items, has_silk):
         if has_silk: return 0
         return cost
     def on_order_complete(self, game, order, reward, transport_cost):
-        has_silk = any(r["type"] in ["丝绸", "绫罗绸缎", "香囊", "布衣"] for r in order["resources"])
+        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
         if has_silk:
             reward = int(reward * 1.2)
-            game.log_message("👘 丝路垄断：报酬+20%！")
+            game.log_message("👘 Silk Monopoly: +20% Reward!")
         return reward, transport_cost
 
 class BrokersNetwork(ShipModule):
     def __init__(self):
         self.id = "brokers_network"
-        self.name = "牙行网络"
+        self.name = "Broker's Network"
         self.icon = "🕵️"
-        self.desc = "情报花费2金币。每次购买揭示2条密语。"
+        self.desc = "Intel costs 2 Gold. Reveals 2 rumors per purchase."
     def on_equip(self, game): game.intel_cost = 2
     def on_unequip(self, game): game.intel_cost = 5
 
 class SalvageCrane(ShipModule):
     def __init__(self):
         self.id = "salvage_crane"
-        self.name = "打捞起重机"
+        self.name = "Salvage Crane"
         self.icon = "♻️"
-        self.desc = "30%概率在订单完成时退还运费。"
+        self.desc = "30% chance to refund transport cost on order complete."
     def on_order_complete(self, game, order, reward, transport_cost):
         if random.random() < 0.30:
             game.money += transport_cost
-            game.log_message(f"♻️ 打捞起重机：退还了{transport_cost}金币运费！")
+            game.log_message(f"♻️ Salvage Crane: Refunded {transport_cost} Gold transport!")
             transport_cost = 0
         return reward, transport_cost
 
 class OverdriveEngine(ShipModule):
     def __init__(self):
         self.id = "overdrive_engine"
-        self.name = "超载引擎"
+        self.name = "Overdrive Engine"
         self.icon = "⚙️"
-        self.desc = "运费-5金币。维护费+10金币。"
+        self.desc = "Transport cost -5 Gold. Maintenance +10 Gold."
     def modify_transport_cost(self, game, cost, items, has_silk): return max(0, cost - 5)
     def on_equip(self, game): game.maintenance_penalty += 10
     def on_unequip(self, game): game.maintenance_penalty -= 10
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# 主游戏类
+# Main Game Class
 # ─────────────────────────────────────────────────────────────────────────────
 class PortMasters:
-    """PortMasters – 海上丝绸之路贸易大亨，生产级GUI布局。"""
-
-    # ── 布局常量 ──────────────────────────────────────────────────
+    """PortMasters – A maritime trade tycoon game with production-ready GUI."""
+    # ── Layout constants ──────────────────────────────────────────────
     PAD_SM = 4
     PAD_MD = 8
     PAD_LG = 16
     PAD_XL = 24
-
-    FONT_TITLE = ("Microsoft YaHei", 22, "bold")
-    FONT_SUBTITLE = ("Microsoft YaHei", 14)
-    FONT_BODY = ("Microsoft YaHei", 11)
-    FONT_BODY_BOLD = ("Microsoft YaHei", 11, "bold")
-    FONT_SMALL = ("Microsoft YaHei", 9)
-    FONT_SMALL_BOLD = ("Microsoft YaHei", 9, "bold")
-    FONT_BUTTON = ("Microsoft YaHei", 11, "bold")
-    FONT_HERO = ("Microsoft YaHei", 28, "bold")
-    FONT_CARD_TITLE = ("Microsoft YaHei", 14, "bold")
-    FONT_STAT = ("Microsoft YaHei", 12, "bold")
+    FONT_TITLE = ("Segoe UI", 22, "bold")
+    FONT_SUBTITLE = ("Segoe UI", 14)
+    FONT_BODY = ("Segoe UI", 11)
+    FONT_BODY_BOLD = ("Segoe UI", 11, "bold")
+    FONT_SMALL = ("Segoe UI", 9)
+    FONT_SMALL_BOLD = ("Segoe UI", 9, "bold")
+    FONT_BUTTON = ("Segoe UI", 11, "bold")
+    FONT_HERO = ("Segoe UI", 28, "bold")
+    FONT_CARD_TITLE = ("Segoe UI", 14, "bold")
+    FONT_STAT = ("Segoe UI", 12, "bold")
 
     def __init__(self):
         self.window = tk.Tk()
-        self.window.title("PortMasters - 海上丝绸之路贸易大亨")
+        self.window.title("PortMasters")
         self.window.geometry("1600x950")
         self.window.minsize(1400, 850)
-
         self.colors = {
             "bg_light": "#E6F2FF", "bg_dark": "#1A3C8C", "accent_blue": "#2E5AA7",
             "accent_gold": "#FFD700", "accent_red": "#FF6B6B", "accent_green": "#4CAF50",
@@ -366,10 +371,10 @@ class PortMasters:
         self.BUTTON_FONT = self.FONT_BUTTON
         self.window.configure(bg=self.colors["bg_light"])
 
-        # ── 游戏状态 ──────────────────────────────────────────────
+        # ── Game state ────────────────────────────────────────────────
         self.inventory = {
-            "麻布": 8, "丝绸": 5, "茶叶": 3,
-            "麻衣": 0, "布衣": 0, "绫罗绸缎": 0, "香囊": 0
+            "Hemp": 8, "Silk": 5, "Tea": 3,
+            "Linen Clothes": 0, "Cotton Clothes": 0, "Brocade": 0, "Sachet": 0
         }
         self.money = 100
         self.score = 0
@@ -384,51 +389,45 @@ class PortMasters:
         self.income_tax_paid = 0
         self.round_revenue = 0
         self.round_costs = 0
-
         self.weavers = []
         self.master_weavers = []
         self.sachet_makers = []
         self.WEAVER_WAGE = 8
         self.MASTER_WEAVER_WAGE = 12
         self.SACHET_MAKER_WAGE = 20
-
         self.RECIPES = {
-            "麻衣": {"materials": {"麻布": 2}, "value": 15, "worker_type": "weaver"},
-            "布衣": {"materials": {"麻布": 2, "丝绸": 1}, "value": 35, "worker_type": "weaver"},
-            "绫罗绸缎": {"materials": {"丝绸": 3}, "value": 60, "worker_type": "master"},
-            "香囊": {"materials": {"丝绸": 1, "茶叶": 2}, "value": 80, "worker_type": "sachet_maker"}
+            "Linen Clothes": {"materials": {"Hemp": 2}, "value": 15, "worker_type": "weaver"},
+            "Cotton Clothes": {"materials": {"Hemp": 2, "Silk": 1}, "value": 35, "worker_type": "weaver"},
+            "Brocade": {"materials": {"Silk": 3}, "value": 60, "worker_type": "master"},
+            "Sachet": {"materials": {"Silk": 1, "Tea": 2}, "value": 80, "worker_type": "sachet_maker"}
         }
         self.fixed_cost = 15
-
-        self.resource_types = ["麻布", "丝绸", "茶叶"]
-        self.product_types = ["麻衣", "布衣", "绫罗绸缎", "香囊"]
+        self.resource_types = ["Hemp", "Silk", "Tea"]
+        self.product_types = ["Linen Clothes", "Cotton Clothes", "Brocade", "Sachet"]
         self.resource_colors = {
-            "麻布": self.colors["hemp"], "丝绸": self.colors["silk"], "茶叶": self.colors["tea"],
-            "麻衣": self.colors["linen_clothes"], "布衣": self.colors["cotton_clothes"],
-            "绫罗绸缎": self.colors["silk_brocade"], "香囊": self.colors["sachet"]
+            "Hemp": self.colors["hemp"], "Silk": self.colors["silk"], "Tea": self.colors["tea"],
+            "Linen Clothes": self.colors["linen_clothes"], "Cotton Clothes": self.colors["cotton_clothes"],
+            "Brocade": self.colors["silk_brocade"], "Sachet": self.colors["sachet"]
         }
         self.resource_icons = {
-            "麻布": "🧶", "丝绸": "👘", "茶叶": "🍵",
-            "麻衣": "👔", "布衣": "👕", "绫罗绸缎": "👗", "香囊": "🌸"
+            "Hemp": "🧶", "Silk": "👘", "Tea": "🍵",
+            "Linen Clothes": "👔", "Cotton Clothes": "👕", "Brocade": "👗", "Sachet": "🌸"
         }
-
-        self.ports = ["泉州港", "广州港", "宁波港", "扬州港", "杭州港"]
+        self.ports = ["Quanzhou Port", "Guangzhou Port", "Ningbo Port", "Yangzhou Port", "Hangzhou Port"]
         self.commodities = {
-            "麻布": {"港口": ["泉州港", "宁波港"], "基础价格": (3, 6)},
-            "丝绸": {"港口": ["杭州港", "扬州港"], "基础价格": (6, 10)},
-            "茶叶": {"港口": ["广州港", "泉州港"], "基础价格": (10, 14)}
+            "Hemp": {"ports": ["Quanzhou Port", "Ningbo Port"], "base_price": (3, 6)},
+            "Silk": {"ports": ["Hangzhou Port", "Yangzhou Port"], "base_price": (6, 10)},
+            "Tea": {"ports": ["Guangzhou Port", "Quanzhou Port"], "base_price": (10, 14)}
         }
         self.product_prices = {
-            "麻衣": (30, 42), "布衣": (50, 65),
-            "绫罗绸缎": (70, 90), "香囊": (95, 120)
+            "Linen Clothes": (30, 42), "Cotton Clothes": (50, 65),
+            "Brocade": (70, 90), "Sachet": (95, 120)
         }
-        self.resource_probabilities = {"麻布": 0.4, "丝绸": 0.35, "茶叶": 0.25}
-
+        self.resource_probabilities = {"Hemp": 0.4, "Silk": 0.35, "Tea": 0.25}
         self.ship_level = 0
         self.ship_upgrade_cost = [15, 25, 40]
         self.ship_upgrade_penalty = 0
         self.maintenance_penalty = 0
-        
         self.phase = 0
         self.resource_cards = []
         self.customer_cards = []
@@ -440,32 +439,32 @@ class PortMasters:
         self.purchase_buttons = []
         self.order_buttons = []
         self.save_file = "portmasters_save.json"
-        
-        # ── 福缘与修正状态 ────────────────────────────────────────
+
+        # ── Boon & Modifier State ─────────────────────────────────────
         self.modifier_flags = {}
         self.boon_manager = BoonManager(self.get_game_state_for_boons)
 
-        # ── 船只模块状态 ──────────────────────────────────────────
+        # ── Ship Modules State ────────────────────────────────────────
         self.module_classes = [
-            SmugglersHold, BulkHaulerRigging, ArtisansWorkshop, 
-            TaxEvasionLedger, SilkRoadMonopoly, BrokersNetwork, 
+            SmugglersHold, BulkHaulerRigging, ArtisansWorkshop,
+            TaxEvasionLedger, SilkRoadMonopoly, BrokersNetwork,
             SalvageCrane, OverdriveEngine
         ]
         self.equipped_modules = []
 
-        # 🔮 情报系统：牙行密语属性
-        self.phase2_demand_tags = []      
-        self.revealed_intel = []          
-        self.intel_cost = 5               
-        self._intel_order_used = False    
-        self.rumor_window = None          
+        # 🔮 INTEL SYSTEM: Broker's Whisper attributes
+        self.phase2_demand_tags = []
+        self.revealed_intel = []
+        self.intel_cost = 5
+        self._intel_order_used = False
+        self.rumor_window = None
 
         self.setup_styles()
         self.create_widgets()
         self.setup_keyboard_shortcuts()
 
         if os.path.exists(self.save_file):
-            if messagebox.askyesno("读取存档", "检测到上次的存档，是否继续游戏？"):
+            if messagebox.askyesno("Load Save", "Detected previous save, continue playing?"):
                 self.load_game()
                 return
         self.show_welcome()
@@ -482,12 +481,12 @@ class PortMasters:
         self.modifier_flags = modifiers
         if "instant_gold" in modifiers:
             self.money += modifiers["instant_gold"]
-            self.log_message(f"💰 福缘生效：立刻获得 {modifiers['instant_gold']} 金币！")
+            self.log_message(f"💰 Boon applied: Gained {modifiers['instant_gold']} Gold!")
             self.update_display()
 
-    # ── 视觉特效 (Juice) ──────────────────────────────────────────
+    # ── Juice / UI Polish ─────────────────────────────────────────────
     def trigger_juice(self, root_x, root_y):
-        print("[SFX: 低沉共鸣与清脆风铃音效]")
+        print("[SFX: Deep bass thud and magical chime]")
         self.shake_window()
         self.trigger_particle_burst(root_x, root_y)
 
@@ -499,10 +498,9 @@ class PortMasters:
             else:
                 x, y = 100, 100
             w, h = geo[0].split('x')
-            
             steps = [(-4, -4), (4, 4), (-2, 2), (2, -2), (0, 0)]
             for i, (dx, dy) in enumerate(steps):
-                self.window.after(i * 30, lambda nx=x+dx, ny=y+dy, w=w, h=h: 
+                self.window.after(i * 30, lambda nx=x+dx, ny=y+dy, w=w, h=h:
                                   self.window.geometry(f"{w}x{h}+{nx}+{ny}"))
         except Exception:
             pass
@@ -512,11 +510,9 @@ class PortMasters:
         wy = self.window.winfo_rooty()
         x = root_x - wx
         y = root_y - wy
-        
         canvas = tk.Canvas(self.window, highlightthickness=0, bg=self.colors["bg_light"])
         canvas.place(x=0, y=0, relwidth=1, relheight=1)
         canvas.bind("<Button-1>", lambda e: canvas.destroy())
-        
         particles = []
         colors = ["#FFD700", "#FFA500", "#4CAF50", "#2E5AA7", "#FFFFFF", "#E6F2FF"]
         for _ in range(35):
@@ -526,13 +522,12 @@ class PortMasters:
             color = random.choice(colors)
             p = canvas.create_oval(px-r, py-r, px+r, py+r, fill=color, outline="")
             particles.append((p, px, py, r, random.uniform(-8, 8), random.uniform(-10, -2)))
-            
-        sparkles = ["✨", "⭐", "💫", "🪙", "🎋"]
+        sparkles = ["✨", "⭐", "💫"]
         texts = []
         for _ in range(5):
             sx = x + random.randint(-40, 40)
             sy = y + random.randint(-40, 40)
-            t = canvas.create_text(sx, sy, text=random.choice(sparkles), font=("Microsoft YaHei", random.randint(16, 24)))
+            t = canvas.create_text(sx, sy, text=random.choice(sparkles), font=("Segoe UI", random.randint(16, 24)))
             texts.append((t, sx, sy, random.uniform(-3, 3), random.uniform(-5, -1)))
 
         def animate(step=0):
@@ -542,25 +537,22 @@ class PortMasters:
                 return
             for p, px, py, r, vx, vy in particles:
                 nx = px + vx * step
-                ny = py + vy * step + 1.5 * step 
+                ny = py + vy * step + 1.5 * step
                 nr = max(0, r - step * 0.6)
                 try: canvas.coords(p, nx-nr, ny-nr, nx+nr, ny+nr)
                 except: pass
-                
             for t, sx, sy, vx, vy in texts:
                 nx = sx + vx * step
                 ny = sy + vy * step
                 try: canvas.coords(t, nx, ny)
                 except: pass
-                
             try:
                 self.window.after(25, lambda: animate(step+1))
             except:
                 pass
-            
         animate()
 
-    # ── 快捷键 ────────────────────────────────────────────────────
+    # ── Keyboard shortcuts ────────────────────────────────────────────
     def setup_keyboard_shortcuts(self):
         self.window.bind('<Control-s>', lambda e: self.save_game())
         self.window.bind('<Control-n>', lambda e: self.next_phase())
@@ -568,7 +560,7 @@ class PortMasters:
         self.window.bind('<Control-h>', lambda e: self.show_worker_management())
         self.window.bind('<F1>', lambda e: self.show_instructions())
 
-    # ── 存档 / 读档 ───────────────────────────────────────────────
+    # ── Save / Load ───────────────────────────────────────────────────
     def save_game(self):
         game_data = {
             "inventory": self.inventory, "money": self.money, "score": self.score,
@@ -593,11 +585,11 @@ class PortMasters:
         try:
             with open(self.save_file, "w", encoding="utf-8") as f:
                 json.dump(game_data, f, ensure_ascii=False, indent=2)
-            self.log_message("💾 游戏已保存！")
-            messagebox.showinfo("保存成功", "游戏进度已保存！")
+            self.log_message("💾 Game Saved!")
+            messagebox.showinfo("Save Success", "Progress Saved!")
         except Exception as e:
-            self.log_message(f"❌ 保存失败: {str(e)}")
-            messagebox.showerror("保存失败", f"无法保存游戏: {str(e)}")
+            self.log_message(f"❌ Save failed: {str(e)}")
+            messagebox.showerror("Save Failed", f"Cannot save game: {str(e)}")
 
     def load_game(self):
         try:
@@ -625,13 +617,11 @@ class PortMasters:
             self.maintenance_costs = game_data.get("maintenance_costs", 0)
             self.vat_paid = game_data.get("vat_paid", 0)
             self.income_tax_paid = game_data.get("income_tax_paid", 0)
-            self.modifier_flags = {} 
-            
+            self.modifier_flags = {}
             self.phase2_demand_tags = game_data.get("phase2_demand_tags", [])
             self.revealed_intel = game_data.get("revealed_intel", [])
             self._intel_order_used = False
             self.rumor_window = None
-            
             self.ship_upgrade_penalty = 0
             self.maintenance_penalty = 0
             self.equipped_modules = []
@@ -642,78 +632,60 @@ class PortMasters:
                         self.equipped_modules.append(inst)
                         inst.on_equip(self)
                         break
-            
-            self.log_message("📂 存档已加载！")
+            self.log_message("📂 Save Loaded!")
             self.update_display()
-            if self.phase == 0:
-                self.show_welcome()
-            elif self.phase == 1:
-                self.start_phase1()
-            elif self.phase == 2:
-                self.start_phase2()
-            elif self.phase == 3:
-                self.start_phase3()
-            elif self.phase == 4:
-                self.start_phase4()
-            elif self.phase == 5:
-                self.start_boon_drafting()
-            else:
-                self.show_worker_management()
+            if self.phase == 0: self.show_welcome()
+            elif self.phase == 1: self.start_phase1()
+            elif self.phase == 2: self.start_phase2()
+            elif self.phase == 3: self.start_phase3()
+            elif self.phase == 4: self.start_phase4()
+            elif self.phase == 5: self.start_boon_drafting()
+            else: self.show_worker_management()
         except Exception as e:
-            self.log_message(f"❌ 加载存档失败: {str(e)}")
-            messagebox.showerror("加载失败", "无法读取存档，开始新游戏。")
+            self.log_message(f"❌ Failed to load save: {str(e)}")
+            messagebox.showerror("Load Failed", "Cannot read save, start new game.")
             self.show_welcome()
 
     def delete_save(self):
         if os.path.exists(self.save_file):
             os.remove(self.save_file)
-            self.log_message("🗑️ 存档已删除")
+            self.log_message("🗑️ Save Deleted")
 
-    # ── 费用计算 (注入修正) ───────────────────────────────────────
+    # ── Cost calculations (with Modifier Injection) ───────────────────
     def calculate_transport_cost(self, total_items, has_silk=False):
         base_cost = total_items * 2
         discount = self.ship_level * 5
-        
         if "transport_flat_discount" in self.modifier_flags:
             discount += self.modifier_flags["transport_flat_discount"]
-            
         final_cost = max(5, base_cost - discount)
-        
         if has_silk and "transport_silk_discount" in self.modifier_flags:
             final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
-            
         for m in self.equipped_modules:
             final_cost = m.modify_transport_cost(self, final_cost, total_items, has_silk)
-            
         return max(0, final_cost)
 
     def show_transport_cost_detail(self, total_items, has_silk=False):
         base_cost = total_items * 2
         discount = self.ship_level * 5
-        
         if "transport_flat_discount" in self.modifier_flags:
             discount += self.modifier_flags["transport_flat_discount"]
-            
         final_cost = max(5, base_cost - discount)
-        
         if has_silk and "transport_silk_discount" in self.modifier_flags:
             final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
-            
         for m in self.equipped_modules:
             final_cost = m.modify_transport_cost(self, final_cost, total_items, has_silk)
         final_cost = max(0, final_cost)
-            
         return {
             "total_items": total_items, "base_cost": base_cost,
             "discount": discount, "final_cost": final_cost,
-            "formula": f"max(0, ({total_items} × 2) - {discount} + 模块) = {final_cost}"
+            "formula": f"max(0, ({total_items} × 2) - {discount} + mods) = {final_cost}"
         }
 
     def calculate_vat(self, product, selling_price):
         recipe = self.RECIPES[product]
         material_cost = 0
         for material, amount in recipe["materials"].items():
-            avg_price = sum(self.commodities[material]["基础价格"]) / 2
+            avg_price = sum(self.commodities[material]["base_price"]) / 2
             material_cost += avg_price * amount
         worker_cost = 0
         if recipe["worker_type"] == "weaver": worker_cost = self.WEAVER_WAGE
@@ -724,7 +696,7 @@ class PortMasters:
             vat = math.floor(taxable_amount * 0.05)
             for m in self.equipped_modules:
                 vat = m.modify_vat(self, vat)
-            self.log_message(f"🧮 增值税计算: 5% × ({selling_price} - {material_cost:.1f}(材料) - {worker_cost}(工资)) = {vat}金币")
+            self.log_message(f"🧮 VAT: 5% × ({selling_price} - {material_cost:.1f}(Mat) - {worker_cost}(Wage)) = {vat}")
             return vat
         return 0
 
@@ -737,7 +709,7 @@ class PortMasters:
             return tax
         return 0
 
-    # ── 工人管理 ──────────────────────────────────────────────────
+    # ── Worker management ─────────────────────────────────────────────
     def get_hire_cost(self, worker_type):
         if worker_type == "weaver": wage = self.WEAVER_WAGE
         elif worker_type == "master": wage = self.MASTER_WEAVER_WAGE
@@ -753,39 +725,39 @@ class PortMasters:
             self.money -= wage
             if worker_type == "weaver":
                 self.weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.log_message(f"👩‍🔧 雇佣了一名织女！工资: {wage}金币/回合")
+                self.log_message(f"👩‍🔧 Hired a Weaver! Wage: {wage} Gold / Round")
             elif worker_type == "master":
                 self.master_weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.log_message(f"👩‍🎨 雇佣了一名纺织大师！工资: {wage}金币/回合")
+                self.log_message(f"👩‍🎨 Hired a Master Weaver! Wage: {wage} Gold / Round")
             elif worker_type == "sachet_maker":
                 self.sachet_makers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.log_message(f"🌸 雇佣了一名香囊师！工资: {wage}金币/回合")
+                self.log_message(f"🌸 Hired a Sachet Maker! Wage: {wage} Gold / Round")
             self.worker_wages += wage
             self.update_display()
             return True
-        self.log_message("❌ 资金不足，无法雇佣工人！")
+        self.log_message("❌ Insufficient funds to hire workers!")
         return False
 
     def fire_worker(self, worker_type, index):
         if worker_type == "weaver":
-            worker_list, wage, worker_name = self.weavers, self.WEAVER_WAGE, "织女"
+            worker_list, wage, worker_name = self.weavers, self.WEAVER_WAGE, "Weaver"
         elif worker_type == "master":
-            worker_list, wage, worker_name = self.master_weavers, self.MASTER_WEAVER_WAGE, "纺织大师"
+            worker_list, wage, worker_name = self.master_weavers, self.MASTER_WEAVER_WAGE, "Master Weaver"
         elif worker_type == "sachet_maker":
-            worker_list, wage, worker_name = self.sachet_makers, self.SACHET_MAKER_WAGE, "香囊师"
+            worker_list, wage, worker_name = self.sachet_makers, self.SACHET_MAKER_WAGE, "Sachet Maker"
         else: return False
         if index < 0 or index >= len(worker_list):
-            self.log_message("❌ 无效的工人编号！")
+            self.log_message("❌ Invalid worker ID!")
             return False
         if self.money >= wage:
             self.money -= wage
             worker = worker_list.pop(index)
-            self.log_message(f"💔 解雇了一名{worker_name}，支付遣散费: {wage}金币")
-            if worker['task']: self.log_message(f"  该工人原本正在制作: {worker['task']}")
+            self.log_message(f"💔 Dismissed a {worker_name}. Severance: {wage} Gold")
+            if worker['task']: self.log_message(f"  This worker was making: {worker['task']}")
             self.update_display()
             return True
         else:
-            self.log_message(f"❌ 资金不足，无法支付{worker_name}的遣散费: {wage}金币")
+            self.log_message(f"❌ Insufficient funds for {worker_name}'s severance: {wage} Gold")
             return False
 
     def assign_worker_task(self, worker_list, worker_type, task):
@@ -800,17 +772,17 @@ class PortMasters:
                 if can_produce:
                     for material, amount in recipe["materials"].items():
                         self.inventory[material] -= amount
-                        self.material_costs += amount * (sum(self.commodities[material]["基础价格"]) / 2)
+                        self.material_costs += amount * (sum(self.commodities[material]["base_price"]) / 2)
                     worker['task'] = task
                     worker['progress'] = 0
                     material_list = [f"{self.resource_icons[m]}{m}×{a}" for m, a in recipe["materials"].items()]
-                    self.log_message(f"📋 为工人分配任务：生产{self.resource_icons[task]}{task}（原料：{' + '.join(material_list)}）")
+                    self.log_message(f"📋 Assigned: Produce {self.resource_icons[task]}{task} (Req: {' + '.join(material_list)})")
                     self.update_display()
                     return True
                 else:
-                    self.log_message(f"❌ 材料不足，无法生产{task}！")
+                    self.log_message(f"❌ Material shortage to produce {task}!")
                     return False
-        self.log_message("❌ 所有工人都已分配任务！")
+        self.log_message("❌ All workers are already assigned tasks!")
         return False
 
     def process_production(self):
@@ -825,17 +797,16 @@ class PortMasters:
                 self.inventory[product] = self.inventory.get(product, 0) + amount
                 weaver['produced_count'] = weaver.get('produced_count', 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ 织女(熟练)完成了 {amount} 件{self.resource_icons[product]}{product}的制作！（加成）")
+                    self.log_message(f"✅ Skilled Weaver finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
                 elif weaver.get('is_skilled', False):
-                    self.log_message(f"✅ 织女(熟练)完成了2件{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Skilled Weaver finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    self.log_message(f"✅ 织女完成了{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Weaver finished {self.resource_icons[product]}{product}!")
                 if weaver.get('produced_count', 0) >= 2:
                     weaver['is_skilled'] = True
-                    self.log_message("⭐ 织女经验提升！现在每回合可生产2件产品！")
+                    self.log_message("⭐ Weaver Promotion! Can now produce 2 items per round!")
                 weaver['task'] = None
                 weaver['progress'] = 0
-
         for master in self.master_weavers:
             if master['task']:
                 base_prod = 2 if master.get('is_skilled', False) else 1
@@ -846,17 +817,16 @@ class PortMasters:
                 self.inventory[product] = self.inventory.get(product, 0) + amount
                 master['produced_count'] = master.get('produced_count', 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ 纺织大师(熟练)完成了 {amount} 件{self.resource_icons[product]}{product}的制作！（加成）")
+                    self.log_message(f"✅ Skilled Master finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
                 elif master.get('is_skilled', False):
-                    self.log_message(f"✅ 纺织大师(熟练)完成了2件{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Skilled Master finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    self.log_message(f"✅ 纺织大师完成了{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Master finished {self.resource_icons[product]}{product}!")
                 if master.get('produced_count', 0) >= 2:
                     master['is_skilled'] = True
-                    self.log_message("⭐ 纺织大师经验提升！现在每回合可生产2件产品！")
+                    self.log_message("⭐ Master Promotion! Can now produce 2 items per round!")
                 master['task'] = None
                 master['progress'] = 0
-
         for maker in self.sachet_makers:
             if maker['task']:
                 base_prod = 2 if maker.get('is_skilled', False) else 1
@@ -867,14 +837,14 @@ class PortMasters:
                 self.inventory[product] = self.inventory.get(product, 0) + amount
                 maker['produced_count'] = maker.get('produced_count', 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ 香囊师(熟练)完成了 {amount} 件{self.resource_icons[product]}{product}的制作！（加成）")
+                    self.log_message(f"✅ Skilled Maker finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
                 elif maker.get('is_skilled', False):
-                    self.log_message(f"✅ 香囊师(熟练)完成了2件{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Skilled Maker finished 2× {self.resource_icons[product]}{product}!")
                 else:
-                    self.log_message(f"✅ 香囊师完成了{self.resource_icons[product]}{product}的制作！")
+                    self.log_message(f"✅ Maker finished {self.resource_icons[product]}{product}!")
                 if maker.get('produced_count', 0) >= 2:
                     maker['is_skilled'] = True
-                    self.log_message("⭐ 香囊师经验提升！现在每回合可生产2件产品！")
+                    self.log_message("⭐ Maker Promotion! Can now produce 2 items per round!")
                 maker['task'] = None
                 maker['progress'] = 0
 
@@ -885,49 +855,45 @@ class PortMasters:
             base_wage = self.WEAVER_WAGE
             if weaver.get('double_production_this_round', False):
                 base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 织女高效产出(2件)，工资提升至{base_wage}金币")
+                self.log_message(f"💪 Weaver High Yield (2 items), Wage → {base_wage} Gold")
             for m in self.equipped_modules:
                 base_wage = m.modify_wages(self, "weaver", base_wage)
             weaver_wages += base_wage
-
         master_wages = 0
         for master in self.master_weavers:
             base_wage = self.MASTER_WEAVER_WAGE
             if master.get('double_production_this_round', False):
                 base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 纺织大师高效产出(2件)，工资提升至{base_wage}金币")
+                self.log_message(f"💪 Master High Yield (2 items), Wage → {base_wage} Gold")
             for m in self.equipped_modules:
                 base_wage = m.modify_wages(self, "master", base_wage)
             master_wages += base_wage
-
         maker_wages = 0
         for maker in self.sachet_makers:
             base_wage = self.SACHET_MAKER_WAGE
             if maker.get('double_production_this_round', False):
                 base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 香囊师高效产出(2件)，工资提升至{base_wage}金币")
+                self.log_message(f"💪 Maker High Yield (2 items), Wage → {base_wage} Gold")
             for m in self.equipped_modules:
                 base_wage = m.modify_wages(self, "sachet_maker", base_wage)
             maker_wages += base_wage
-
         total_wages = weaver_wages + master_wages + maker_wages
         if total_wages == 0: return True
-        
         if self.money >= total_wages:
             self.money -= total_wages
             total_paid = total_wages
             self.worker_wages += total_wages
             self.round_costs += total_wages
-            if weaver_wages > 0: self.log_message(f"💰 支付了{len(self.weavers)}名织女的工资：{weaver_wages}金币")
-            if master_wages > 0: self.log_message(f"💰 支付了{len(self.master_weavers)}名纺织大师的工资：{master_wages}金币")
-            if maker_wages > 0: self.log_message(f"💰 支付了{len(self.sachet_makers)}名香囊师的工资：{maker_wages}金币")
+            if weaver_wages > 0: self.log_message(f"💰 Paid wages for {len(self.weavers)} Weavers: {weaver_wages} Gold")
+            if master_wages > 0: self.log_message(f"💰 Paid wages for {len(self.master_weavers)} Masters: {master_wages} Gold")
+            if maker_wages > 0: self.log_message(f"💰 Paid wages for {len(self.sachet_makers)} Makers: {maker_wages} Gold")
             self._clear_wage_markers()
             self.update_display()
             return True
         else:
-            self.log_message(f"⚠️ 资金不足！应付工资: {total_wages}金币，当前资金: {self.money}金币")
-            self.log_message("💥 无法支付工人工资，工匠们罢工离去...")
-            self.log_message("💥 商队信誉崩塌，被迫破产！")
+            self.log_message(f"⚠️ Insufficient funds! Needed: {total_wages} Gold, Have: {self.money} Gold")
+            self.log_message("💥 Could not pay wages, workers strike...")
+            self.log_message("💥 Reputation collapsed, forced bankruptcy!")
             return "bankruptcy"
 
     def _clear_wage_markers(self):
@@ -935,7 +901,7 @@ class PortMasters:
             if 'double_production_this_round' in worker:
                 del worker['double_production_this_round']
 
-    # ── 🔮 情报系统：订单生成与约束注入 ─────────────────────────
+    # ── 🔮 INTEL SYSTEM: Order generation with constraint injection ──
     def _generate_phase2_demand_tags(self, count=5):
         tags = []
         all_items = self.resource_types + self.product_types
@@ -947,29 +913,25 @@ class PortMasters:
 
     def purchase_intel(self):
         if not self.phase2_demand_tags:
-            self.log_message("🔮 牙行已无更多密语...")
+            self.log_message("🔮 The Broker has no more whispers...")
             if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
                 self._populate_rumor_list()
             return
         if self.money < self.intel_cost:
-            self.log_message(f"❌ 需要{self.intel_cost}金币才能购买消息")
+            self.log_message(f"❌ Need {self.intel_cost} Gold for a rumor")
             if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
                 self._populate_rumor_list()
             return
-            
         rumors_to_buy = 2 if any(m.id == 'brokers_network' for m in self.equipped_modules) else 1
-        
         for _ in range(rumors_to_buy):
             if not self.phase2_demand_tags: break
             revealed_item = random.choice(self.phase2_demand_tags)
             self.phase2_demand_tags.remove(revealed_item)
             port = random.choice(self.ports)
             self.revealed_intel.append({"item": revealed_item, "port": port})
-            self.log_message(f"🗣️ 牙行密语：'来自{port}的消息：对{revealed_item}的需求量很大！'")
-            
-        self.money -= self.intel_cost
+            self.log_message(f"🗣️ Broker's Whisper: 'Word from {port}: High demand for {revealed_item}!'")
+            self.money -= self.intel_cost
         self.update_display()
-        
         if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
             self._populate_rumor_list()
 
@@ -1005,8 +967,8 @@ class PortMasters:
         demand_port = random.choice(self.ports)
         base_price = random.randint(*self.product_prices[product])
         reward = base_price * required
-        return {"demand_port": demand_port, 
-                "resources": [{"type": product, "required": required}], 
+        return {"demand_port": demand_port,
+                "resources": [{"type": product, "required": required}],
                 "reward": reward, "total_items": required, "is_product_order": True}
 
     def generate_mixed_order(self):
@@ -1038,9 +1000,9 @@ class PortMasters:
             available_resources.pop(idx)
             probabilities.pop(idx)
             quantity = random.randint(1, 3)
-            price_range = self.commodities[resource]["基础价格"]
+            price_range = self.commodities[resource]["base_price"]
             base_price = random.randint(price_range[0], price_range[1])
-            price = base_price - 1 if port in self.commodities[resource]["港口"] else base_price + 1
+            price = base_price - 1 if port in self.commodities[resource]["ports"] else base_price + 1
             resources.append({"type": resource, "quantity": quantity, "price": price})
         total_cost = sum(r["quantity"] * r["price"] for r in resources)
         return {"port": port, "resources": resources, "total_cost": total_cost, "is_product_card": False}
@@ -1053,7 +1015,7 @@ class PortMasters:
         material_cost = 0
         material_details = []
         for material, amount in recipe["materials"].items():
-            avg_price = sum(self.commodities[material]["基础价格"]) / 2
+            avg_price = sum(self.commodities[material]["base_price"]) / 2
             material_cost += avg_price * amount
             material_details.append(f"{material}×{amount}")
         markup = random.uniform(1.4, 1.8)
@@ -1061,23 +1023,23 @@ class PortMasters:
         min_price, max_price = self.product_prices[product]
         unit_price = max(min_price, min(unit_price, max_price))
         total_cost = unit_price * quantity
-        resources = [{"type": product, "quantity": quantity, "price": unit_price, 
-                      "material_cost": material_cost, 
+        resources = [{"type": product, "quantity": quantity, "price": unit_price,
+                      "material_cost": material_cost,
                       "material_details": " + ".join(material_details)}]
         return {"port": port, "resources": resources, "total_cost": total_cost, "is_product_card": True}
 
-    # ── 采购修正辅助 ──────────────────────────────────────────────
+    # ── Modifier Helper for Purchases ─────────────────────────────────
     def get_card_final_cost(self, card):
         final_cost = card["total_cost"]
         if "purchase_discount" in self.modifier_flags:
             final_cost = int(final_cost * (1 - self.modifier_flags["purchase_discount"]))
         if "hemp_price_reduction" in self.modifier_flags:
             for r in card["resources"]:
-                if r["type"] == "麻布":
+                if r["type"] == "Hemp":
                     final_cost -= r["quantity"] * self.modifier_flags["hemp_price_reduction"]
         return max(0, final_cost)
 
-    # ── 采购 / 交易执行 ──────────────────────────────────────────
+    # ── Purchase / Order execution ────────────────────────────────────
     def purchase_card_specific(self, card):
         if card["id"] in self.purchased_cards:
             return
@@ -1085,7 +1047,6 @@ class PortMasters:
         for m in self.equipped_modules:
             final_cost = m.modify_purchase_cost(self, final_cost, card)
         final_cost = max(0, final_cost)
-        
         if self.money >= final_cost:
             self.money -= final_cost
             self.round_costs += final_cost
@@ -1094,43 +1055,39 @@ class PortMasters:
                 self.inventory[resource_info["type"]] += resource_info["quantity"]
             self.purchased_cards.add(card["id"])
             self.purchase_count += 1
-            
             if card.get("is_product_card"):
                 for r in card["resources"]:
                     self.log_message(
-                        f"🛒 在{card['port']}采购成品: {self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}"
-                        f"(@{r['price']}💰/个, 原料成本{r.get('material_cost', '?')}💰)，总花费{final_cost}金币")
-                self.log_message("   💡 提示：该成品出售时需缴纳增值税")
+                        f"🛒 Bought Product at {card['port']}: "
+                        f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}"
+                        f"(@{r['price']} Gold/item, Mat Cost {r.get('material_cost', '?')} Gold), "
+                        f"Total {final_cost} Gold")
+                self.log_message("   💡 Tip: VAT applies when selling finished products")
             else:
                 resources_text = " + ".join(
-                    f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}({r['price']}💰/个)"
+                    f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}({r['price']} Gold/item)"
                     for r in card["resources"])
-                self.log_message(f"🛒 在{card['port']}采购: {resources_text}，总花费{final_cost}金币")
-                
+                self.log_message(f"🛒 Bought at {card['port']}: {resources_text}, Total {final_cost} Gold")
             if final_cost < card["total_cost"]:
-                self.log_message(f"   ✨ 折扣生效！节省了 {card['total_cost'] - final_cost} 金币")
-                
+                self.log_message(f"   ✨ Boon Discount Applied! Saved {card['total_cost'] - final_cost} Gold")
             self.update_display()
             self.update_purchase_buttons()
-            self.log_message(f"📊 已采购 {self.purchase_count} 批货物")
+            self.log_message(f"📊 Purchased {self.purchase_count} cargo batches")
         else:
-            self.log_message(f"❌ 资金不足！需要{final_cost}金币，当前{self.money}金币")
+            self.log_message(f"❌ Insufficient funds! Need {final_cost} Gold, Have {self.money} Gold")
 
     def complete_order(self, order):
         if order["id"] in self.completed_orders:
             return
         for resource_info in order["resources"]:
             if self.inventory.get(resource_info["type"], 0) < resource_info["required"]:
-                self.log_message(f"❌ 库存不足！需要{resource_info['type']}×{resource_info['required']}")
+                self.log_message(f"❌ Inventory short! Need {resource_info['type']}×{resource_info['required']}")
                 return
-                
-        has_silk = any(r["type"] in ["丝绸", "绫罗绸缎", "香囊", "布衣"] for r in order["resources"])
+        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
         transport_cost = self.calculate_transport_cost(order["total_items"], has_silk)
         transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
-        
         for resource_info in order["resources"]:
             self.inventory[resource_info["type"]] -= resource_info["required"]
-            
         reward = order["reward"]
         is_product = order.get("is_product_order", False)
         if is_product:
@@ -1139,46 +1096,39 @@ class PortMasters:
             total_vat = vat * order["resources"][0]["required"]
             actual_reward = reward - total_vat
             self.vat_paid += total_vat
-            self.log_message(f"🧾 成品销售增值税: {total_vat}金币")
+            self.log_message(f"🧾 Product Sales VAT: {total_vat} Gold")
         else:
             actual_reward = reward
             total_vat = 0
-            
         self.money -= transport_cost
         self.round_costs += transport_cost
         self.total_costs += transport_cost
-        
         original_transport_cost = transport_cost
         for m in self.equipped_modules:
             actual_reward, transport_cost = m.on_order_complete(self, order, actual_reward, transport_cost)
-            
         if transport_cost != original_transport_cost:
             diff = original_transport_cost - transport_cost
             self.money += diff
             self.round_costs -= diff
             self.total_costs -= diff
-            
         self.money += actual_reward
         self.round_revenue += actual_reward
         self.total_revenue += actual_reward
         self.score += int(actual_reward - transport_cost)
         self.completed_orders.add(order["id"])
         self.order_count += 1
-        
         resources_text = " + ".join(
             f"{self.resource_icons.get(r['type'])}{r['type']}×{r['required']}" for r in order["resources"])
         net_profit = actual_reward - transport_cost
-        
-        self.log_message(f"📦 完成{order['demand_port']}的订单: {resources_text}")
-        self.log_message(f"   📦 材料总数: {transport_detail['total_items']} × 2 = {transport_detail['base_cost']}金币")
-        self.log_message(f"   🚢 运输折扣: -{transport_detail['discount']}金币")
-        self.log_message(f"   ⚓ 最终运费: {transport_detail['final_cost']}金币")
+        self.log_message(f"📦 Completed Order at {order['demand_port']}: {resources_text}")
+        self.log_message(f"   📦 Total Items: {transport_detail['total_items']} × 2 = {transport_detail['base_cost']} Gold")
+        self.log_message(f"   🚢 Discount: -{transport_detail['discount']} Gold")
+        self.log_message(f"   ⚓ Final Freight: {transport_detail['final_cost']} Gold")
         self.log_message(
-            f"   💰 报酬: {actual_reward}金币 - ⚓ 运费: {transport_cost}金币 = 📊 净利润: {net_profit}金币")
-        
+            f"   💰 Reward: {actual_reward} Gold - ⚓ Freight: {transport_cost} Gold = 📊 Net Profit: {net_profit} Gold")
         self.update_display()
         self.update_order_buttons()
-        self.log_message(f"📊 已完成 {self.order_count} 笔交易")
+        self.log_message(f"📊 Completed {self.order_count} transactions")
 
     def pay_fixed_cost(self):
         cost = self.fixed_cost + self.maintenance_penalty
@@ -1187,7 +1137,7 @@ class PortMasters:
             self.maintenance_costs += cost
             self.round_costs += cost
             self.total_costs += cost
-            self.log_message(f"💸 支付了船只维护费: {cost}金币")
+            self.log_message(f"💸 Paid Ship Maintenance Fee: {cost} Gold")
             self.update_display()
             self.start_phase4()
         else:
@@ -1201,41 +1151,36 @@ class PortMasters:
             self.maintenance_costs += paid
             self.round_costs += paid
             self.total_costs += paid
-            self.log_message(f"⚠️ 强制支付了 {paid}金币（需要 {cost}金币）")
+            self.log_message(f"⚠️ Forced payment of {paid} Gold (Needed {cost} Gold)")
             self.update_display()
             if self.money <= 0:
-                self.log_message("⚠️ 资金耗尽！无法继续航行...")
+                self.log_message("⚠️ Funds depleted! Cannot continue sailing...")
                 self.show_bankruptcy_screen()
             else:
                 self.start_phase4()
         else:
-            self.log_message("💸 无资金可支付")
+            self.log_message("💸 No funds to pay")
             self.show_bankruptcy_screen()
 
     def end_round(self):
-        self.log_message(f"\n📊=== 第{self.current_round}航程结算 ===")
-        self.log_message(f"💰 本航程总收入: {self.round_revenue}金币")
+        self.log_message(f"\n📊=== Round {self.current_round} Settlement ===")
+        self.log_message(f"💰 Revenue this round: {self.round_revenue} Gold")
         total_round_costs = self.round_costs + self.maintenance_costs + self.worker_wages
-        self.log_message(f"💸 本航程总成本: {total_round_costs}金币")
-        self.log_message(f"   🔧 维护费: {self.maintenance_costs}金币")
-        self.log_message(f"   📦 材料费: {self.material_costs}金币")
-        self.log_message(f"   👥 工人工资: {self.worker_wages}金币")
-        
+        self.log_message(f"💸 Total Cost this round: {total_round_costs} Gold")
+        self.log_message(f"   🔧 Maintenance: {self.maintenance_costs} Gold")
+        self.log_message(f"   📦 Materials: {self.material_costs} Gold")
+        self.log_message(f"   👥 Wages: {self.worker_wages} Gold")
         pre_tax_profit = self.round_revenue - total_round_costs
-        self.log_message(f"📈 税前净利润: {pre_tax_profit}金币")
-        
+        self.log_message(f"📈 Pre-tax Profit: {pre_tax_profit} Gold")
         income_tax = self.calculate_income_tax(pre_tax_profit)
         if income_tax > 0:
             self.money -= income_tax
             self.income_tax_paid += income_tax
-            tax_rate = self.modifier_flags.get('income_tax_override', 0.1) * 100
-            self.log_message(f"🏛️ 缴纳所得税（{tax_rate:.0f}%）: {income_tax}金币")
+            self.log_message(f"🏛️ Income Tax Paid ({self.modifier_flags.get('income_tax_override', 0.1)*100:.0f}%): {income_tax} Gold")
         else:
-            self.log_message("🏛️ 无盈利，无需缴纳所得税")
-            
+            self.log_message("🏛️ No profit, no income tax due")
         if self.vat_paid > 0:
-            self.log_message(f"🧾 本航程已缴增值税: {self.vat_paid}金币")
-            
+            self.log_message(f"🧾 VAT Paid this round: {self.vat_paid} Gold")
         self.modifier_flags = {}
         self.phase2_demand_tags = []
         self.revealed_intel = []
@@ -1243,18 +1188,16 @@ class PortMasters:
         if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
             self.rumor_window.destroy()
             self.rumor_window = None
-            
         self.round_revenue = 0
         self.round_costs = 0
         self.maintenance_costs = 0
         self.material_costs = 0
         self.worker_wages = 0
-        
         self.current_round += 1
         if self.current_round > self.max_rounds:
             self.end_game()
         else:
-            self.log_message(f"\n🔄=== 第{self.current_round}航程准备开始 ===")
+            self.log_message(f"\n🔄=== Preparing for Round {self.current_round} ===")
             self.phase = 0
             self.purchase_count = 0
             self.order_count = 0
@@ -1266,7 +1209,7 @@ class PortMasters:
             self.start_boon_drafting()
             self.update_button_states()
 
-    # ── 辅助：工匠管理中的库存行 ──────────────────────────────────
+    # ── Helper: inventory row in worker mgmt ──────────────────────────
     def create_inventory_row(self, parent, item):
         color = self.resource_colors.get(item, "black")
         icon = self.resource_icons.get(item, "")
@@ -1274,46 +1217,41 @@ class PortMasters:
         frame.pack(fill=tk.X, padx=20, pady=2)
         tk.Label(frame, text=icon, font=self.FONT_BODY_BOLD, bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, 5))
         tk.Label(frame, text=item, font=self.FONT_BODY, bg=self.colors["card_bg"],
-                 fg=color, width=12, anchor="w").pack(side=tk.LEFT)
+                 fg=color, width=15, anchor="w").pack(side=tk.LEFT)
         tk.Label(frame, text=str(self.inventory.get(item, 0)), font=self.FONT_BODY_BOLD,
                  bg=self.colors["card_bg"], fg=color, width=5).pack(side=tk.RIGHT)
 
-    # ── 🔮 情报系统：牙行密语板 Toplevel 窗口 ───────────────────
+    # ── 🔮 INTEL SYSTEM: Rumor Board Toplevel Window ──────────────────
     def show_rumor_board(self):
         if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
             self.rumor_window.lift()
             return
-            
         self.rumor_window = tk.Toplevel(self.window)
-        self.rumor_window.title("🗣️ 牙行密语板")
+        self.rumor_window.title("🗣️ Broker's Rumor Board")
         self.rumor_window.geometry("500x400")
         self.rumor_window.transient(self.window)
         self.rumor_window.grab_set()
         self.rumor_window.configure(bg=self.colors["bg_light"])
-        
-        tk.Label(self.rumor_window, text="🗣️ 牙行密语板", font=self.FONT_HERO,
+        tk.Label(self.rumor_window, text="🗣️ Broker's Rumor Board", font=self.FONT_HERO,
                  bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(pady=10)
-        tk.Label(self.rumor_window, text="花费金币以探听下一阶段的货物需求！",
+        tk.Label(self.rumor_window, text="Spend gold to reveal Phase 2 demand rumors!",
                  font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(pady=(0, 10))
-                 
-        CustomButton(self.rumor_window, text=f"🔮 购买消息 ({self.intel_cost}💰)",
+        CustomButton(self.rumor_window, text=f"🔮 Buy Rumor ({self.intel_cost}💰)",
                      font=self.BUTTON_FONT, bg=self.colors["accent_gold"],
                      fg=self.colors["text_dark"], relief=tk.RAISED, borderwidth=2,
                      padx=20, pady=10, juice_callback=self.trigger_juice,
                      command=self.purchase_intel).pack(pady=10)
-                     
         list_frame = tk.Frame(self.rumor_window, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
-        
         canvas = tk.Canvas(list_frame, highlightthickness=0, bg=self.colors["card_bg"])
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
         self.rumor_list_frame = tk.Frame(canvas, bg=self.colors["card_bg"])
         self.rumor_list_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
         def on_mousewheel(event):
             if sys.platform == 'darwin':
                 delta = -1 * event.delta
@@ -1322,10 +1260,8 @@ class PortMasters:
             canvas.yview_scroll(delta, "units")
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-        
         self._populate_rumor_list()
-        
-        CustomButton(self.rumor_window, text="关闭面板", font=self.BUTTON_FONT,
+        CustomButton(self.rumor_window, text="Close Board", font=self.BUTTON_FONT,
                      bg=self.colors["button_dark_grey"], fg="white",
                      padx=20, pady=10, command=self.rumor_window.destroy).pack(pady=10)
 
@@ -1333,88 +1269,37 @@ class PortMasters:
         if not hasattr(self, 'rumor_list_frame'): return
         for widget in self.rumor_list_frame.winfo_children():
             widget.destroy()
-            
         if self.revealed_intel:
-            tk.Label(self.rumor_list_frame, text="📜 已探听消息：",
+            tk.Label(self.rumor_list_frame, text="📜 Revealed Intel:",
                      font=self.FONT_SMALL_BOLD, bg=self.colors["card_bg"],
                      fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=10, pady=(5, 2))
             for intel in self.revealed_intel:
                 label = tk.Label(self.rumor_list_frame,
-                                 text=f"• 🗣️ '{intel['port']} 急需 {intel['item']}'",
+                                 text=f"• 🗣️ '{intel['port']} wants {intel['item']}'",
                                  font=self.FONT_SMALL, bg=self.colors["card_bg"],
                                  fg=self.colors["text_dark"], anchor=tk.W, justify=tk.LEFT)
                 label.pack(anchor=tk.W, padx=25, pady=2)
         else:
-            tk.Label(self.rumor_list_frame, text="  ✨ 尚未探听任何消息... 花费金币聆听牙行的密语吧。",
+            tk.Label(self.rumor_list_frame, text="  ✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.",
                      font=self.FONT_SMALL, bg=self.colors["card_bg"],
                      fg="#888888", anchor=tk.W, justify=tk.LEFT).pack(anchor=tk.W, padx=10, pady=20)
-                     
         if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
             self.rumor_list_frame.update_idletasks()
             canvas = self.rumor_list_frame.master
             canvas.configure(scrollregion=canvas.bbox("all"))
 
-    # ── 福缘抽取阶段 ──────────────────────────────────────────────
-    def start_boon_drafting(self):
-        self.phase = 5
-        self.clear_phase_content()
-        self.log_message("\n🧭=== 航海家的罗盘 ===")
-        self.log_message("选择一项福缘，扭转本航程的规则...")
-        
-        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🧭 航海家的罗盘", font=self.FONT_HERO,
-                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
-        tk.Label(main_container, text="抽取福缘，契合您的贸易策略",
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
-        boons = self.boon_manager.get_draft_choices(3)
-        cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
-        cards_frame.pack(fill=tk.BOTH, expand=True)
-        
-        for i in range(3):
-            cards_frame.columnconfigure(i, weight=1, uniform="boon_col")
-            
-        for i, boon in enumerate(boons):
-            self.create_boon_card(cards_frame, boon, 0, i)
-            
-        self.update_button_states()
-
-    def create_boon_card(self, parent, boon, row, col):
-        card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
-        card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
-        
-        tk.Label(card, text=boon["icon"], font=("Microsoft YaHei", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
-        tk.Label(card, text=boon["name"], font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"],
-                 fg=self.colors["bg_dark"]).pack(pady=5)
-        tk.Label(card, text=boon["desc"], font=self.FONT_BODY, bg=self.colors["card_bg"],
-                 fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
-                 
-        btn = CustomButton(card, text="🔒 锁定福缘", font=self.BUTTON_FONT,
-                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
-                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
-                           juice_callback=self.trigger_juice,
-                           command=lambda b=boon: self.select_boon(b))
-        btn.pack(fill=tk.X, pady=(10, 0))
-
-    def select_boon(self, boon):
-        self.log_message(f"🧭 福缘已选定：{boon['icon']} {boon['name']}")
-        self.apply_modifiers(boon["modifiers"])
-        self.show_welcome()
-
-    # ── 工匠管理界面 ──────────────────────────────────────────────
+    # ── Worker management screen ──────────────────────────────────────
     def show_worker_management(self, in_phase=False):
         self.clear_phase_content()
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-
         canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
         scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>",
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -1422,26 +1307,26 @@ class PortMasters:
 
         title_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         title_frame.pack(fill=tk.X, pady=self.PAD_XL)
-        tk.Label(title_frame, text="👥 工匠管理", font=self.FONT_HERO,
+        tk.Label(title_frame, text="👥 Worker Management", font=self.FONT_HERO,
                  bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(pady=(0, 10))
-        funds_text = (f"💰 当前资金: {self.money}金币 | 📦 查看下方库存"
-                      if not in_phase else f"💰 当前资金: {self.money}金币")
+        funds_text = (f"💰 Current Funds: {self.money} Gold | 📦 See Inventory Below"
+                      if not in_phase else f"💰 Current Funds: {self.money} Gold")
         tk.Label(title_frame, text=funds_text, font=self.FONT_SUBTITLE,
                  bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack()
 
         inv_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         inv_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-        tk.Label(inv_frame, text="📦 当前库存", font=self.FONT_CARD_TITLE,
+        tk.Label(inv_frame, text="📦 Current Inventory", font=self.FONT_CARD_TITLE,
                  bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
         materials_frame = tk.Frame(inv_frame, bg=self.colors["card_bg"])
         materials_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(materials_frame, text="原材料:", font=self.FONT_BODY_BOLD,
+        tk.Label(materials_frame, text="Raw Materials:", font=self.FONT_BODY_BOLD,
                  bg=self.colors["card_bg"], fg=self.colors["accent_blue"]).pack(anchor=tk.W)
         for resource in self.resource_types:
             self.create_inventory_row(materials_frame, resource)
         products_frame = tk.Frame(inv_frame, bg=self.colors["card_bg"])
         products_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(products_frame, text="成品:", font=self.FONT_BODY_BOLD,
+        tk.Label(products_frame, text="Finished Goods:", font=self.FONT_BODY_BOLD,
                  bg=self.colors["card_bg"], fg=self.colors["accent_blue"]).pack(anchor=tk.W)
         for product in self.product_types:
             self.create_inventory_row(products_frame, product)
@@ -1450,12 +1335,15 @@ class PortMasters:
 
         hire_frame = tk.Frame(scrollable_frame, bg=self.colors["worker_bg"], relief=tk.RAISED, borderwidth=2)
         hire_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-        tk.Label(hire_frame, text="🔨 雇佣工匠", font=("Microsoft YaHei", 18, "bold"),
+        tk.Label(hire_frame, text="🔨 Hire Workers", font=("Segoe UI", 18, "bold"),
                  bg=self.colors["worker_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
         workers_info = [
-            ("👩‍🔧 织女", f"制作：麻衣(2麻布) 或 布衣(2麻布+1丝绸)\n工资：{self.WEAVER_WAGE}金币/回合"),
-            ("👩‍🎨 纺织大师", f"制作：麻衣、布衣 或 绫罗绸缎(3丝绸)\n工资：{self.MASTER_WEAVER_WAGE}金币/回合"),
-            ("🌸 香囊师", f"制作：香囊(1丝绸+2茶叶)\n工资：{self.SACHET_MAKER_WAGE}金币/回合")
+            ("👩‍🔧 Weaver",
+             f"Making: Linen Clothes(2 Hemp) or Cotton Clothes(2 Hemp+1 Silk)\nWage: {self.WEAVER_WAGE} Gold/Round"),
+            ("👩‍🎨 Master Weaver",
+             f"Making: Linen Clothes, Cotton Clothes or Brocade(3 Silk)\nWage: {self.MASTER_WEAVER_WAGE} Gold/Round"),
+            ("🌸 Sachet Maker",
+             f"Making: Sachet(1 Silk+2 Tea)\nWage: {self.SACHET_MAKER_WAGE} Gold/Round")
         ]
         for title, desc in workers_info:
             info_frame = tk.Frame(hire_frame, bg=self.colors["worker_bg"])
@@ -1468,136 +1356,135 @@ class PortMasters:
         hire_buttons_frame = tk.Frame(hire_frame, bg=self.colors["worker_bg"])
         hire_buttons_frame.pack(pady=15)
         refresh_func = self.show_worker_management_in_phase if in_phase else self.show_worker_management
-        
         weaver_cost = self.get_hire_cost("weaver")
         master_cost = self.get_hire_cost("master")
         maker_cost = self.get_hire_cost("sachet_maker")
-        
-        CustomButton(hire_buttons_frame, text=f"👩‍🔧 雇佣织女 ({weaver_cost}💰)",
-                     font=self.BUTTON_FONT, bg=self.colors["button_success"], fg="white",
+        CustomButton(hire_buttons_frame, text=f"👩‍🔧 Hire Weaver ({weaver_cost}💰)",
+                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("weaver"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"👩‍🎨 雇佣纺织大师 ({master_cost}💰)",
-                     font=self.BUTTON_FONT, bg=self.colors["button_primary"], fg="white",
+        CustomButton(hire_buttons_frame, text=f"👩‍🎨 Hire Master Weaver ({master_cost}💰)",
+                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("master"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"🌸 雇佣香囊师 ({maker_cost}💰)",
-                     font=self.BUTTON_FONT, bg=self.colors["button_warning"], fg="white",
+        CustomButton(hire_buttons_frame, text=f"🌸 Hire Sachet Maker ({maker_cost}💰)",
+                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
                      command=lambda: [self.hire_worker("sachet_maker"), refresh_func()]).pack(side=tk.LEFT, padx=10)
 
         if self.weavers or self.master_weavers or self.sachet_makers:
             status_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
             status_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-            tk.Label(status_frame, text="👥 工匠状态与任务分配", font=("Microsoft YaHei", 18, "bold"),
+            tk.Label(status_frame, text="👥 Worker Status & Tasks", font=("Segoe UI", 18, "bold"),
                      bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
-
             if self.weavers:
-                tk.Label(status_frame, text=f"👩‍🔧 织女: {len(self.weavers)}人",
+                tk.Label(status_frame, text=f"👩‍🔧 Weavers: {len(self.weavers)}",
                          font=self.FONT_STAT, bg=self.colors["card_bg"],
                          fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=5)
                 for i, weaver in enumerate(self.weavers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
                     if weaver['task']:
-                        skill_text = "(熟练)" if weaver.get('is_skilled', False) else ""
-                        task_text = f"正在制作: {weaver['task']}{skill_text}"
+                        skill_text = "(Skilled)" if weaver.get('is_skilled', False) else ""
+                        task_text = f"Working on: {weaver['task']}{skill_text}"
                     else:
-                        skill_text = " ⭐熟练工" if weaver.get('is_skilled', False) else ""
-                        task_text = f"空闲{skill_text}"
-                    tk.Label(worker_frame, text=f"  织女{i + 1}: {task_text}",
+                        skill_text = " ⭐ Skilled" if weaver.get('is_skilled', False) else ""
+                        task_text = f"Idle{skill_text}"
+                    tk.Label(worker_frame, text=f"  Weaver {i + 1}: {task_text}",
                              font=self.FONT_BODY, bg=self.colors["card_bg"],
                              fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
                     if in_phase and weaver['task'] is None:
-                        CustomButton(worker_frame, text=f"解雇 ({self.WEAVER_WAGE}💰)",
-                                     font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white",
+                        CustomButton(worker_frame, text=f"Dismiss ({self.WEAVER_WAGE}💰)",
+                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                                      padx=10, pady=5,
                                      command=lambda idx=i: [self.fire_worker("weaver", idx),
                                                             self.show_worker_management_in_phase()]).pack(
                             side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
-                CustomButton(task_frame, text="制作麻衣 (需2麻布)",
-                             font=self.BUTTON_FONT, bg=self.colors["button_success"], fg="white",
+                CustomButton(task_frame, text="Make Linen Clothes (Needs 2 Hemp)",
+                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                              padx=15, pady=10,
-                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "麻衣"),
+                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "Linen Clothes"),
                                               refresh_func()]).pack(side=tk.LEFT, padx=5)
-                CustomButton(task_frame, text="制作布衣 (需2麻布+1丝绸)",
-                             font=self.BUTTON_FONT, bg=self.colors["button_success"], fg="white",
+                CustomButton(task_frame, text="Make Cotton Clothes (Needs 2 Hemp+1 Silk)",
+                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                              padx=15, pady=10,
-                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "布衣"),
+                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "Cotton Clothes"),
                                               refresh_func()]).pack(side=tk.LEFT, padx=5)
 
             if self.master_weavers:
-                tk.Label(status_frame, text=f"👩‍🎨 纺织大师: {len(self.master_weavers)}人",
+                tk.Label(status_frame, text=f"👩‍🎨 Master Weavers: {len(self.master_weavers)}",
                          font=self.FONT_STAT, bg=self.colors["card_bg"],
                          fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=10)
                 for i, master in enumerate(self.master_weavers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
                     if master['task']:
-                        skill_text = "(熟练)" if master.get('is_skilled', False) else ""
-                        task_text = f"正在制作: {master['task']}{skill_text}"
+                        skill_text = "(Skilled)" if master.get('is_skilled', False) else ""
+                        task_text = f"Working on: {master['task']}{skill_text}"
                     else:
-                        skill_text = " ⭐熟练工" if master.get('is_skilled', False) else ""
-                        task_text = f"空闲{skill_text}"
-                    tk.Label(worker_frame, text=f"  大师{i + 1}: {task_text}",
+                        skill_text = " ⭐ Skilled" if master.get('is_skilled', False) else ""
+                        task_text = f"Idle{skill_text}"
+                    tk.Label(worker_frame, text=f"  Master {i + 1}: {task_text}",
                              font=self.FONT_BODY, bg=self.colors["card_bg"],
                              fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
                     if in_phase and master['task'] is None:
-                        CustomButton(worker_frame, text=f"解雇 ({self.MASTER_WEAVER_WAGE}💰)",
-                                     font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white",
+                        CustomButton(worker_frame, text=f"Dismiss ({self.MASTER_WEAVER_WAGE}💰)",
+                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                                      padx=10, pady=5,
                                      command=lambda idx=i: [self.fire_worker("master", idx),
                                                             self.show_worker_management_in_phase()]).pack(
                             side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
-                for task in ["麻衣", "布衣", "绫罗绸缎"]:
-                    recipe = self.RECIPES[task]
+                for task in ["Linen Clothes", "Cotton Clothes", "Brocade"]:
+                    clean_task = task
+                    recipe = self.RECIPES[clean_task]
                     materials = [f"{a}{m}" for m, a in recipe["materials"].items()]
-                    CustomButton(task_frame, text=f"制作{task} (需{'+'.join(materials)})",
-                                 font=self.BUTTON_FONT, bg=self.colors["button_primary"], fg="white",
+                    CustomButton(task_frame, text=f"Make {clean_task} (Need {'+'.join(materials)})",
+                                 font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                                  padx=15, pady=10,
-                                 command=lambda t=task: [self.assign_worker_task(self.master_weavers, "master", t),
-                                                         refresh_func()]).pack(side=tk.LEFT, padx=5)
+                                 command=lambda t=clean_task: [
+                                     self.assign_worker_task(self.master_weavers, "master", t),
+                                     refresh_func()]).pack(side=tk.LEFT, padx=5)
 
             if self.sachet_makers:
-                tk.Label(status_frame, text=f"🌸 香囊师: {len(self.sachet_makers)}人",
+                tk.Label(status_frame, text=f"🌸 Sachet Makers: {len(self.sachet_makers)}",
                          font=self.FONT_STAT, bg=self.colors["card_bg"],
                          fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=10)
                 for i, maker in enumerate(self.sachet_makers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
-                    task_text = f"正在制作: {maker['task']}" if maker['task'] else "空闲"
-                    tk.Label(worker_frame, text=f"  香囊师{i + 1}: {task_text}",
+                    task_text = f"Working on: {maker['task']}" if maker['task'] else "Idle"
+                    tk.Label(worker_frame, text=f"  Maker {i + 1}: {task_text}",
                              font=self.FONT_BODY, bg=self.colors["card_bg"],
                              fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
                     if in_phase and maker['task'] is None:
-                        CustomButton(worker_frame, text=f"解雇 ({self.SACHET_MAKER_WAGE}💰)",
-                                     font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white",
+                        CustomButton(worker_frame, text=f"Dismiss ({self.SACHET_MAKER_WAGE}💰)",
+                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                                      padx=10, pady=5,
                                      command=lambda idx=i: [self.fire_worker("sachet_maker", idx),
                                                             self.show_worker_management_in_phase()]).pack(
                             side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
-                CustomButton(task_frame, text="制作香囊 (需1丝绸+2茶叶)",
-                             font=self.BUTTON_FONT, bg=self.colors["button_warning"], fg="white",
+                CustomButton(task_frame, text="Make Sachet (Need 1 Silk+2 Tea)",
+                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                              padx=15, pady=10,
-                             command=lambda: [self.assign_worker_task(self.sachet_makers, "sachet_maker", "香囊"),
+                             command=lambda: [self.assign_worker_task(self.sachet_makers, "sachet_maker", "Sachet"),
                                               refresh_func()]).pack(side=tk.LEFT, padx=5)
 
         tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(fill=tk.X, padx=50, pady=self.PAD_LG)
 
         if in_phase:
-            CustomButton(scrollable_frame, text="✅ 完成工匠管理，继续航行",
-                         font=("Microsoft YaHei", 16, "bold"), bg=self.colors["button_primary"], fg="white",
+            CustomButton(scrollable_frame, text="✅ Complete Workers, Sailing",
+                         font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                          relief=tk.RAISED, borderwidth=3, padx=30, pady=15,
                          command=self.start_phase2).pack(pady=10)
         else:
-            CustomButton(scrollable_frame, text="🔙 返回主界面",
-                         font=("Microsoft YaHei", 16, "bold"), bg=self.colors["button_primary"], fg="white",
+            CustomButton(scrollable_frame, text="🔙 Return Home",
+                         font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white",
                          relief=tk.RAISED, borderwidth=3, padx=30, pady=15,
                          command=self.show_welcome).pack(pady=10)
 
@@ -1608,7 +1495,7 @@ class PortMasters:
     def show_worker_management_in_phase(self):
         self.show_worker_management(in_phase=True)
 
-    # ── 鼠标滚轮 ──────────────────────────────────────────────────
+    # ── Mousewheel ────────────────────────────────────────────────────
     def bind_mousewheel(self, canvas):
         def on_mousewheel(event):
             if sys.platform == 'darwin':
@@ -1616,11 +1503,10 @@ class PortMasters:
             else:
                 delta = int(-1 * (event.delta / 120))
             canvas.yview_scroll(delta, "units")
-
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
-    # ── 样式 ──────────────────────────────────────────────────────
+    # ── Styles ────────────────────────────────────────────────────────
     def setup_styles(self):
         style = ttk.Style()
         style.theme_use('clam')
@@ -1633,7 +1519,7 @@ class PortMasters:
         style.configure("DarkFrame.TLabelframe.Label", background=self.colors["bg_light"],
                         foreground=self.colors["accent_blue"])
 
-    # ── 主界面构建 ────────────────────────────────────────────────
+    # ── Main widget construction ──────────────────────────────────────
     def create_widgets(self):
         main_frame = ttk.Frame(self.window, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -1641,21 +1527,17 @@ class PortMasters:
 
         title_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
         title_frame.grid(row=0, column=0, columnspan=3, pady=(0, self.PAD_SM), sticky=(tk.W, tk.E))
-
         title_container = tk.Frame(title_frame, bg=self.colors["bg_dark"], padx=self.PAD_LG, pady=self.PAD_MD)
         title_container.pack(fill=tk.X)
-
         tk.Label(title_container, text="⚓ PortMasters 🚢",
-                 font=("Microsoft YaHei", 22, "bold"),
+                 font=("Segoe UI", 22, "bold"),
                  bg=self.colors["bg_dark"], fg=self.colors["accent_gold"]).pack(side=tk.LEFT, padx=(0, 30))
-
-        tk.Label(title_container, text="⚓ 航海贸易 | 🚢 船只升级 | 👥 工匠制作 | 🧾 税收系统",
+        tk.Label(title_container, text="⚓ Navigation | 🚢 Upgrades | 👥 Work | 🧾 Taxes",
                  font=self.FONT_SMALL, bg=self.colors["bg_dark"],
                  fg=self.colors["text_light"]).pack(side=tk.LEFT, padx=(0, 20))
-
         tk.Label(title_container,
-                 text="快捷键: Ctrl+S保存 | Ctrl+N下一阶段 | Ctrl+H工匠管理 | Ctrl+R重新开始 | F1帮助",
-                 font=("Microsoft YaHei", 8), bg=self.colors["bg_dark"], fg="#AAC4E8").pack(side=tk.RIGHT)
+                 text="Shortcuts: Ctrl+S Save | Ctrl+N Next | Ctrl+H Workers | Ctrl+R Restart | F1 Help",
+                 font=("Segoe UI", 8), bg=self.colors["bg_dark"], fg="#AAC4E8").pack(side=tk.RIGHT)
 
         content_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
         content_frame.grid(row=1, column=0, columnspan=3,
@@ -1677,90 +1559,82 @@ class PortMasters:
         content_frame.rowconfigure(0, weight=1)
 
     def create_status_panel(self, parent):
-        status_panel = ttk.LabelFrame(parent, text="📊 航海日志",
-                                       padding="10", style="DarkFrame.TLabelframe")
+        status_panel = ttk.LabelFrame(parent, text="📊 Navigation Log",
+                                      padding="10", style="DarkFrame.TLabelframe")
         status_panel.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, self.PAD_MD))
-
-        self.round_label = tk.Label(status_panel, text=f"🌊 第 1/8 航程",
+        self.round_label = tk.Label(status_panel, text=f"🌊 Round 1/{self.max_rounds}",
                                     font=self.FONT_STAT, bg=self.colors["bg_light"],
                                     fg=self.colors["bg_dark"])
         self.round_label.grid(row=0, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W)
-
-        self.money_label = tk.Label(status_panel, text="💰 资金: 100 金币",
+        self.money_label = tk.Label(status_panel, text="💰 Funds: 100 Gold",
                                     font=self.FONT_BODY_BOLD, bg=self.colors["bg_light"],
                                     fg=self.colors["accent_green"])
         self.money_label.grid(row=1, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W)
-
-        self.score_label = tk.Label(status_panel, text="🏆 声望: 0",
+        self.score_label = tk.Label(status_panel, text="🏆 Reputation: 0",
                                     font=self.FONT_BODY, bg=self.colors["bg_light"],
                                     fg=self.colors["text_dark"])
         self.score_label.grid(row=2, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=tk.W)
-
         self.create_ship_panel(status_panel)
         self.create_inventory_panel(status_panel)
         status_panel.rowconfigure(4, weight=1)
 
     def create_ship_panel(self, parent):
-        ship_frame = ttk.LabelFrame(parent, text="🚢 船只状态",
-                                     padding=self.PAD_MD, style="DarkFrame.TLabelframe")
+        ship_frame = ttk.LabelFrame(parent, text="🚢 Ship Status",
+                                    padding=self.PAD_MD, style="DarkFrame.TLabelframe")
         ship_frame.grid(row=3, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=(tk.W, tk.E))
-        self.ship_label = tk.Label(ship_frame, text="🚢 商船: 0级",
-                                   font=self.FONT_BODY, bg=self.colors["bg_light"],
-                                   fg=self.colors["text_dark"])
+        self.ship_label = tk.Label(ship_frame, text="🚢 Merchant Ship: Level 0",
+                                  font=self.FONT_BODY, bg=self.colors["bg_light"],
+                                  fg=self.colors["text_dark"])
         self.ship_label.pack(anchor=tk.W, pady=2)
-        self.transport_label = tk.Label(ship_frame, text="⚓ 运费: max(5, 材料数×2 - 0)金币",
+        self.transport_label = tk.Label(ship_frame, text="⚓ Freight: max(5, Items×2 - 0) Gold",
                                         font=self.FONT_BODY, bg=self.colors["bg_light"],
                                         fg=self.colors["accent_red"])
         self.transport_label.pack(anchor=tk.W, pady=2)
 
     def create_inventory_panel(self, parent):
-        inv_frame = ttk.LabelFrame(parent, text="📦 船舱货物",
-                                    padding=self.PAD_SM, style="DarkFrame.TLabelframe")
+        inv_frame = ttk.LabelFrame(parent, text="📦 Cargo Hold",
+                                   padding=self.PAD_SM, style="DarkFrame.TLabelframe")
         inv_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-
         canvas = tk.Canvas(inv_frame, height=200, highlightthickness=0, bg=self.colors["bg_light"])
         scrollbar = ttk.Scrollbar(inv_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>",
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
         canvas.configure(yscrollcommand=scrollbar.set)
         self.bind_mousewheel(canvas)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
         self.inventory_labels = {}
-
-        tk.Label(scrollable_frame, text="━━ 原材料 ━━", font=self.FONT_SMALL_BOLD,
+        tk.Label(scrollable_frame, text="━━ Raw Materials ━━", font=self.FONT_SMALL_BOLD,
                  bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(
             anchor=tk.W, pady=(5, 2), padx=5)
         for resource in self.resource_types:
             self.create_inventory_item(scrollable_frame, resource)
-
         tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(fill=tk.X, pady=5, padx=5)
-
-        tk.Label(scrollable_frame, text="━━ 成品 ━━", font=self.FONT_SMALL_BOLD,
+        tk.Label(scrollable_frame, text="━━ Finished Goods ━━", font=self.FONT_SMALL_BOLD,
                  bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(
             anchor=tk.W, pady=(5, 2), padx=5)
         for product in self.product_types:
             self.create_inventory_item(scrollable_frame, product)
-
         if self.weavers or self.master_weavers or self.sachet_makers:
             tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(fill=tk.X, pady=5, padx=5)
-            tk.Label(scrollable_frame, text="━━ 工匠 ━━", font=self.FONT_SMALL_BOLD,
+            tk.Label(scrollable_frame, text="━━ Workers ━━", font=self.FONT_SMALL_BOLD,
                      bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(
                 anchor=tk.W, pady=(5, 2), padx=5)
             workers_info = [
-                ("👩‍🔧 织女", len(self.weavers)),
-                ("👩‍🎨 大师", len(self.master_weavers)),
-                ("🌸 香囊师", len(self.sachet_makers))
+                ("👩‍🔧 Weavers", len(self.weavers)),
+                ("👩‍🎨 Masters", len(self.master_weavers)),
+                ("🌸 Makers", len(self.sachet_makers))
             ]
             for name, count in workers_info:
                 frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
                 frame.pack(fill=tk.X, padx=10, pady=1)
                 tk.Label(frame, text=name, font=self.FONT_SMALL,
                          bg=self.colors["bg_light"], fg=self.colors["text_dark"],
-                         width=12, anchor="w").pack(side=tk.LEFT)
+                         width=14, anchor="w").pack(side=tk.LEFT)
                 tk.Label(frame, text=str(count), font=self.FONT_SMALL_BOLD,
                          bg=self.colors["bg_light"], fg=self.colors["accent_blue"],
                          width=4, anchor="e").pack(side=tk.RIGHT)
@@ -1774,7 +1648,7 @@ class PortMasters:
                  bg=self.colors["bg_light"]).pack(side=tk.LEFT, padx=(0, 3))
         tk.Label(frame, text=item, font=self.FONT_SMALL,
                  bg=self.colors["bg_light"], fg=color,
-                 width=10, anchor="w").pack(side=tk.LEFT)
+                 width=14, anchor="w").pack(side=tk.LEFT)
         label_value = tk.Label(frame, text=str(self.inventory.get(item, 0)),
                                font=self.FONT_SMALL_BOLD, bg=self.colors["bg_light"],
                                fg=color, width=5, anchor="e")
@@ -1782,8 +1656,8 @@ class PortMasters:
         self.inventory_labels[item] = label_value
 
     def create_phase_panel(self, parent):
-        self.phase_frame = ttk.LabelFrame(parent, text="🌊 贸易阶段",
-                                           padding=self.PAD_LG, style="DarkFrame.TLabelframe")
+        self.phase_frame = ttk.LabelFrame(parent, text="🌊 Trade Phases",
+                                          padding=self.PAD_LG, style="DarkFrame.TLabelframe")
         self.phase_frame.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.phase_content = ttk.Frame(self.phase_frame, style="DarkFrame.TLabelframe")
         self.phase_content.pack(fill=tk.BOTH, expand=True)
@@ -1791,47 +1665,42 @@ class PortMasters:
     def create_control_panel(self, parent):
         control_panel = ttk.Frame(parent, style="DarkFrame.TLabelframe")
         control_panel.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(self.PAD_MD, 0))
-
         control_container = tk.Frame(control_panel, bg=self.colors["bg_dark"], padx=self.PAD_MD, pady=self.PAD_SM)
         control_container.pack(fill=tk.X)
-
         row1_frame = tk.Frame(control_container, bg=self.colors["bg_dark"])
         row1_frame.pack(fill=tk.X, pady=3)
-
-        self.start_btn = CustomButton(row1_frame, text="🚢 开始航行",
+        self.start_btn = CustomButton(row1_frame, text="🚢 Start Voyage",
                                       font=self.BUTTON_FONT,
                                       bg=self.colors["button_primary"], fg="white",
                                       relief=tk.RAISED, borderwidth=2, padx=20, pady=10,
                                       cursor="hand2", command=self.show_worker_management)
         self.start_btn.pack(side=tk.LEFT, padx=2)
-
-        self.next_btn = CustomButton(row1_frame, text="⏭️ 继续航行",
+        self.next_btn = CustomButton(row1_frame, text="⏭️ Continue Voyage",
                                      font=self.BUTTON_FONT,
                                      bg=self.colors["button_primary"], fg="white",
                                      relief=tk.RAISED, borderwidth=2, padx=20, pady=10,
                                      cursor="hand2", state=tk.DISABLED, command=self.next_phase)
         self.next_btn.pack(side=tk.LEFT, padx=2)
-
         row2_frame = tk.Frame(control_container, bg=self.colors["bg_dark"])
         row2_frame.pack(fill=tk.X, pady=3)
         buttons = [
-            ("📖 航海指南", self.show_instructions, self.colors["button_primary"]),
-            ("💾 保存进度", self.save_game, self.colors["button_success"]),
-            ("🔄 重新起航", self.restart_game, self.colors["button_primary"])
+            ("📖 Guide", self.show_instructions),
+            ("💾 Save", self.save_game),
+            ("🔄 Restart", self.restart_game)
         ]
-        for text, command, color in buttons:
+        for text, command in buttons:
             CustomButton(row2_frame, text=text, font=self.BUTTON_FONT,
-                         bg=color, fg="white", relief=tk.RAISED, borderwidth=2,
+                         bg=self.colors["button_dark_grey"], fg="white",
+                         relief=tk.RAISED, borderwidth=2,
                          padx=20, pady=10, cursor="hand2", command=command).pack(side=tk.LEFT, padx=2)
 
     def create_log_panel(self, parent):
-        log_frame = ttk.LabelFrame(parent, text="📜 航行日志",
-                                    padding=self.PAD_SM, style="DarkFrame.TLabelframe")
+        log_frame = ttk.LabelFrame(parent, text="📜 Voyage Log",
+                                   padding=self.PAD_SM, style="DarkFrame.TLabelframe")
         log_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(self.PAD_SM, 0))
         log_container = ttk.Frame(log_frame, style="DarkFrame.TLabelframe")
         log_container.pack(fill=tk.BOTH, expand=True)
-
-        self.log_text = tk.Text(log_container, height=5, font=("Microsoft YaHei", 9),
+        self.log_text = tk.Text(log_container, height=5, font=("Consolas", 9),
                                 bg="#F8F9FA", fg=self.colors["text_dark"],
                                 wrap=tk.WORD, borderwidth=1, relief=tk.SOLID)
         scrollbar = ttk.Scrollbar(log_container, orient="vertical", command=self.log_text.yview)
@@ -1850,126 +1719,160 @@ class PortMasters:
         self.order_buttons.clear()
 
     def update_display(self):
-        self.round_label.config(text=f"🌊 第 {self.current_round}/{self.max_rounds} 航程")
-        self.money_label.config(text=f"💰 资金: {self.money} 金币")
-        self.score_label.config(text=f"🏆 声望: {self.score}")
+        self.round_label.config(text=f"🌊 Round {self.current_round}/{self.max_rounds}")
+        self.money_label.config(text=f"💰 Funds: {self.money} Gold")
+        self.score_label.config(text=f"🏆 Reputation: {self.score}")
         discount = self.ship_level * 5
-        self.ship_label.config(text=f"🚢 商船: {self.ship_level}级")
-        self.transport_label.config(text=f"⚓ 运费: max(5, 材料数×2 - {discount})金币")
+        self.ship_label.config(text=f"🚢 Merchant Ship: Level {self.ship_level}")
+        self.transport_label.config(text=f"⚓ Freight: max(5, Items×2 - {discount}) Gold")
         for item, label in self.inventory_labels.items():
             label.config(text=str(self.inventory.get(item, 0)))
 
-    # ── 欢迎界面 ──────────────────────────────────────────────────
+    # ── Boon Drafting Phase ───────────────────────────────────────────
+    def start_boon_drafting(self):
+        self.phase = 5
+        self.clear_phase_content()
+        self.log_message("\n🧭=== The Navigator's Compass ===")
+        self.log_message("Choose a Boon to bend the rules of the upcoming voyage...")
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
+        tk.Label(main_container, text="🧭 The Navigator's Compass", font=self.FONT_HERO,
+                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
+        tk.Label(main_container, text="Draft a Boon to synergize with your strategy",
+                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
+        boons = self.boon_manager.get_draft_choices(3)
+        cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
+        cards_frame.pack(fill=tk.BOTH, expand=True)
+        for i in range(3):
+            cards_frame.columnconfigure(i, weight=1, uniform="boon_col")
+        for i, boon in enumerate(boons):
+            self.create_boon_card(cards_frame, boon, 0, i)
+        self.update_button_states()
+
+    def create_boon_card(self, parent, boon, row, col):
+        card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
+        card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
+        tk.Label(card, text=boon["icon"], font=("Segoe UI", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
+        tk.Label(card, text=boon["name"], font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"],
+                 fg=self.colors["bg_dark"]).pack(pady=5)
+        tk.Label(card, text=boon["desc"], font=self.FONT_BODY, bg=self.colors["card_bg"],
+                 fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
+        btn = CustomButton(card, text="🔒 Lock In Boon", font=self.BUTTON_FONT,
+                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
+                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
+                           juice_callback=self.trigger_juice,
+                           command=lambda b=boon: self.select_boon(b))
+        btn.pack(fill=tk.X, pady=(10, 0))
+
+    def select_boon(self, boon):
+        self.log_message(f"🧭 Boon Selected: {boon['icon']} {boon['name']}")
+        self.apply_modifiers(boon["modifiers"])
+        self.show_welcome()
+
+    # ── Welcome screen ────────────────────────────────────────────────
     def show_welcome(self):
         self.phase = 0
         self.clear_phase_content()
         self.log_message("=" * 50)
-        self.log_message("⚓ 欢迎来到PortMasters海上丝绸之路贸易大亨！")
-        self.log_message("🚢 穿梭于各大港口之间，建立您的商业帝国！")
-        self.log_message("👥 雇佣工匠，制作精美商品，获取更高利润！")
+        self.log_message("⚓ Welcome to PortMasters!")
+        self.log_message("🚢 Sail across ports, build your business empire!")
+        self.log_message("👥 Hire artisans to craft valuable goods for higher profits!")
         self.log_message("=" * 50)
-
         welcome_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         welcome_frame.pack(fill=tk.BOTH, expand=True, pady=30)
-
         tk.Label(welcome_frame, text="⚓ PortMasters 🚢",
                  font=self.FONT_HERO, bg=self.colors["bg_light"],
                  fg=self.colors["bg_dark"]).pack(pady=(20, 10))
-        tk.Label(welcome_frame, text="🌊 航行八大航程，成为海上霸主！",
-                 font=("Microsoft YaHei", 16), bg=self.colors["bg_light"],
+        tk.Label(welcome_frame, text="🌊 Eight Voyages await, become the Sea Master!",
+                 font=("Segoe UI", 16), bg=self.colors["bg_light"],
                  fg=self.colors["accent_blue"]).pack(pady=(0, 30))
-
         if os.path.exists(self.save_file):
-            CustomButton(welcome_frame, text="📂 继续航行", font=self.BUTTON_FONT,
-                         bg=self.colors["button_success"], fg="white",
+            CustomButton(welcome_frame, text="📂 Continue Voyage", font=self.BUTTON_FONT,
+                         bg=self.colors["button_primary"], fg="white",
                          relief=tk.RAISED, borderwidth=3, padx=30, pady=15,
                          cursor="hand2", command=self.load_game).pack(pady=10)
-
-        CustomButton(welcome_frame, text="🚢 扬帆起航", font=("Microsoft YaHei", 16, "bold"),
+        CustomButton(welcome_frame, text="🚢 Set Sail", font=self.BUTTON_FONT,
                      bg=self.colors["button_success"], fg="white",
                      relief=tk.RAISED, borderwidth=3, padx=30, pady=15,
                      cursor="hand2", command=self.start_phase1).pack(pady=20)
-
         tips_frame = ttk.Frame(welcome_frame, style="DarkFrame.TLabelframe")
         tips_frame.pack(pady=20)
         tips = [
-            "📦 初始货物：麻布×8，丝绸×5，茶叶×3",
-            "💰 初始资金：100金币",
-            "👥 可雇佣工匠制作高价值成品",
-            "🧾 成品销售需缴纳增值税，航程结束缴纳所得税",
-            "🚢 共8个航程，每航程4阶段：采购→交易→维护→升级",
-            "⚓ 运输费：max(5, 材料数×2 - 船只等级×5)",
-            "💾 按Ctrl+S保存游戏进度",
-            "🎯 目标：积累财富，提升声望！",
-            "🔮 新增：在第1阶段点击“牙行密语板”购买需求消息！",
-            "🔧 新增：在第4阶段升级船只以解锁模块槽位，打造专属流派！"
+            "📦 Initial Goods: Hemp×8, Silk×5, Tea×3",
+            "💰 Starting Funds: 100 Gold",
+            "👥 Hire artisans to craft high-value products",
+            "🧾 Product sales incur VAT, end-round tax on profit",
+            "🚢 8 Voyages, each has 4 Phases: Buy → Trade → Maintain → Upgrade",
+            "⚓ Freight Cost: max(5, ItemCount×2 - ShipLevel×5)",
+            "💾 Press Ctrl+S to save progress",
+            "🎯 Goal: Accumulate Wealth and Reputation!",
+            "🔮 NEW: Visit Broker in Phase 1 to buy demand rumors!",
+            "🔧 NEW: Upgrade Ship in Phase 4 to unlock Module Slots!"
         ]
         for tip in tips:
             tk.Label(tips_frame, text=tip, font=self.FONT_BODY,
                      bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(anchor=tk.W, pady=3)
-
         self.update_button_states()
 
     def show_instructions(self):
         instructions = """
-        ⚓ PortMasters - 游戏规则
+⚓ PortMasters - Rules
 
-        🚢 游戏目标：
-        通过8个航程的海上贸易，积累最大财富和声望！
+🚢 Objective:
+Travel 8 voyages, accumulate wealth and reputation!
 
-        📦 货物系统：
-          原材料：麻布(3-6💰)、丝绸(6-10💰)、茶叶(10-14💰)
-          成品：麻衣(30-42💰)、布衣(50-65💰)、绫罗绸缎(70-90💰)、香囊(95-120💰)
+📦 Goods System:
+Raw Materials: Hemp(3-6💰), Silk(6-10💰), Tea(10-14💰)
+Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
+Brocade(70-90💰), Sachet(95-120💰)
 
-        👥 工匠系统：
-        • 织女（8金币/回合）：制作麻衣或布衣
-        • 纺织大师（12金币/回合）：制作麻衣、布衣或绫罗绸缎
-        • 香囊师（20金币/回合）：制作香囊
+👥 Worker System:
+• Weaver (8 Gold/Round): Makes Linen or Cotton Clothes
+• Master (12 Gold/Round): Makes Linen, Cotton or Brocade
+• Sachet Maker (20 Gold/Round): Makes Sachets
 
-        🧾 税收系统：
-        • 增值税：成品销售利润的5%
-        • 所得税：航程净利润的10%
+🧾 Tax System:
+• VAT: 5% on finished product profit margin
+• Income Tax: 10% on voyage net profit
 
-        🔮 牙行密语：
-        • 第1阶段：点击“牙行密语板”打开独立窗口
-        • 花费金币购买关于第2阶段需求的“密语”
-        • 探听到的消息将保证生成对应的保底订单
+🔮 Broker's Whisper:
+• Phase 1: Click "Broker's Rumor Board" to open the window
+• Spend 5 Gold to buy a "rumor" about Phase 2 demand
+• Revealed intel guarantees matching orders will appear
 
-        🔧 船只模块 (核心流派)：
-        • 第4阶段：升级商船以解锁“模块槽位”
-        • 抽取并安装强大的模块，创造独特的协同效应
-        • 随时替换模块，根据当前局势调整您的商业帝国！
+🔧 Ship Modules (NEW!):
+• Phase 4: Upgrade your ship to unlock Module Slots
+• Draft powerful modules to create unique synergies
+• Swap modules to adapt to your current run!
 
-        🌊 每航程4个阶段：
-        1. 港口采购 - 在各大港口购买原材料 (+ 牙行密语)
-        2. 贸易交易 - 完成原材料或成品订单
-        3. 船只维护 - 支付维护费 & 结算工匠生产
-        4. 船坞升级 - 升级商船并安装模块
+🌊 Voyage Phases:
+1. Port Purchase - Buy resources at ports (+ Broker rumors)
+2. Trade Transaction - Complete orders
+3. Maintenance - Pay upkeep fees & process production
+4. Upgrade - Improve ships and install modules
 
-        ⌨️ 快捷键：
-        • Ctrl+S：保存游戏
-        • Ctrl+N：进入下一阶段
-        • Ctrl+H：管理工匠
-        • Ctrl+R：重新开始
-        • F1：显示帮助
+⌨️ Shortcuts:
+• Ctrl+S: Save Game
+• Ctrl+N: Next Phase
+• Ctrl+H: Manage Workers
+• Ctrl+R: Restart
+• F1: Instructions
 
-        ⚓ 祝您航行顺利，生意兴隆！
-        """
-        messagebox.showinfo("⚓ 航海指南", instructions)
+⚓ Bon Voyage and Good Luck!
+"""
+        messagebox.showinfo("⚓ Navigation Guide", instructions)
 
     def start_phase1(self):
         self.phase = 1
         self.purchase_count = 0
         self.purchased_cards.clear()
-        
         self.phase2_demand_tags = self._generate_phase2_demand_tags(count=5)
         self.revealed_intel = []
         self._intel_order_used = False
         self.rumor_window = None
-        
         self.clear_phase_content()
-        self.log_message(f"\n⚓=== 第{self.current_round}航程 - 阶段1: 港口采购 ===")
-        self.log_message(f"💰 当前资金: {self.money}金币")
+        self.log_message(f"\n⚓=== Round {self.current_round} - Phase 1: Port Purchase ===")
+        self.log_message(f"💰 Current Funds: {self.money} Gold")
         self.resource_cards = []
         for i in range(5):
             card = self.generate_mixed_resource_card()
@@ -1981,28 +1884,25 @@ class PortMasters:
     def show_purchase_interface(self):
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
-        tk.Label(header, text="⚓ 港口商品采购", font=self.FONT_TITLE,
+        tk.Label(header, text="⚓ Port Goods Purchase", font=self.FONT_TITLE,
                  bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(side=tk.LEFT, anchor=tk.W)
-        
-        CustomButton(header, text="🔮 牙行密语板", font=self.BUTTON_FONT,
+        CustomButton(header, text="🔮 Broker's Rumor Board", font=self.BUTTON_FONT,
                      bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
                      relief=tk.RAISED, borderwidth=2, padx=15, pady=8,
                      command=self.show_rumor_board).pack(side=tk.RIGHT)
-
         cards_container = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_container.pack(fill=tk.BOTH, expand=True)
         self.create_scrollable_cards(cards_container, self.resource_cards, self.create_purchase_card)
-        self.create_phase_bottom_buttons(main_container, "✅ 完成采购，继续航行", self.complete_phase1)
+        self.create_phase_bottom_buttons(main_container, "✅ Complete Purchase, Continue", self.complete_phase1)
 
     def start_phase2(self):
         self.phase = 2
         self.order_count = 0
         self.completed_orders.clear()
         self.clear_phase_content()
-        self.log_message(f"\n🤝=== 第{self.current_round}航程 - 阶段2: 贸易交易 ===")
+        self.log_message(f"\n🤝=== Round {self.current_round} - Phase 2: Trade Transaction ===")
         self.customer_cards = []
         for i in range(5):
             order = self.generate_mixed_order()
@@ -2014,16 +1914,14 @@ class PortMasters:
     def show_orders_interface(self):
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
-        tk.Label(header, text="🤝 贸易订单", font=self.FONT_TITLE,
+        tk.Label(header, text="🤝 Trade Orders", font=self.FONT_TITLE,
                  bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(anchor=tk.W)
-
         cards_container = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_container.pack(fill=tk.BOTH, expand=True)
         self.create_scrollable_cards(cards_container, self.customer_cards, self.create_order_card)
-        self.create_phase_bottom_buttons(main_container, "✅ 完成交易，继续航行", self.complete_phase2)
+        self.create_phase_bottom_buttons(main_container, "✅ Complete Trades, Continue", self.complete_phase2)
 
     def create_scrollable_cards(self, parent, cards, card_creator):
         canvas = tk.Canvas(parent, highlightthickness=0, bg=self.colors["bg_light"])
@@ -2031,12 +1929,12 @@ class PortMasters:
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>",
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(0, 5))
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
-
         grid_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         grid_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         for i in range(3):
@@ -2044,7 +1942,6 @@ class PortMasters:
         for i, card in enumerate(cards):
             row, col = self.get_card_grid_position(i, len(cards))
             card_creator(grid_frame, card, row, col)
-
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
         canvas.yview_moveto(0)
@@ -2058,14 +1955,14 @@ class PortMasters:
     def create_purchase_card(self, parent, card, row, col):
         card_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         card_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-
         port_frame = tk.Frame(card_frame, bg=self.colors["card_header"])
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
-        card_type = "成品" if card.get("is_product_card") else "原材料"
-        tk.Label(port_frame, text=f"📍 {card['port']} [{card_type}]",
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
-                 fg=self.colors["bg_dark"]).pack(pady=5)
-
+        card_type = "Product" if card.get("is_product_card") else "Raw Material"
+        
+        AutoWrapLabel(port_frame, text=f"📍 {card['port']} [{card_type}]",
+                      font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
+                      fg=self.colors["bg_dark"], justify=tk.CENTER).pack(pady=5, fill=tk.X)
+                      
         items_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
         for resource_info in card["resources"]:
@@ -2073,40 +1970,40 @@ class PortMasters:
             if card.get("is_product_card") and "material_cost" in resource_info:
                 cost_frame = tk.Frame(items_frame, bg=self.colors["card_bg"])
                 cost_frame.pack(fill=tk.X, pady=2)
-                tk.Label(cost_frame,
-                         text=f"   📦 原料成本: {resource_info['material_cost']}金币 "
-                              f"({resource_info['material_details']})",
-                         font=self.FONT_SMALL, bg=self.colors["card_bg"],
-                         fg="#888888").pack(anchor=tk.W)
+                
+                AutoWrapLabel(cost_frame,
+                              text=f"   📦 Material Cost: {resource_info['material_cost']} Gold "
+                                   f"({resource_info['material_details']})",
+                              font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                              fg="#888888").pack(anchor=tk.W, fill=tk.X)
+                              
                 profit_margin = resource_info['price'] - resource_info['material_cost']
-                tk.Label(cost_frame,
-                         text=f"   💰 溢价: +{profit_margin}金币 "
-                              f"({profit_margin / resource_info['material_cost'] * 100:.0f}%)",
-                         font=self.FONT_SMALL, bg=self.colors["card_bg"],
-                         fg=self.colors["accent_red"]).pack(anchor=tk.W)
-
+                
+                AutoWrapLabel(cost_frame,
+                              text=f"   💰 Markup: +{profit_margin} Gold "
+                                   f"({profit_margin / resource_info['material_cost'] * 100:.0f}%)",
+                              font=self.FONT_SMALL, bg=self.colors["card_bg"],
+                              fg=self.colors["accent_red"]).pack(anchor=tk.W, fill=tk.X)
+                              
         final_cost = self.get_card_final_cost(card)
         for m in self.equipped_modules:
             final_cost = m.modify_purchase_cost(self, final_cost, card)
         final_cost = max(0, final_cost)
-        
         total_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         total_frame.pack(fill=tk.X, padx=15, pady=self.PAD_MD)
-        
-        cost_text = f"💰 总价: {final_cost}金币"
+        cost_text = f"💰 Total: {final_cost} Gold"
         if final_cost < card["total_cost"]:
-            cost_text += f" (原价 {card['total_cost']})"
+            cost_text += f" (Was {card['total_cost']})"
             
-        tk.Label(total_frame, text=cost_text,
-                 font=self.FONT_STAT, bg=self.colors["card_bg"],
-                 fg=self.colors["accent_red"]).pack(anchor=tk.W)
-
+        AutoWrapLabel(total_frame, text=cost_text,
+                      font=self.FONT_STAT, bg=self.colors["card_bg"],
+                      fg=self.colors["accent_red"]).pack(anchor=tk.W, fill=tk.X)
+                      
         is_purchased = card["id"] in self.purchased_cards
         can_afford = self.money >= final_cost and not is_purchased
-        btn_text = "✅ 已采购" if is_purchased else f"🛒 采购 ({final_cost}💰)"
+        btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
         btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
         btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
-
         btn_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         btn_frame.pack(fill=tk.X, padx=15, pady=(5, 12))
         btn = CustomButton(btn_frame, text=btn_text, font=self.BUTTON_FONT,
@@ -2119,35 +2016,41 @@ class PortMasters:
     def create_order_card(self, parent, order, row, col):
         order_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         order_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-
+        
         port_frame = tk.Frame(order_frame, bg=self.colors["card_header"])
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
-        order_type = "成品需求" if order.get("is_product_order") else "原材料需求"
-        tk.Label(port_frame, text=f"📍 {order['demand_port']} {order_type}",
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
-                 fg=self.colors["bg_dark"]).pack(pady=5)
-
+        
+        order_type = "Finished Product Demand" if order.get("is_product_order") else "Raw Material Demand"
+        
+        # FIX 1: Use AutoWrapLabel and fill=tk.X
+        AutoWrapLabel(port_frame, text=f"📍 {order['demand_port']} {order_type}", 
+                      font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
+                      fg=self.colors["bg_dark"], justify=tk.CENTER).pack(pady=5, fill=tk.X)
+                 
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
+        
         for resource_info in order["resources"]:
             has_enough = self.inventory.get(resource_info["type"], 0) >= resource_info["required"]
             status_icon = "✅" if has_enough else "❌"
             item_frame = tk.Frame(items_frame, bg=self.colors["card_bg"])
             item_frame.pack(fill=tk.X, pady=4)
-            tk.Label(item_frame, text=status_icon, font=self.FONT_BODY_BOLD,
+            tk.Label(item_frame, text=status_icon, font=self.FONT_BODY_BOLD, 
                      bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, self.PAD_MD))
             self.create_resource_info_row(item_frame, resource_info, show_inventory=True, font_size=11)
-
-        has_silk = any(r["type"] in ["丝绸", "绫罗绸缎", "香囊", "布衣"] for r in order["resources"])
+            
+        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
         transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
+        
         transport_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         transport_frame.pack(fill=tk.X, padx=15, pady=5)
-        tk.Label(transport_frame,
-                 text=f"⚓ 运费: {transport_detail['base_cost']} - {transport_detail['discount']} "
-                      f"= {transport_detail['final_cost']}金币",
-                 font=self.FONT_BODY, bg=self.colors["card_bg"],
-                 fg=self.colors["accent_red"]).pack(anchor=tk.W)
-
+        
+        # FIX 2: Use AutoWrapLabel and fill=tk.X
+        AutoWrapLabel(transport_frame, 
+                      text=f"⚓ Freight: {transport_detail['base_cost']} - {transport_detail['discount']} = {transport_detail['final_cost']} Gold", 
+                      font=self.FONT_BODY, bg=self.colors["card_bg"], 
+                      fg=self.colors["accent_red"]).pack(anchor=tk.W, fill=tk.X)
+                 
         net_profit = order['reward'] - transport_detail['final_cost']
         total_vat = 0
         if order.get("is_product_order"):
@@ -2155,30 +2058,34 @@ class PortMasters:
             estimated_vat = self.calculate_vat(product, order['reward'] / order["resources"][0]["required"])
             total_vat = estimated_vat * order["resources"][0]["required"]
             net_profit -= total_vat
-
+            
         finance_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         finance_frame.pack(fill=tk.X, padx=15, pady=self.PAD_MD)
-        finance_text = f"💰 报酬: {order['reward']}金币  📊 净利: {net_profit}金币"
+        finance_text = f"💰 Reward: {order['reward']} Gold\n📊 Net Profit: {net_profit} Gold"
         if order.get("is_product_order"):
-            finance_text += f"\n🧾 预计增值税: {total_vat}金币"
-        tk.Label(finance_frame, text=finance_text, font=self.FONT_BODY_BOLD,
-                 bg=self.colors["card_bg"],
-                 fg=self.colors["accent_green"] if net_profit > 0 else self.colors["accent_red"],
-                 justify=tk.LEFT).pack(anchor=tk.W)
-
+            finance_text += f"\n🧾 Est. VAT: {total_vat} Gold"
+            
+        # FIX 3: Use AutoWrapLabel and fill=tk.X
+        AutoWrapLabel(finance_frame, text=finance_text, font=self.FONT_BODY_BOLD, 
+                      bg=self.colors["card_bg"], 
+                      fg=self.colors["accent_green"] if net_profit > 0 else self.colors["accent_red"]).pack(anchor=tk.W, fill=tk.X)
+                 
         can_complete = all(self.inventory.get(r["type"], 0) >= r["required"] for r in order["resources"])
         is_completed = order["id"] in self.completed_orders
-        btn_text = "✅ 已完成" if is_completed else f"🤝 交易 (净赚{net_profit}💰)"
+        
+        btn_text = "✅ Completed" if is_completed else f"🤝 Trade (Net {net_profit}💰)"
         btn_state = tk.DISABLED if is_completed or not can_complete else tk.NORMAL
         btn_bg = self.colors["button_primary"] if can_complete and not is_completed else self.colors["button_dark_grey"]
-
+        
         btn_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         btn_frame.pack(fill=tk.X, padx=15, pady=(5, 12))
-        btn = CustomButton(btn_frame, text=btn_text, font=self.BUTTON_FONT,
-                           bg=btn_bg, fg="white", relief=tk.RAISED, borderwidth=1,
-                           padx=15, pady=15, wraplength=280,
+        
+        btn = CustomButton(btn_frame, text=btn_text, font=self.BUTTON_FONT, 
+                           bg=btn_bg, fg="white", relief=tk.RAISED, borderwidth=1, 
+                           padx=15, pady=15, wraplength=280, 
                            state=btn_state, command=lambda o=order: self.complete_order(o))
         btn.pack(fill=tk.X, expand=True)
+        
         self.order_buttons.append({"button": btn, "order_id": order["id"], "net_profit": net_profit})
 
     def create_resource_info_row(self, parent, resource_info, show_inventory=False, font_size=10):
@@ -2187,24 +2094,24 @@ class PortMasters:
         icon = self.resource_icons.get(resource, "")
         item_frame = tk.Frame(parent, bg=self.colors["card_bg"])
         item_frame.pack(fill=tk.X, pady=2)
-        tk.Label(item_frame, text=icon, font=("Microsoft YaHei", font_size + 2),
+        tk.Label(item_frame, text=icon, font=("Segoe UI", font_size + 2),
                  bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, 5))
-        tk.Label(item_frame, text=resource, font=("Microsoft YaHei", font_size, "bold"),
-                 bg=self.colors["card_bg"], fg=color, width=10).pack(side=tk.LEFT)
+        tk.Label(item_frame, text=resource, font=("Segoe UI", font_size, "bold"),
+                 bg=self.colors["card_bg"], fg=color, width=14).pack(side=tk.LEFT)
         if "quantity" in resource_info:
             tk.Label(item_frame, text=f"×{resource_info['quantity']}",
-                     font=("Microsoft YaHei", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
-            if "price" in resource_info:
-                tk.Label(item_frame, text=f"单价: {resource_info['price']}💰",
-                         font=("Microsoft YaHei", font_size), bg=self.colors["card_bg"],
-                         fg="#666").pack(side=tk.LEFT, padx=5)
+                     font=("Segoe UI", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
+        if "price" in resource_info:
+            tk.Label(item_frame, text=f"Unit Price: {resource_info['price']}💰",
+                     font=("Segoe UI", font_size), bg=self.colors["card_bg"],
+                     fg="#666").pack(side=tk.LEFT, padx=5)
         elif "required" in resource_info:
             tk.Label(item_frame, text=f"×{resource_info['required']}",
-                     font=("Microsoft YaHei", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
+                     font=("Segoe UI", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
         if show_inventory:
             inv_color = "green" if self.inventory.get(resource, 0) >= resource_info.get("required", 0) else "red"
-            tk.Label(item_frame, text=f"库存: {self.inventory.get(resource, 0)}",
-                     font=("Microsoft YaHei", font_size - 1), bg=self.colors["card_bg"],
+            tk.Label(item_frame, text=f"Inv: {self.inventory.get(resource, 0)}",
+                     font=("Segoe UI", font_size - 1), bg=self.colors["card_bg"],
                      fg=inv_color).pack(side=tk.LEFT, padx=(5, 0))
 
     def create_phase_bottom_buttons(self, parent, text, command):
@@ -2220,24 +2127,21 @@ class PortMasters:
             card = btn_info["card_ref"]
             button = btn_info["button"]
             is_purchased = card_id in self.purchased_cards
-            
             final_cost = self.get_card_final_cost(card)
             for m in self.equipped_modules:
                 final_cost = m.modify_purchase_cost(self, final_cost, card)
             final_cost = max(0, final_cost)
-            
             can_afford = self.money >= final_cost and not is_purchased
-            
-            btn_text = "✅ 已采购" if is_purchased else f"🛒 采购 ({final_cost}💰)"
+            btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
             btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
             btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
             button.config(text=btn_text, state=btn_state, bg=btn_bg)
 
     def complete_phase1(self):
         if self.purchase_count == 0:
-            self.log_message("⏭️ 跳过了采购阶段")
+            self.log_message("⏭️ Purchasing skipped")
         else:
-            self.log_message(f"✅ 采购结束，共采购 {self.purchase_count} 批货物")
+            self.log_message(f"✅ Purchasing ended, bought {self.purchase_count} batches")
         self.show_worker_management_in_phase()
 
     def update_order_buttons(self):
@@ -2252,66 +2156,59 @@ class PortMasters:
                     can_complete = all(
                         self.inventory.get(r["type"], 0) >= r["required"] for r in order["resources"])
                     break
-            btn_text = "✅ 已完成" if is_completed else f"🤝 交易 (净赚{net_profit}💰)"
+            btn_text = "✅ Completed" if is_completed else f"🤝 Trade (Net {net_profit}💰)"
             btn_state = tk.DISABLED if is_completed or not can_complete else tk.NORMAL
             btn_bg = self.colors["button_primary"] if can_complete and not is_completed else self.colors["button_dark_grey"]
             button.config(text=btn_text, state=btn_state, bg=btn_bg)
 
     def complete_phase2(self):
         if self.order_count == 0:
-            self.log_message("⏭️ 跳过了交易阶段")
+            self.log_message("⏭️ Trading skipped")
         else:
-            self.log_message(f"✅ 交易结束，共完成 {self.order_count} 笔交易")
+            self.log_message(f"✅ Trading ended, completed {self.order_count} trades")
         self.start_phase3()
 
     def start_phase3(self):
         self.phase = 3
         self.clear_phase_content()
-        self.log_message("\n👥=== 处理工人生产 ===")
+        self.log_message("\n👥=== Processing Worker Production ===")
         self.process_production()
-        self.log_message("\n💰=== 支付工人工资 ===")
+        self.log_message("\n💰=== Paying Worker Wages ===")
         wage_result = self.pay_worker_wages()
         if wage_result == "bankruptcy":
-            self.log_message("⚠️ 因无法支付工人工资而破产！")
+            self.log_message("⚠️ Bankruptcy due to inability to pay wages!")
             self.show_bankruptcy_screen()
             return
         elif not wage_result:
-            self.log_message("⚠️ 工资支付出现问题！")
+            self.log_message("⚠️ Wage payment error occurred!")
             self.show_bankruptcy_screen()
             return
-
-        self.log_message(f"\n🔧=== 第{self.current_round}航程 - 阶段3: 船只维护 ===")
+        self.log_message(f"\n🔧=== Round {self.current_round} - Phase 3: Ship Maintenance ===")
         if self.money <= 0:
-            self.log_message("⚠️ 资金为0，无法支付维护费！")
+            self.log_message("⚠️ Funds at 0, cannot pay maintenance!")
             self.show_bankruptcy_screen()
             return
-
         maintenance_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         maintenance_frame.pack(fill=tk.BOTH, expand=True, pady=40)
-
-        tk.Label(maintenance_frame, text="🔧 船只维护",
+        tk.Label(maintenance_frame, text="🔧 Ship Maintenance",
                  font=self.FONT_HERO, bg=self.colors["bg_light"],
                  fg=self.colors["bg_dark"]).pack(pady=20)
-                 
         cost = self.fixed_cost + self.maintenance_penalty
-        tk.Label(maintenance_frame, text=f"每月固定维护费用: {cost}金币",
-                 font=("Microsoft YaHei", 18), bg=self.colors["bg_light"],
+        tk.Label(maintenance_frame, text=f"Monthly Fixed Maintenance Fee: {cost} Gold",
+                 font=("Segoe UI", 18), bg=self.colors["bg_light"],
                  fg=self.colors["text_dark"]).pack(pady=10)
-        tk.Label(maintenance_frame, text=f"当前资金: {self.money}金币",
-                 font=("Microsoft YaHei", 16), bg=self.colors["bg_light"],
+        tk.Label(maintenance_frame, text=f"Current Funds: {self.money} Gold",
+                 font=("Segoe UI", 16), bg=self.colors["bg_light"],
                  fg=self.colors["accent_green"]).pack(pady=15)
-
         tk.Frame(maintenance_frame, height=2, bg=self.colors["separator"]).pack(
             fill=tk.X, padx=80, pady=self.PAD_XL)
-
         if self.money >= cost:
-            btn_text = f"💸 支付 {cost}金币"
+            btn_text = f"💸 Pay {cost} Gold"
             btn_command = self.pay_fixed_cost
         else:
-            btn_text = f"⚠️ 强制支付 ({self.money}/{cost}金币)"
+            btn_text = f"⚠️ Force Pay ({self.money}/{cost} Gold)"
             btn_command = self.force_pay_cost
-
-        CustomButton(maintenance_frame, text=btn_text, font=("Microsoft YaHei", 16, "bold"),
+        CustomButton(maintenance_frame, text=btn_text, font=self.BUTTON_FONT,
                      bg=self.colors["button_warning"], fg="white", relief=tk.RAISED, borderwidth=3,
                      padx=30, pady=15, command=btn_command).pack(pady=20)
         self.update_button_states()
@@ -2320,39 +2217,46 @@ class PortMasters:
         self.game_over = True
         self.clear_phase_content()
         self.log_message("\n" + "=" * 50)
-        self.log_message("💥 破产！")
-        self.log_message("💰 资金耗尽，无法继续经营")
-        self.log_message(f"🏆 最终声望: {self.score}")
-        self.log_message(f"🌊 完成航程: {self.current_round - 1}/{self.max_rounds}")
+        self.log_message("💥 Bankruptcy!")
+        self.log_message("💰 Funds exhausted, cannot continue business")
+        self.log_message(f"🏆 Final Reputation: {self.score}")
+        self.log_message(f"🌊 Rounds Completed: {self.current_round - 1}/{self.max_rounds}")
         self.log_message("=" * 50)
-
-        bankruptcy_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True)
+        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.bind_mousewheel(canvas)
+        bankruptcy_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         bankruptcy_frame.pack(fill=tk.BOTH, expand=True, pady=30)
-
-        tk.Label(bankruptcy_frame, text="💥", font=("Microsoft YaHei", 80),
+        tk.Label(bankruptcy_frame, text="💥", font=("Segoe UI", 80),
                  bg=self.colors["bg_light"], fg=self.colors["accent_red"]).pack(pady=15)
-        tk.Label(bankruptcy_frame, text="船队破产！",
+        tk.Label(bankruptcy_frame, text="Ship Fleet Bankrupt!",
                  font=self.FONT_HERO, bg=self.colors["bg_light"],
                  fg=self.colors["accent_red"]).pack(pady=self.PAD_MD)
-
-        reason = ("资金耗尽，无法支付必要的运营费用"
-                  if self.money <= 0 else "资金不足以支付维护费和工人工资")
+        reason = ("Funds depleted, unable to pay essential operational costs"
+                  if self.money <= 0 else "Insufficient funds to cover maintenance and wages")
         tk.Label(bankruptcy_frame, text=reason, font=self.FONT_SUBTITLE,
-                 bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=self.PAD_MD)
-
+                 bg=self.colors["bg_light"], fg=self.colors["text_dark"], wraplength=600, justify=tk.CENTER).pack(pady=self.PAD_MD)
         tk.Frame(bankruptcy_frame, height=3, bg=self.colors["accent_red"]).pack(
             fill=tk.X, padx=100, pady=20)
-
         stats_frame = tk.Frame(bankruptcy_frame, bg=self.colors["bg_light"])
         stats_frame.pack(pady=15)
         stats = [
-            ("🌊 完成航程:", f"{self.current_round - 1}/{self.max_rounds}"),
-            ("💰 最终资金:", f"{self.money}金币"),
-            ("🏆 最终声望:", f"{self.score}"),
-            ("🚢 船只等级:", f"{self.ship_level}级"),
-            ("👥 工匠团队:",
-             f"织女:{len(self.weavers)} 大师:{len(self.master_weavers)} 香囊师:{len(self.sachet_makers)}"),
-            ("🧾 累计缴税:", f"{self.vat_paid + self.income_tax_paid}金币")
+            ("🌊 Rounds Completed:", f"{self.current_round - 1}/{self.max_rounds}"),
+            ("💰 Final Funds:", f"{self.money} Gold"),
+            ("🏆 Final Reputation:", f"{self.score}"),
+            ("🚢 Ship Level:", f"{self.ship_level}"),
+            ("👥 Worker Team:",
+             f"Weavers:{len(self.weavers)} Masters:{len(self.master_weavers)} Makers:{len(self.sachet_makers)}"),
+            ("🧾 Taxes Paid:", f"{self.vat_paid + self.income_tax_paid} Gold")
         ]
         for label_text, value_text in stats:
             stat_frame = tk.Frame(stats_frame, bg=self.colors["bg_light"])
@@ -2361,132 +2265,121 @@ class PortMasters:
                      bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(side=tk.LEFT)
             tk.Label(stat_frame, text=value_text, font=self.FONT_BODY_BOLD,
                      bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(side=tk.RIGHT)
-
         tk.Frame(bankruptcy_frame, height=2, bg=self.colors["separator"]).pack(
             fill=tk.X, padx=100, pady=20)
-
         buttons_frame = tk.Frame(bankruptcy_frame, bg=self.colors["bg_light"])
         buttons_frame.pack(pady=10)
-        CustomButton(buttons_frame, text="🔄 重新起航", font=("Microsoft YaHei", 16, "bold"),
+        CustomButton(buttons_frame, text="🔄 Restart", font=self.BUTTON_FONT,
                      bg=self.colors["button_primary"], fg="white",
                      relief=tk.RAISED, borderwidth=3, padx=25, pady=15,
                      cursor="hand2", command=self.restart_game).pack(side=tk.LEFT, padx=10)
-        CustomButton(buttons_frame, text="💡 贸易策略", font=("Microsoft YaHei", 14, "bold"),
-                     bg=self.colors["button_warning"], fg="white",
+        CustomButton(buttons_frame, text="💡 Strategy Tips", font=self.BUTTON_FONT,
+                     bg=self.colors["button_dark_grey"], fg="white",
                      relief=tk.RAISED, borderwidth=2, padx=25, pady=15,
                      cursor="hand2", command=self.show_bankruptcy_tips).pack(side=tk.LEFT, padx=10)
         self.update_button_states()
 
     def show_bankruptcy_tips(self):
         tips = """
-        ⚓ 避免破产的贸易策略：
+⚓ Avoiding Bankruptcy Strategies:
 
-        💰 资金管理：
-        1. 确保始终有足够备用金支付所有费用
-        2. 维护费 + 工人工资是每回合固定支出
-        3. 计算总支出后再决定采购量
+💰 Financial Management:
+1. Always maintain reserve funds for expenses
+2. Maintenance ({}) + Wages are fixed rounds costs
+3. Calculate total expenditure before buying
 
-        👥 工匠管理：
-        1. 织女工资: {}金币/回合
-        2. 纺织大师工资: {}金币/回合
-        3. 香囊师工资: {}金币/回合
-        4. 量力而行，不要雇佣过多工人
+👥 Worker Management:
+1. Weaver Wage: {} Gold / Round
+2. Master Wage: {} Gold / Round
+3. Maker Wage: {} Gold / Round
+4. Hire only as needed
 
-        🔮 牙行密语策略：
-        1. 如果资金充裕，尽早购买消息
-        2. 囤积探听到的货物，保证第2阶段利润
-        3. 平衡购买消息与其他投资的资金分配
+🔮 Broker's Whisper Strategy:
+1. Buy rumors early if you have spare gold
+2. Hoard revealed items to guarantee Phase 2 profits
+3. Balance intel purchases with other investments
 
-        🛒 采购策略：
-        1. 预留维护费+工资后再采购
-        2. 选择性价比高的商品组合
-        3. 优先购买港口特产 + 探听到的消息货物
+🛒 Buying Strategy:
+1. Reserve funds for maintenance+wages first
+2. Select high value-for-money goods
+3. Prioritize port specialties + revealed intel
 
-        🤝 交易策略：
-        1. 优先完成利润高的订单
-        2. 注意运输成本对利润的影响
-        3. 成品订单利润高但需缴增值税
+🤝 Trading Strategy:
+1. Prioritize highest profit orders
+2. Consider freight impact on margins
+3. Finished orders yield high profit but incur VAT
 
-        ⚠️ 风险控制：
-        1. 计算每回合固定支出：维护费 + 工人工资
-        2. 确保资金始终 > 固定支出
-        3. 不要过度扩张导致资金链断裂
+⚠️ Risk Control:
+1. Calculate fixed round costs: Maintenance{} + Wages
+2. Keep funds consistently > fixed costs
+3. Avoid over-expansion cash flow issues
 
-        💾 使用Ctrl+S保存游戏进度！
-        """.format(self.WEAVER_WAGE, self.MASTER_WEAVER_WAGE, self.SACHET_MAKER_WAGE)
-        messagebox.showinfo("💡 贸易策略建议", tips)
+💾 Save game progress frequently with Ctrl+S!
+""".format(self.fixed_cost, self.WEAVER_WAGE, self.MASTER_WEAVER_WAGE,
+           self.SACHET_MAKER_WAGE, self.fixed_cost)
+        messagebox.showinfo("💡 Trade Strategy Advice", tips)
 
     def start_phase4(self):
         self.phase = 4
         self.clear_phase_content()
-        self.log_message(f"\n🚢=== 第{self.current_round}航程 - 阶段4: 船坞与模块 ===")
-        
+        self.log_message(f"\n🚢=== Round {self.current_round} - Phase 4: Shipyard & Modules ===")
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True)
-        
         canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
         scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        scrollable_frame.bind("<Configure>", 
+        scrollable_frame.bind("<Configure>",
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(5, 0))
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
-        
-        tk.Label(scrollable_frame, text="🚢 船坞与模块安装", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
+        tk.Label(scrollable_frame, text="🚢 Shipyard & Module Installation",
+                 font=self.FONT_HERO, bg=self.colors["bg_light"],
                  fg=self.colors["bg_dark"]).pack(pady=self.PAD_XL)
-                 
         tk.Frame(scrollable_frame, height=3, bg=self.colors["separator"]).pack(
             fill=tk.X, padx=80, pady=(0, self.PAD_XL))
-            
-        current_card = tk.Frame(scrollable_frame, bg=self.colors["card_header"], 
+        # Ship Status Card
+        current_card = tk.Frame(scrollable_frame, bg=self.colors["card_header"],
                                 relief=tk.RAISED, borderwidth=3, padx=30, pady=20)
         current_card.pack(fill=tk.X, padx=50, pady=10)
-        
-        tk.Label(current_card, text=f"🚢 船只等级: {self.ship_level} | ⚓ 运费折扣: {self.ship_level * 5} 金币", 
-                 font=("Microsoft YaHei", 16, "bold"), bg=self.colors["card_header"], fg=self.colors["bg_dark"]).pack()
-        tk.Label(current_card, text=f"🔌 模块槽位: {len(self.equipped_modules)} / {self.ship_level}", 
-                 font=("Microsoft YaHei", 14), bg=self.colors["card_header"], fg=self.colors["accent_blue"]).pack(pady=5)
-                 
+        tk.Label(current_card, text=f"🚢 Ship Level: {self.ship_level} | ⚓ Discount: {self.ship_level * 5} Gold",
+                 font=("Segoe UI", 16, "bold"), bg=self.colors["card_header"], fg=self.colors["bg_dark"], wraplength=800, justify=tk.CENTER).pack()
+        tk.Label(current_card, text=f"🔌 Module Slots: {len(self.equipped_modules)} / {self.ship_level}",
+                 font=("Segoe UI", 14), bg=self.colors["card_header"], fg=self.colors["accent_blue"]).pack(pady=5)
         if self.equipped_modules:
             modules_frame = tk.Frame(current_card, bg=self.colors["card_header"])
             modules_frame.pack(fill=tk.X, pady=10)
             for m in self.equipped_modules:
-                tk.Label(modules_frame, text=f"{m.icon} {m.name}: {m.desc}", 
-                         font=self.FONT_SMALL, bg=self.colors["card_header"], fg=self.colors["text_dark"]).pack(anchor=tk.W, pady=2)
+                tk.Label(modules_frame, text=f"{m.icon} {m.name}: {m.desc}",
+                         font=self.FONT_SMALL, bg=self.colors["card_header"], fg=self.colors["text_dark"], wraplength=800, justify=tk.LEFT).pack(anchor=tk.W, pady=2)
         else:
-            tk.Label(current_card, text="尚未安装任何模块。升级船只以解锁槽位！", 
+            tk.Label(current_card, text="No modules installed. Upgrade ship to unlock slots!",
                      font=self.FONT_SMALL, bg=self.colors["card_header"], fg="#666").pack(pady=5)
-                     
+        # Actions
         actions_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         actions_frame.pack(pady=20, fill=tk.X, padx=50)
-        
         if self.ship_level < 3:
             upgrade_cost = self.ship_upgrade_cost[self.ship_level] + self.ship_upgrade_penalty
             can_upgrade = self.money >= upgrade_cost
-            CustomButton(actions_frame, text=f"⚓ 升级船只 (至{self.ship_level+1}级)\n花费: {upgrade_cost} 金币 | +1 槽位, +5 折扣", 
-                         font=self.BUTTON_FONT, bg=self.colors["button_primary"] if can_upgrade else self.colors["button_dark_grey"], 
-                         fg="white", padx=20, pady=15, state=tk.NORMAL if can_upgrade else tk.DISABLED, 
+            CustomButton(actions_frame, text=f"⚓ Upgrade Ship (Lvl {self.ship_level+1})\nCost: {upgrade_cost} Gold | +1 Slot, +5 Discount",
+                         font=self.BUTTON_FONT, bg=self.colors["button_primary"] if can_upgrade else self.colors["button_dark_grey"],
+                         fg="white", padx=20, pady=15, state=tk.NORMAL if can_upgrade else tk.DISABLED,
                          command=self.upgrade_ship).pack(pady=5, fill=tk.X)
-                         
         can_draft = self.ship_level > 0
-        draft_text = "🔧 抽取并安装模块"
+        draft_text = "🔧 Draft & Install Module"
         if len(self.equipped_modules) >= self.ship_level and self.ship_level > 0:
-            draft_text = "🔄 抽取并替换模块 (槽位已满)"
-            
-        CustomButton(actions_frame, text=draft_text, font=self.BUTTON_FONT, 
-                     bg=self.colors["accent_gold"] if can_draft else self.colors["button_dark_grey"], 
-                     fg=self.colors["text_dark"] if can_draft else "white", 
-                     padx=20, pady=15, state=tk.NORMAL if can_draft else tk.DISABLED, 
+            draft_text = "🔄 Draft & Swap Module (Slots Full)"
+        CustomButton(actions_frame, text=draft_text, font=self.BUTTON_FONT,
+                     bg=self.colors["accent_gold"] if can_draft else self.colors["button_dark_grey"],
+                     fg=self.colors["text_dark"] if can_draft else "white",
+                     padx=20, pady=15, state=tk.NORMAL if can_draft else tk.DISABLED,
                      command=self.start_module_drafting).pack(pady=5, fill=tk.X)
-                     
-        CustomButton(actions_frame, text="⏭️ 继续航行", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_success"], fg="white", padx=30, pady=15, 
+        CustomButton(actions_frame, text="⏭️ Continue Voyage", font=self.BUTTON_FONT,
+                     bg=self.colors["button_success"], fg="white", padx=30, pady=15,
                      command=self.skip_upgrade).pack(pady=15, fill=tk.X)
-                     
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
         canvas.yview_moveto(0)
@@ -2498,11 +2391,11 @@ class PortMasters:
         if self.money >= upgrade_cost:
             self.money -= upgrade_cost
             self.ship_level += 1
-            self.log_message(f"🎉 商船升级到 {self.ship_level}级！+1模块槽位，+5运费折扣")
+            self.log_message(f"🎉 Ship Upgraded to Level {self.ship_level}! +1 Module Slot, +5 Discount")
             self.update_display()
             self.start_phase4()
         else:
-            messagebox.showerror("资金不足", f"需要 {upgrade_cost} 金币")
+            messagebox.showerror("Insufficient Funds", f"Need {upgrade_cost} Gold")
 
     def get_module_draft_choices(self, count=3):
         available = [cls for cls in self.module_classes if cls().id not in [eq.id for eq in self.equipped_modules]]
@@ -2513,43 +2406,35 @@ class PortMasters:
     def start_module_drafting(self):
         self.clear_phase_content()
         self.draft_choices = self.get_module_draft_choices(3)
-        
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🔧 模块抽取", font=self.FONT_HERO, 
+        tk.Label(main_container, text="🔧 Module Drafting", font=self.FONT_HERO,
                  bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
-        tk.Label(main_container, text="选择要安装或替换的船只模块。", 
+        tk.Label(main_container, text="Choose a module to install or swap.",
                  font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
         cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_frame.pack(fill=tk.BOTH, expand=True)
-        
         for i in range(3):
             cards_frame.columnconfigure(i, weight=1, uniform="mod_col")
-            
         for i, mod in enumerate(self.draft_choices):
             self.create_module_card(cards_frame, mod, 0, i)
-            
-        CustomButton(main_container, text="⬅️ 返回船坞", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10, 
+        CustomButton(main_container, text="⬅️ Back to Shipyard", font=self.BUTTON_FONT,
+                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10,
                      command=self.start_phase4).pack(pady=20)
 
     def create_module_card(self, parent, mod, row, col):
         card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
         card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
-        
-        tk.Label(card, text=mod.icon, font=("Microsoft YaHei", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
-        tk.Label(card, text=mod.name, font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"], 
+        tk.Label(card, text=mod.icon, font=("Segoe UI", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
+        tk.Label(card, text=mod.name, font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"],
                  fg=self.colors["bg_dark"]).pack(pady=5)
-        tk.Label(card, text=mod.desc, font=self.FONT_BODY, bg=self.colors["card_bg"], 
+        tk.Label(card, text=mod.desc, font=self.FONT_BODY, bg=self.colors["card_bg"],
                  fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
-                 
-        btn_text = "✅ 安装" if len(self.equipped_modules) < self.ship_level else "🔄 替换"
-        btn = CustomButton(card, text=btn_text, font=self.BUTTON_FONT, 
-                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"], 
-                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                           juice_callback=self.trigger_juice, 
+        btn_text = "✅ Install" if len(self.equipped_modules) < self.ship_level else "🔄 Swap"
+        btn = CustomButton(card, text=btn_text, font=self.BUTTON_FONT,
+                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"],
+                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15,
+                           juice_callback=self.trigger_juice,
                            command=lambda m=mod: self.handle_module_selection(m))
         btn.pack(fill=tk.X, pady=(10, 0))
 
@@ -2563,27 +2448,23 @@ class PortMasters:
         self.clear_phase_content()
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🔄 选择要替换的模块", font=self.FONT_HERO, 
+        tk.Label(main_container, text="🔄 Select Module to Replace", font=self.FONT_HERO,
                  bg=self.colors["bg_light"], fg=self.colors["accent_red"]).pack(pady=(20, 5))
-        tk.Label(main_container, text=f"新模块: {new_module.icon} {new_module.name} - {new_module.desc}", 
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
+        tk.Label(main_container, text=f"New: {new_module.icon} {new_module.name} - {new_module.desc}",
+                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"], wraplength=600, justify=tk.CENTER).pack(pady=(0, 20))
         list_frame = tk.Frame(main_container, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=10)
-        
         for i, eq_mod in enumerate(self.equipped_modules):
             row = tk.Frame(list_frame, bg=self.colors["card_bg"])
             row.pack(fill=tk.X, padx=20, pady=10)
-            tk.Label(row, text=f"{eq_mod.icon} {eq_mod.name}", font=self.FONT_CARD_TITLE, 
+            tk.Label(row, text=f"{eq_mod.icon} {eq_mod.name}", font=self.FONT_CARD_TITLE,
                      bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(side=tk.LEFT)
-            tk.Label(row, text=eq_mod.desc, font=self.FONT_SMALL, 
-                     bg=self.colors["card_bg"], fg="#666").pack(side=tk.LEFT, padx=10)
-            CustomButton(row, text="🗑️ 替换", font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white", 
+            tk.Label(row, text=eq_mod.desc, font=self.FONT_SMALL,
+                     bg=self.colors["card_bg"], fg="#666", wraplength=400, justify=tk.LEFT).pack(side=tk.LEFT, padx=10)
+            CustomButton(row, text="🗑️ Replace", font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white",
                          padx=15, pady=5, command=lambda m=new_module, idx=i: self.equip_module(m, swap_index=idx)).pack(side=tk.RIGHT)
-                         
-        CustomButton(main_container, text="⬅️ 返回抽取", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10, 
+        CustomButton(main_container, text="⬅️ Back to Draft", font=self.BUTTON_FONT,
+                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10,
                      command=self.start_module_drafting).pack(pady=20)
 
     def equip_module(self, module_instance, swap_index=None):
@@ -2591,62 +2472,85 @@ class PortMasters:
             old_module = self.equipped_modules[swap_index]
             old_module.on_unequip(self)
             self.equipped_modules[swap_index] = module_instance
-            self.log_message(f"🔄 将 {old_module.name} 替换为 {module_instance.name}！")
+            self.log_message(f"🔄 Swapped {old_module.name} for {module_instance.name}!")
         else:
             if len(self.equipped_modules) < self.ship_level:
                 self.equipped_modules.append(module_instance)
-                self.log_message(f"✅ 安装了 {module_instance.name}！")
+                self.log_message(f"✅ Installed {module_instance.name}!")
             else:
-                self.log_message("❌ 没有空槽位！必须替换。")
+                self.log_message("❌ No empty slots! Must swap.")
                 return
         module_instance.on_equip(self)
         self.update_display()
         self.start_phase4()
 
+    def show_upgrade_rules(self):
+        rules = """
+🚢 Ship Upgrade & Module Rules:
+
+📊 Freight Cost Formula:
+Freight = max(5, (Total Items × 2) - (Ship Level × 5))
+
+⚓ Ship Upgrades:
+• Level 0 → 1: 15 Gold, +1 Slot, +5 Discount
+• Level 1 → 2: 25 Gold, +1 Slot, +10 Discount
+• Level 2 → 3: 40 Gold, +1 Slot, +15 Discount (Max)
+
+🔧 Modules:
+• Equip powerful synergies in your Ship Slots
+• Swap modules at any time during Phase 4
+• Adapt your build to your current crew and cargo!
+"""
+        messagebox.showinfo("🚢 Upgrade Rules Details", rules)
+
     def skip_upgrade(self):
-        self.log_message("⏭️ 跳过船坞操作")
+        self.log_message("⏭️ Skipped Shipyard Actions")
         self.end_round()
 
     def end_game(self):
         self.log_message("\n" + "=" * 50)
-        self.log_message("🎮 PortMasters - 游戏结束!")
-        self.log_message(f"💰 最终资金: {self.money}金币")
-        self.log_message(f"🏆 最终声望: {self.score}")
-        self.log_message(f"🧾 累计缴税: {self.vat_paid + self.income_tax_paid}金币")
+        self.log_message("🎮 PortMasters - Game Over!")
+        self.log_message(f"💰 Final Funds: {self.money} Gold")
+        self.log_message(f"🏆 Final Reputation: {self.score}")
+        self.log_message(f"🧾 Total Taxes Paid: {self.vat_paid + self.income_tax_paid} Gold")
         self.log_message(
-            f"👥 工匠团队: 织女{len(self.weavers)} 大师{len(self.master_weavers)} 香囊师{len(self.sachet_makers)}")
-
-        if self.score >= 300:
-            rating = "👑 丝绸之路霸主"
-        elif self.score >= 200:
-            rating = "🏆 海上贸易大亨"
-        elif self.score >= 100:
-            rating = "⭐ 成功商人"
-        elif self.score >= 50:
-            rating = "👍 合格商人"
-        else:
-            rating = "🌊 新手商人"
-        self.log_message(f"📈 评级: {rating}")
+            f"👥 Worker Team: Weavers{len(self.weavers)} Masters{len(self.master_weavers)} "
+            f"Makers{len(self.sachet_makers)}")
+        if self.score >= 300: rating = "👑 King of Silk Road"
+        elif self.score >= 200: rating = "🏆 Maritime Tycoon"
+        elif self.score >= 100: rating = "⭐ Successful Merchant"
+        elif self.score >= 50: rating = "👍 Qualified Trader"
+        else: rating = "🌊 Novice Merchant"
+        self.log_message(f"📈 Rank: {rating}")
         self.log_message("=" * 50)
-
         self.clear_phase_content()
-        result_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True)
+        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.bind_mousewheel(canvas)
+        result_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         result_frame.pack(fill=tk.BOTH, expand=True, pady=40)
-
-        tk.Label(result_frame, text="🎮 游戏结束!",
+        tk.Label(result_frame, text="🎮 Game Over!",
                  font=self.FONT_HERO, bg=self.colors["bg_light"],
                  fg=self.colors["bg_dark"]).pack(pady=20)
-        tk.Label(result_frame, text=f"🏆 最终声望: {self.score}",
-                 font=("Microsoft YaHei", 22, "bold"),
+        tk.Label(result_frame, text=f"🏆 Final Reputation: {self.score}",
+                 font=("Segoe UI", 22, "bold"),
                  bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(pady=10)
-        tk.Label(result_frame, text=f"💰 最终资金: {self.money}金币",
-                 font=("Microsoft YaHei", 20), bg=self.colors["bg_light"],
+        tk.Label(result_frame, text=f"💰 Final Funds: {self.money} Gold",
+                 font=("Segoe UI", 20), bg=self.colors["bg_light"],
                  fg=self.colors["accent_green"]).pack(pady=10)
-        tk.Label(result_frame, text=f"📈 商人评级: {rating}",
-                 font=("Microsoft YaHei", 20), bg=self.colors["bg_light"],
+        tk.Label(result_frame, text=f"📈 Merchant Rank: {rating}",
+                 font=("Segoe UI", 20), bg=self.colors["bg_light"],
                  fg=self.colors["accent_gold"]).pack(pady=20)
-
-        CustomButton(result_frame, text="🔄 重新起航", font=("Microsoft YaHei", 18, "bold"),
+        CustomButton(result_frame, text="🔄 Restart", font=self.BUTTON_FONT,
                      bg=self.colors["button_primary"], fg="white", relief=tk.RAISED,
                      borderwidth=3, padx=30, pady=15,
                      command=self.restart_game).pack(pady=self.PAD_XL)
@@ -2654,9 +2558,9 @@ class PortMasters:
         self.update_button_states()
 
     def restart_game(self):
-        if messagebox.askyesno("重新起航", "确定要重新开始海上丝绸之路贸易之旅吗？"):
-            self.inventory = {"麻布": 8, "丝绸": 5, "茶叶": 3,
-                              "麻衣": 0, "布衣": 0, "绫罗绸缎": 0, "香囊": 0}
+        if messagebox.askyesno("Restart Voyage", "Confirm restarting the maritime journey?"):
+            self.inventory = {"Hemp": 8, "Silk": 5, "Tea": 3,
+                              "Linen Clothes": 0, "Cotton Clothes": 0, "Brocade": 0, "Sachet": 0}
             self.money = 100
             self.score = 0
             self.current_round = 1
@@ -2698,21 +2602,21 @@ class PortMasters:
 
     def update_button_states(self):
         if self.game_over:
-            self.start_btn.config(state=tk.DISABLED, text="⚠️ 游戏结束")
-            self.next_btn.config(state=tk.DISABLED, text="⏭️ 继续航行")
+            self.start_btn.config(state=tk.DISABLED, text="⚠️ Game Over")
+            self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
             return
         if self.phase == 0:
-            self.start_btn.config(state=tk.NORMAL, text=f"🚢 开始第{self.current_round}航程")
-            self.next_btn.config(state=tk.DISABLED, text="⏭️ 继续航行")
+            self.start_btn.config(state=tk.NORMAL, text=f"🚢 Start Round {self.current_round}")
+            self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
         elif self.phase in [1, 2]:
-            self.start_btn.config(state=tk.DISABLED, text="🚢 航行中...")
-            self.next_btn.config(state=tk.NORMAL, text="⏭️ 继续航行")
+            self.start_btn.config(state=tk.DISABLED, text="🚢 On Voyage...")
+            self.next_btn.config(state=tk.NORMAL, text="⏭️ Continue Voyage")
         elif self.phase in [3, 4]:
-            self.start_btn.config(state=tk.DISABLED, text="🚢 航行中...")
-            self.next_btn.config(state=tk.NORMAL, text="⏭️ 继续航行")
+            self.start_btn.config(state=tk.DISABLED, text="🚢 On Voyage...")
+            self.next_btn.config(state=tk.NORMAL, text="⏭️ Continue Voyage")
         elif self.phase == 5:
-            self.start_btn.config(state=tk.DISABLED, text="🧭 抽取福缘中...")
-            self.next_btn.config(state=tk.DISABLED, text="⏭️ 继续航行")
+            self.start_btn.config(state=tk.DISABLED, text="🧭 Drafting Boon...")
+            self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
 
     def next_phase(self):
         phase_actions = {
@@ -2728,5 +2632,5 @@ class PortMasters:
     def run(self):
         self.window.mainloop()
 
-
-if __name__ == "__main__":  PortMasters().run()
+if __name__ == "__main__":
+    PortMasters().run()

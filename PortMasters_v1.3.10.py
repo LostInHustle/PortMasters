@@ -1128,13 +1128,20 @@ class PortMasters:
             actual_reward = reward
             total_vat = 0
             
-        for m in self.equipped_modules:
-            actual_reward, transport_cost = m.on_order_complete(self, order, actual_reward, transport_cost)
-            
         self.money -= transport_cost
         self.round_costs += transport_cost
         self.total_costs += transport_cost
         
+        original_transport_cost = transport_cost
+        for m in self.equipped_modules:
+            actual_reward, transport_cost = m.on_order_complete(self, order, actual_reward, transport_cost)
+            
+        if transport_cost != original_transport_cost:
+            diff = original_transport_cost - transport_cost
+            self.money += diff
+            self.round_costs -= diff
+            self.total_costs -= diff
+            
         self.money += actual_reward
         self.round_revenue += actual_reward
         self.total_revenue += actual_reward
@@ -1285,7 +1292,10 @@ class PortMasters:
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
         self.rumor_list_frame = tk.Frame(canvas, bg=self.colors["card_bg"])
         self.rumor_list_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="nw")
+        
+        window_id = canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -1341,7 +1351,10 @@ class PortMasters:
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>", 
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -1656,7 +1669,10 @@ class PortMasters:
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>", 
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         self.bind_mousewheel(canvas)
         canvas.pack(side="left", fill="both", expand=True)
@@ -2022,7 +2038,10 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>", 
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(0, 5))
         scrollbar.pack(side="right", fill="y")
@@ -2058,7 +2077,7 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         card_type = "Product" if card.get("is_product_card") else "Raw Material"
         tk.Label(port_frame, text=f"📍 {card['port']} [{card_type}]", 
                  font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
-                 fg=self.colors["bg_dark"]).pack(pady=5)
+                 fg=self.colors["bg_dark"], wraplength=320, justify=tk.CENTER).pack(pady=5)
                  
         items_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
@@ -2124,7 +2143,7 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         order_type = "Finished Product Demand" if order.get("is_product_order") else "Raw Material Demand"
         tk.Label(port_frame, text=f"📍 {order['demand_port']} {order_type}", 
                  font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
-                 fg=self.colors["bg_dark"]).pack(pady=5)
+                 fg=self.colors["bg_dark"], wraplength=320, justify=tk.CENTER).pack(pady=5)
                  
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
@@ -2147,7 +2166,7 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
                  text=f"⚓ Freight: {transport_detail['base_cost']} - {transport_detail['discount']} "
                       f"= {transport_detail['final_cost']} Gold", 
                  font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                 fg=self.colors["accent_red"]).pack(anchor=tk.W)
+                 fg=self.colors["accent_red"], wraplength=320, justify=tk.LEFT).pack(anchor=tk.W)
                  
         net_profit = order['reward'] - transport_detail['final_cost']
         total_vat = 0
@@ -2166,7 +2185,7 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         tk.Label(finance_frame, text=finance_text, font=self.FONT_BODY_BOLD, 
                  bg=self.colors["card_bg"], 
                  fg=self.colors["accent_green"] if net_profit > 0 else self.colors["accent_red"], 
-                 justify=tk.LEFT).pack(anchor=tk.W)
+                 justify=tk.LEFT, wraplength=320).pack(anchor=tk.W)
                  
         can_complete = all(self.inventory.get(r["type"], 0) >= r["required"] for r in order["resources"])
         is_completed = order["id"] in self.completed_orders
@@ -2341,7 +2360,23 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         self.log_message(f"🌊 Rounds Completed: {self.current_round - 1}/{self.max_rounds}")
         self.log_message("=" * 50)
         
-        bankruptcy_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
+        
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.bind_mousewheel(canvas)
+
+        bankruptcy_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         bankruptcy_frame.pack(fill=tk.BOTH, expand=True, pady=30)
         
         tk.Label(bankruptcy_frame, text="💥", font=("Segoe UI", 80), 
@@ -2448,7 +2483,10 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
         scrollable_frame.bind("<Configure>", 
                               lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(5, 0))
         scrollbar.pack(side="right", fill="y")
@@ -2667,7 +2705,24 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
         self.log_message("=" * 50)
         
         self.clear_phase_content()
-        result_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        
+        main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
+        
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.bind_mousewheel(canvas)
+
+        result_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         result_frame.pack(fill=tk.BOTH, expand=True, pady=40)
         
         tk.Label(result_frame, text="🎮 Game Over!", 
@@ -2767,4 +2822,5 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
     def run(self):
         self.window.mainloop()
 
-if __name__ == "__main__":  PortMasters().run()
+if __name__ == "__main__": 
+    PortMasters().run()
