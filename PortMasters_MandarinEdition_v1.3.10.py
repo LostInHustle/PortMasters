@@ -497,9 +497,38 @@ class PortMasters:
     def trigger_juice(self, root_x, root_y):
         def _play():
             try:
-                import winsound
-                winsound.Beep(150, 90)
-                winsound.Beep(1200, 200)
+                import wave, struct, io
+                sr = 44100
+                def tone(freq, ms, vol=0.5, decay_k=8):
+                    n = int(sr * ms / 1000)
+                    return b''.join(
+                        struct.pack('<h', int(32767 * vol
+                            * math.exp(-decay_k * i / n)
+                            * math.sin(2 * math.pi * freq * i / sr)))
+                        for i in range(n)
+                    )
+                gap = b'\x00\x00' * int(sr * 0.04)
+                data = tone(120, 150, vol=0.8, decay_k=10) + gap + tone(1047, 400, vol=0.5, decay_k=5)
+                buf = io.BytesIO()
+                with wave.open(buf, 'wb') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sr)
+                    wf.writeframes(data)
+                wav_bytes = buf.getvalue()
+                try:
+                    import winsound
+                    winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+                except ImportError:
+                    import subprocess, tempfile
+                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                        f.write(wav_bytes)
+                        tmp = f.name
+                    try:
+                        subprocess.run(['afplay', tmp], capture_output=True)
+                    finally:
+                        try: os.unlink(tmp)
+                        except Exception: pass
             except Exception:
                 pass
         threading.Thread(target=_play, daemon=True).start()
@@ -2850,4 +2879,5 @@ class PortMasters:
     def run(self):
         self.window.mainloop()
 
-if __name__ == "__main__": PortMasters().run()
+if __name__ == "__main__":
+    PortMasters().run()
