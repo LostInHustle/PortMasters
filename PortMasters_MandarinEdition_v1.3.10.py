@@ -732,7 +732,6 @@ class PortMasters:
     def hire_worker(self, worker_type):
         wage = self.get_hire_cost(worker_type)
         if self.money >= wage:
-            self.money -= wage
             if worker_type == "weaver":
                 self.weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
                 self.log_message(f"👩‍🔧 雇佣了一名织女！工资: {wage}金币/回合")
