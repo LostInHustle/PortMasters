@@ -1322,15 +1322,17 @@ class PortMasters:
         scrollbar.pack(side="right", fill="y")
         
         def on_mousewheel(event):
+            if not canvas.winfo_exists():
+                return
             if sys.platform == 'darwin':
                 delta = -1 * event.delta
             else:
                 delta = int(-1 * (event.delta / 120))
             canvas.yview_scroll(delta, "units")
-            
+
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-        
+
         self._populate_rumor_list()
         
         CustomButton(self.rumor_window, text="关闭面板", font=self.BUTTON_FONT,
@@ -1632,6 +1634,8 @@ class PortMasters:
     # ── 鼠标滚轮 ──────────────────────────────────────────────────
     def bind_mousewheel(self, canvas):
         def on_mousewheel(event):
+            if not canvas.winfo_exists():
+                return
             if sys.platform == 'darwin':
                 delta = -1 * event.delta
             else:
