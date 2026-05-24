@@ -5,6 +5,7 @@ import json
 import os
 import math
 import sys
+import threading
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 自定义按钮组件 (支持特效回调)
@@ -494,7 +495,14 @@ class PortMasters:
 
     # ── 视觉特效 (Juice) ──────────────────────────────────────────
     def trigger_juice(self, root_x, root_y):
-        print("[SFX: 低沉共鸣与清脆风铃音效]")
+        def _play():
+            try:
+                import winsound
+                winsound.Beep(150, 90)
+                winsound.Beep(1200, 200)
+            except Exception:
+                pass
+        threading.Thread(target=_play, daemon=True).start()
         self.shake_window()
         self.trigger_particle_burst(root_x, root_y)
 

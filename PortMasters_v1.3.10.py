@@ -5,6 +5,7 @@ import json
 import os
 import math
 import sys
+import threading
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom Button with Juice Support
@@ -495,7 +496,14 @@ class PortMasters:
 
     # ── Juice / UI Polish ─────────────────────────────────────────────
     def trigger_juice(self, root_x, root_y):
-        print("[SFX: Deep bass thud and magical chime]")
+        def _play():
+            try:
+                import winsound
+                winsound.Beep(150, 90)
+                winsound.Beep(1200, 200)
+            except Exception:
+                pass
+        threading.Thread(target=_play, daemon=True).start()
         self.shake_window()
         self.trigger_particle_burst(root_x, root_y)
 
