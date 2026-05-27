@@ -2874,4 +2874,5 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
     def run(self):
         self.window.mainloop()
 
-if __name__ == "__main__": PortMasters().run()
+if __name__ == "__main__":
+    PortMasters().run()
