@@ -1267,6 +1267,30 @@ function renderStatus() {
       ` : ''}
     </div>
   `;
+  if (![0, 5, 'endgame', 'bankruptcy'].includes(game.phase)) {
+    const _ww = game.weavers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.weaver * 1.2) : WAGES.weaver);
+    const _mw = game.masterWeavers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.master * 1.2) : WAGES.master);
+    const _sw = game.sachetMakers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.sachet_maker * 1.2) : WAGES.sachet_maker);
+    const _pendWages = _ww + _mw + _sw;
+    const _pendMaint = game.fixedCost + game.maintenancePenalty;
+    const _pendTotal = _pendWages + _pendMaint;
+    const _safe = game.money >= _pendTotal;
+    const _nW = game.weavers.length + game.masterWeavers.length + game.sachetMakers.length;
+    html += `
+    <div class="status-section" style="border-color:${_safe ? '#2E5AA7' : '#FF5252'}">
+      <h3>⚠️ 本回合应付款项</h3>
+      <div class="stat-row"><span>🔧 维护费</span><span class="stat-value">${_pendMaint} 金币</span></div>
+      <div class="stat-row"><span>👥 工资${_nW > 0 ? '（' + _nW + '名工匠）' : ''}</span><span class="stat-value">${_nW > 0 ? _pendWages + ' 金币' : '—'}</span></div>
+      ${_ww > 0 ? `<div class="stat-row" style="font-size:10px;padding-left:10px"><span>↳ ${game.weavers.length}× 织女</span><span>${_ww}金</span></div>` : ''}
+      ${_mw > 0 ? `<div class="stat-row" style="font-size:10px;padding-left:10px"><span>↳ ${game.masterWeavers.length}× 纺织大师</span><span>${_mw}金</span></div>` : ''}
+      ${_sw > 0 ? `<div class="stat-row" style="font-size:10px;padding-left:10px"><span>↳ ${game.sachetMakers.length}× 香囊师</span><span>${_sw}金</span></div>` : ''}
+      <div class="stat-row" style="border-top:1px solid ${_safe ? '#2E5AA7' : '#FF5252'};margin-top:4px;padding-top:4px">
+        <span><strong>💸 合计应付</strong></span>
+        <span style="font-weight:bold;color:${_safe ? '#4CAF50' : '#FF5252'}">${_pendTotal} 金币</span>
+      </div>
+      ${!_safe ? '<div style="background:#FF5252;color:white;border-radius:4px;padding:3px 6px;font-size:10px;margin-top:4px;text-align:center">🚨 警告：资金可能不足以支付本回合结算费用！</div>' : '<div style="font-size:10px;color:#4CAF50;text-align:center;margin-top:4px">✅ 资金充足，可支付本回合结算</div>'}
+    </div>`;
+  }
   p.innerHTML = html;
 }
 
@@ -1294,19 +1318,42 @@ function renderWelcome(p) {
       <div style="text-align:center; margin: 20px 0">
         ${hasSave ? `<button class="btn btn-success btn-xl" onclick="loadGame()">📂 继续航行</button><br><br>` : ''}
         <button class="btn btn-success btn-xl" onclick="startBoonDrafting()">🚢 扬帆起航</button>
+        <br><button class="btn" onclick="showTutorial(0)" style="margin-top:8px;font-size:13px;padding:8px 22px">📖 新手教程</button>
       </div>
-      <div class="tip-list">
-        <div>📦 初始货物：麻布×8，丝绸×5，茶叶×3</div>
-        <div>💰 初始资金：100金币</div>
-        <div>👥 可雇佣工匠制作高价值成品</div>
-        <div>🧾 成品销售需缴纳增值税，航程结束缴纳所得税</div>
-        <div>🚢 共8个航程，每航程4阶段：采购→交易→维护→升级</div>
-        <div>⚓ 运输费：max(5, 材料数×2 - 船只等级×5)</div>
-        <div>💾 按Ctrl+S保存游戏进度</div>
-        <div>🎯 目标：积累财富，提升声望！</div>
-        <div>🔮 新增：在第1阶段点击"牙行密语板"购买需求消息！</div>
-        <div>🔧 新增：在第4阶段升级船只以解锁模块槽位，打造专属流派！</div>
-        <div>🎨 界面优化：核心管理页面已采用居中块布局，视觉更聚焦！</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px auto;text-align:left;max-width:700px">
+        <div style="background:#E8F5E9;border-left:4px solid #4CAF50;border-radius:4px;padding:10px">
+          <div style="font-weight:bold;color:#2d5a2d;margin-bottom:4px">🚀 初始资源</div>
+          <div style="font-size:12px">📦 麻布×8，丝绸×5，茶叶×3</div>
+          <div style="font-size:12px">💰 初始资金 100 金币</div>
+        </div>
+        <div style="background:#FFF3CD;border-left:4px solid #FFC107;border-radius:4px;padding:10px">
+          <div style="font-weight:bold;color:#856404;margin-bottom:4px">⏱️ 生产有延迟</div>
+          <div style="font-size:12px">分配任务 → 下一阶段3才产出成品</div>
+          <div style="font-size:11px;color:#856404">工匠不会立刻生产！</div>
+        </div>
+        <div style="background:#E3F2FD;border-left:4px solid #2196F3;border-radius:4px;padding:10px">
+          <div style="font-weight:bold;color:#0d47a1;margin-bottom:4px">💸 回合结算费用</div>
+          <div style="font-size:12px">🔧 维护费：每回合固定15金币</div>
+          <div style="font-size:12px">👥 工资在阶段3扣除，不在雇佣时扣</div>
+        </div>
+        <div style="background:#FCE4EC;border-left:4px solid #E91E63;border-radius:4px;padding:10px">
+          <div style="font-weight:bold;color:#880e4f;margin-bottom:4px">🧾 税收说明</div>
+          <div style="font-size:12px">增值税：成品销售利润的5%</div>
+          <div style="font-size:12px">所得税：航程净利润的10%</div>
+        </div>
+      </div>
+      <div style="max-width:700px;margin:0 auto">
+        <div style="background:#F0F8FF;border:1px solid #2E5AA7;border-radius:6px;padding:10px;margin-bottom:8px;font-size:12px">
+          <strong>🔄 每航程4阶段：</strong>1️⃣ 港口采购 → 2️⃣ 贸易交易 → 3️⃣ 工资、产出与维护结算 → 4️⃣ 船坞升级
+        </div>
+        <div style="background:#FFF8DC;border:1px solid #FFA000;border-radius:6px;padding:10px;margin-bottom:8px;font-size:12px">
+          <strong>💡 新手提示：</strong>早期以原材料订单为主。雇佣工匠前确保资金能支撑至少2回合工资。始终保持资金 &gt; 维护费 + 全部工资。
+        </div>
+        <div style="display:flex;gap:8px;font-size:11px">
+          <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">🔮 阶段1牙行：购买密语，锁定保底订单</div>
+          <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">🚢 阶段4升级商船：运费折扣 + 解锁模块槽</div>
+          <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">⌨️ Ctrl+S 保存 · Ctrl+N 下一阶段 · F1 帮助</div>
+        </div>
       </div>
     </div>
   `;
@@ -1409,11 +1456,27 @@ function renderWorkerMgmt(p) {
   const weaverCost = getHireCost('weaver');
   const masterCost = getHireCost('master');
   const makerCost = getHireCost('sachet_maker');
+  const _ww = game.weavers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.weaver * 1.2) : WAGES.weaver);
+  const _mw = game.masterWeavers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.master * 1.2) : WAGES.master);
+  const _sw = game.sachetMakers.length * (hasModule('artisans_workshop') ? Math.floor(WAGES.sachet_maker * 1.2) : WAGES.sachet_maker);
+  const _totalWages = _ww + _mw + _sw;
+  const _nW = game.weavers.length + game.masterWeavers.length + game.sachetMakers.length;
   p.innerHTML = `
     <div class="center-block">
       <div class="hero-title">👥 工匠管理</div>
       <div class="subtitle-text">💰 当前资金: ${game.money}金币 | 📦 查看下方库存</div>
-      
+
+      <div style="background:#E8F5E9;border:2px solid #4CAF50;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px">
+        <strong>⏱️ 生产周期——各阶段发生什么：</strong>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;text-align:center">
+          <div style="background:#4CAF50;color:white;border-radius:4px;padding:4px 2px;font-size:11px">📋 现在<br><span style="font-size:9px">分配任务<br>消耗原材料</span></div>
+          <div style="background:#2E5AA7;color:white;border-radius:4px;padding:4px 2px;font-size:11px">🤝 阶段2<br><span style="font-size:9px">贸易交易</span></div>
+          <div style="background:#FF9800;color:white;border-radius:4px;padding:4px 2px;font-size:11px">✅ 阶段3<br><span style="font-size:9px">产品完成<br>+ 工资结算</span></div>
+          <div style="background:#9C27B0;color:white;border-radius:4px;padding:4px 2px;font-size:11px">🚢 阶段4<br><span style="font-size:9px">船坞升级</span></div>
+        </div>
+        <div style="margin-top:6px;color:#2d5a2d">💡 原材料<strong>立即</strong>消耗，成品和工资在<strong>阶段3</strong>结算——不是立刻扣款。</div>
+      </div>
+
       <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
         <h3 style="color:#1A3C8C; text-align:center">📦 当前库存</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:10px">
@@ -1427,23 +1490,37 @@ function renderWorkerMgmt(p) {
           </div>
         </div>
       </div>
-      
+
       <div class="separator"></div>
-      
+
+      ${_nW > 0 ? `
+      <div style="background:#FFF0F0;border:2px solid #FF9800;border-radius:8px;padding:12px 16px;margin:12px 0">
+        <h3 style="color:#b34700;text-align:center;margin-bottom:8px">💰 待付工资——将在阶段3扣除</h3>
+        <div style="font-size:12px">
+          ${_ww > 0 ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>👩‍🔧 ${game.weavers.length}名织女 × ${hasModule('artisans_workshop') ? Math.floor(WAGES.weaver*1.2) : WAGES.weaver}金</span><span style="font-weight:bold">${_ww}金币</span></div>` : ''}
+          ${_mw > 0 ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>👩‍🎨 ${game.masterWeavers.length}名纺织大师 × ${hasModule('artisans_workshop') ? Math.floor(WAGES.master*1.2) : WAGES.master}金</span><span style="font-weight:bold">${_mw}金币</span></div>` : ''}
+          ${_sw > 0 ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>🌸 ${game.sachetMakers.length}名香囊师 × ${hasModule('artisans_workshop') ? Math.floor(WAGES.sachet_maker*1.2) : WAGES.sachet_maker}金</span><span style="font-weight:bold">${_sw}金币</span></div>` : ''}
+          <div style="display:flex;justify-content:space-between;border-top:1px solid #FF9800;padding-top:4px;margin-top:4px;font-weight:bold">
+            <span>💸 合计待付工资</span><span style="color:#FF5252">${_totalWages}金币</span>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
       <div style="background:#FFF8DC; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
         <h3 style="color:#1A3C8C; text-align:center">🔨 雇佣工匠</h3>
         <div style="font-size:12px; margin:10px 0">
-          <div><strong>👩‍🔧 织女</strong> — 制作：麻衣(2麻布) 或 布衣(2麻布+1丝绸) — 工资：${WAGES.weaver}金币/回合</div>
-          <div><strong>👩‍🎨 纺织大师</strong> — 制作：麻衣、布衣 或 绫罗绸缎(3丝绸) — 工资：${WAGES.master}金币/回合</div>
-          <div><strong>🌸 香囊师</strong> — 制作：香囊(1丝绸+2茶叶) — 工资：${WAGES.sachet_maker}金币/回合</div>
+          <div><strong>👩‍🔧 织女</strong> — 麻衣(2麻布) 或 布衣(2麻布+1丝绸) — <span style="color:#FF9800">${WAGES.weaver}金币/回合</span></div>
+          <div><strong>👩‍🎨 纺织大师</strong> — 麻衣、布衣 或 绫罗绸缎(3丝绸) — <span style="color:#FF9800">${WAGES.master}金币/回合</span></div>
+          <div><strong>🌸 香囊师</strong> — 香囊(1丝绸+2茶叶) — <span style="color:#FF9800">${WAGES.sachet_maker}金币/回合</span></div>
         </div>
         <div style="text-align:center; margin-top:10px">
-          <button class="btn btn-success" onclick="hireWorker('weaver'); render()">👩‍🔧 雇佣织女 (${weaverCost}💰)</button>
-          <button class="btn" onclick="hireWorker('master'); render()">👩‍🎨 雇佣纺织大师 (${masterCost}💰)</button>
-          <button class="btn btn-warning" onclick="hireWorker('sachet_maker'); render()">🌸 雇佣香囊师 (${makerCost}💰)</button>
+          <button class="btn btn-success" onclick="hireWorker('weaver'); render()">👩‍🔧 雇佣织女 (${weaverCost}💰/回合)</button>
+          <button class="btn" onclick="hireWorker('master'); render()">👩‍🎨 雇佣纺织大师 (${masterCost}💰/回合)</button>
+          <button class="btn btn-warning" onclick="hireWorker('sachet_maker'); render()">🌸 雇佣香囊师 (${makerCost}💰/回合)</button>
         </div>
       </div>
-      
+
       ${(game.weavers.length || game.masterWeavers.length || game.sachetMakers.length) ? `
         <div class="separator"></div>
         <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
@@ -1453,7 +1530,7 @@ function renderWorkerMgmt(p) {
           ${renderWorkerList('sachet_maker', game.sachetMakers, '香囊师', ['香囊'])}
         </div>
       ` : ''}
-      
+
       <div style="text-align:center; margin-top:20px">
         <button class="btn btn-lg" onclick="startPhase2()">✅ 完成工匠管理，继续航行</button>
       </div>
@@ -1545,15 +1622,44 @@ function renderOrders(p) {
 function renderMaintenance(p) {
   const cost = game.fixedCost + game.maintenancePenalty;
   const canAfford = game.money >= cost;
+  const balanceAfter = game.money - cost;
+  const nWorkers = game.weavers.length + game.masterWeavers.length + game.sachetMakers.length;
   p.innerHTML = `
-    <div class="center-block" style="text-align:center">
-      <div class="hero-title">🔧 船只维护</div>
-      <div style="font-size:18px; margin:20px 0">每月固定维护费用: <strong>${cost}金币</strong></div>
-      <div style="font-size:16px; color:#4CAF50; margin:20px 0">当前资金: ${game.money}金币</div>
+    <div class="center-block">
+      <div class="hero-title">🔧 阶段3 — 本回合结算</div>
+
+      <div style="background:#E8F5E9;border:2px solid #4CAF50;border-radius:8px;padding:14px;margin:14px 0">
+        <h3 style="color:#2d5a2d;margin-bottom:8px">✅ 已完成处理</h3>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+          <span>👷 工匠生产</span><span style="color:#4CAF50;font-weight:bold">已完成 ✓</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+          <span>💰 已结算工资（${nWorkers}名工匠）</span>
+          <span style="color:#FF5252;font-weight:bold">−${game.workerWages}金币</span>
+        </div>
+      </div>
+
+      <div style="background:#FFF8DC;border:2px solid #FF9800;border-radius:8px;padding:14px;margin:14px 0">
+        <h3 style="color:#b34700;margin-bottom:8px">⏳ 待支付款项</h3>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0">
+          <span>🔧 船只维护费</span><span style="color:#FF9800;font-weight:bold">${cost}金币</span>
+        </div>
+        ${game.maintenancePenalty > 0 ? `<div style="font-size:11px;color:#888;padding-left:10px">↳ 基础 ${game.fixedCost}金 + 超载引擎附加费 ${game.maintenancePenalty}金</div>` : ''}
+      </div>
+
+      <div style="background:#F0F8FF;border:2px solid #2E5AA7;border-radius:8px;padding:14px;margin:14px 0">
+        <h3 style="color:#1A3C8C;margin-bottom:8px">💹 资金概览</h3>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span>当前资金</span><span style="color:#4CAF50;font-weight:bold">${game.money}金币</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span>支付维护费后</span><span style="font-weight:bold;color:${balanceAfter >= 0 ? '#2E5AA7' : '#FF5252'}">${balanceAfter}金币</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span>本回合收入</span><span style="color:#4CAF50">+${game.roundRevenue}金币</span></div>
+      </div>
+
       <div class="separator"></div>
-      <button class="btn btn-warning btn-xl" onclick="doMaintenance()">
-        ${canAfford ? `💸 支付 ${cost}金币` : `⚠️ 强制支付 (${game.money}/${cost}金币)`}
-      </button>
+      <div style="text-align:center">
+        <button class="btn btn-warning btn-xl" onclick="doMaintenance()">
+          ${canAfford ? `💸 支付维护费: ${cost}金币` : `⚠️ 强制支付 (${game.money}/${cost}金币)`}
+        </button>
+      </div>
     </div>
   `;
 }
@@ -1684,8 +1790,10 @@ function renderBankruptcy(p) {
         <div>🧾 累计缴税:</div><div><strong>${game.vatPaid + game.incomeTaxPaid}金币</strong></div>
       </div>
       <div class="separator"></div>
-      <button class="btn btn-xl" onclick="restartGame()">🔄 重新起航</button>
-      <button class="btn btn-warning btn-lg" style="margin-left:10px" onclick="showTips()">💡 贸易策略</button>
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:4px">
+        <button class="btn btn-lg" onclick="restartGame()">🔄 重新起航</button>
+        <button class="btn btn-warning btn-lg" onclick="showTips()">💡 贸易策略</button>
+      </div>
     </div>
   `;
 }
@@ -1867,6 +1975,134 @@ function showTips() {
 }
 
 // =====================================================================
+// 新手教程
+// =====================================================================
+const TUTORIAL_STEPS = [
+  {
+    title: "⚓ 欢迎登船",
+    content: `<p>PortMasters 把你放在古丝绸之路上。八次航程，有限的本钱，还有一堆商人跟你抢最好的货源。</p>
+<p>规则不难上手，但前期资金紧张，几个错误决定就可能一路失控。这里专门讲新手最容易踩到的几个坑。</p>
+<p style="color:#777;font-size:13px">大概两分钟读完，省下很多头疼的重来。</p>`
+  },
+  {
+    title: "🏆 你在玩什么",
+    content: `<p>八次航程结束后，声望最高的人荣登<strong>海上霸主</strong>。声望来自贸易盈利和完成的订单。</p>
+<p>有一条规则压过其他所有规则：<strong>不能破产</strong>。金币归零，游戏立即结束。没有挽回的机会。</p>
+<p>初始资金是 <strong>100 金币</strong>。够用，但容不下粗心大意。</p>`
+  },
+  {
+    title: "🔄 一次航程怎么走",
+    content: `<p>八次航程，每次都按同样的四个阶段顺序推进：</p>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0">
+  <div style="background:#E8F5E9;border-radius:6px;padding:10px;border-left:3px solid #4CAF50"><strong>1️⃣ 采购</strong><br><span style="font-size:12px;color:#444">在港口补充货物</span></div>
+  <div style="background:#E3F2FD;border-radius:6px;padding:10px;border-left:3px solid #2196F3"><strong>2️⃣ 贸易</strong><br><span style="font-size:12px;color:#444">出货给买家赚利润</span></div>
+  <div style="background:#FFF3CD;border-radius:6px;padding:10px;border-left:3px solid #FFC107"><strong>3️⃣ 结算</strong><br><span style="font-size:12px;color:#444">工匠产出，账单一起来</span></div>
+  <div style="background:#FCE4EC;border-radius:6px;padding:10px;border-left:3px solid #E91E63"><strong>4️⃣ 升级</strong><br><span style="font-size:12px;color:#444">在船坞强化商船</span></div>
+</div>
+<p style="font-size:12px;color:#666;margin:4px 0 0">按 <kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">Ctrl+N</kbd> 可以快速跳到下一阶段。</p>`
+  },
+  {
+    title: "🏪 阶段1：采购",
+    content: `<p>港口市场有麻布、丝绸和茶叶，价格每次航程都不同。低价买入，阶段2卖出，赚差价。就这么简单。</p>
+<p>有个功能值得记一下：<strong>牙行密语</strong>。花少量金币购买情报，阶段2就能保证出现对应的买家订单。当你已经备好某类货又想确保有人接单时很好用。</p>
+<div style="background:#FFF8DC;border:1px solid #FFA000;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
+  💡 头两三次航程先做原材料订单。当航程买当航程卖，不用等，没风险。
+</div>`
+  },
+  {
+    title: "📋 阶段2：接单出货",
+    content: `<p>买家订单出现，拿货对上就行。每张订单写明需要什么货、给多少报酬、运费多少。扣完运费和税，剩下的是你的利润。</p>
+<p>一个阶段内货够的话，可以同时接好几张订单。</p>
+<div style="background:#E3F2FD;border:1px solid #2196F3;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
+  📌 <strong>成品</strong>（麻布织物、丝绸服饰、香囊）利润是原材料的两三倍。但加工需要工匠，而且要等整整一个航程才能出货。这个坑下一步讲。
+</div>`
+  },
+  {
+    title: "⚠️ 工匠陷阱",
+    content: `<p>雇工匠能解锁高利润成品，每次阶段3结算工资。规则本身不难。几乎每个新手没想到的是这一点：</p>
+<div style="background:#C62828;color:#fff;border-radius:6px;padding:12px;margin:12px 0;text-align:center;font-size:14px;font-weight:bold;line-height:1.7">
+  这次航程分配任务。<br>成品下次航程阶段3才出来，不是这次。
+</div>
+<p style="font-size:13px;color:#333;line-height:1.6">织女（8金）、纺织大师（12金）、香囊师（20金），<strong>每次航程都要扣工资</strong>，哪怕没在干活。只有金币能覆盖至少两轮工资再加上其他账单，再考虑雇人。</p>`
+  },
+  {
+    title: "💸 阶段3：结算",
+    content: `<p>进下一个港口之前，阶段3先扣两笔钱：</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+  <div style="background:#E3F2FD;border-radius:6px;padding:10px;text-align:center">
+    <div style="font-size:22px;margin-bottom:4px">🔧</div>
+    <strong>船只维护费</strong><br>
+    <span style="font-size:12px;color:#444">每次航程固定 15 金币</span>
+  </div>
+  <div style="background:#FCE4EC;border-radius:6px;padding:10px;text-align:center">
+    <div style="font-size:22px;margin-bottom:4px">👥</div>
+    <strong>工匠工资</strong><br>
+    <span style="font-size:12px;color:#444">每人每次航程 8 至 20 金币</span>
+  </div>
+</div>
+<p style="font-size:13px;color:#333">右侧状态栏的<strong>本回合应付款项</strong>面板实时显示欠多少钱，花钱之前先看一眼。这里断供就是直接破产。</p>`
+  },
+  {
+    title: "🚢 可以出发了",
+    content: `<p>记住以下四点，上手会顺很多：</p>
+<ul style="padding-left:18px;line-height:2.1;font-size:14px">
+  <li>先做原材料订单。快钱，没有后遗症。</li>
+  <li>手头金币始终比阶段3账单多出<strong>至少 30 金币</strong>。</li>
+  <li>只有能撑<strong>两轮工资</strong>的时候再雇工匠。</li>
+  <li>阶段4的船只升级收益很快显现，不要跳过。</li>
+  <li><kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">Ctrl+S</kbd> 保存进度 &nbsp;·&nbsp; <kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">F1</kbd> 查看完整规则</li>
+</ul>
+<div style="background:#E8F5E9;border:2px solid #4CAF50;border-radius:8px;padding:12px;text-align:center;margin-top:14px">
+  <strong style="font-size:15px">一帆风顺，财源广进。⚓</strong>
+</div>`
+  }
+];
+
+let _tutStep = 0;
+
+function showTutorial(step) {
+  _tutStep = (step === undefined ? 0 : step);
+  const total = TUTORIAL_STEPS.length;
+  const s = TUTORIAL_STEPS[_tutStep];
+  const pct = Math.round(((_tutStep + 1) / total) * 100);
+  const isLast = _tutStep === total - 1;
+  showModal(`
+    <div style="max-width:500px;margin:0 auto;font-family:inherit">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <h2 style="margin:0;color:#1A3C8C;font-size:18px;line-height:1.3;flex:1">${s.title}</h2>
+        <button onclick="closeTutorial()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#ccc;padding:0 0 0 12px;line-height:1;flex-shrink:0" title="关闭">✕</button>
+      </div>
+      <div style="background:#ebebeb;border-radius:3px;height:4px;margin-bottom:18px">
+        <div style="background:#2E5AA7;height:4px;border-radius:3px;width:${pct}%;transition:width 0.35s ease"></div>
+      </div>
+      <div style="font-size:14px;line-height:1.7;color:#333;min-height:155px">${s.content}</div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #eee">
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px">
+          <div>
+            <button class="btn" onclick="${_tutStep > 0 ? `showTutorial(${_tutStep - 1})` : ''}"
+              ${_tutStep === 0 ? 'disabled' : ''}
+              style="${_tutStep === 0 ? 'opacity:0.2;cursor:default;' : ''}padding:8px 16px">上一步</button>
+          </div>
+          <span style="font-size:12px;color:#aaa;white-space:nowrap;text-align:center">${_tutStep + 1} / ${total}</span>
+          <div style="text-align:right">
+            ${isLast
+              ? `<button class="btn btn-success" onclick="closeTutorial()" style="padding:8px 22px;font-weight:bold">🚢 扬帆起航！</button>`
+              : `<button class="btn btn-success" onclick="showTutorial(${_tutStep + 1})" style="padding:8px 22px">继续</button>`}
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:11px">
+          <span onclick="closeTutorial()" style="font-size:12px;color:#bbb;cursor:pointer;text-decoration:underline;text-underline-offset:3px">跳过教程</span>
+        </div>
+      </div>
+    </div>`);
+}
+
+function closeTutorial() {
+  localStorage.setItem('portmasters_tutorial_seen', '1');
+  closeModal();
+}
+
+// =====================================================================
 // Keyboard Shortcuts
 // =====================================================================
 document.addEventListener('keydown', e => {
@@ -1884,8 +2120,8 @@ window.addEventListener('load', () => {
     if (confirm("检测到上次的存档，是否继续游戏？")) {
       if (loadGame()) return;
     }
-  }
-  showWelcome();
+  } showWelcome();
+  if (!localStorage.getItem('portmasters_tutorial_seen')) { showTutorial(0); }
 });
 </script>
 </body>
