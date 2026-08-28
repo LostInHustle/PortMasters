@@ -7,18 +7,41 @@ import math
 import sys
 import threading
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+# =============================================================================
 # Custom Button with Juice Support
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 class CustomButton(tk.Frame):
-    """A custom button widget to ensure cross-platform visual consistency, specifically fixing macOS background color rendering issues and allowing dynamic text sizing."""
-    def __init__(self, parent, text="", command=None, font=None, bg="#424242", fg="white", 
-                 relief=tk.RAISED, borderwidth=2, padx=15, pady=10, state=tk.NORMAL, 
-                 cursor="hand2", wraplength=0, juice_callback=None, **kwargs):
-        kwargs.pop('width', None)
-        kwargs.pop('height', None)
-        super().__init__(parent, bg=bg, bd=borderwidth, relief=relief, 
-                         cursor=cursor if state == tk.NORMAL else "arrow", **kwargs)
+    """A custom button widget to ensure consistent visuals across platforms, specifically fixing macOS background color rendering issues and allowing dynamic text sizing."""
+
+    def __init__(
+        self,
+        parent,
+        text="",
+        command=None,
+        font=None,
+        bg="#424242",
+        fg="white",
+        relief=tk.RAISED,
+        borderwidth=2,
+        padx=15,
+        pady=10,
+        state=tk.NORMAL,
+        cursor="hand2",
+        wraplength=0,
+        juice_callback=None,
+        **kwargs,
+    ):
+        kwargs.pop("width", None)
+        kwargs.pop("height", None)
+        super().__init__(
+            parent,
+            bg=bg,
+            bd=borderwidth,
+            relief=relief,
+            cursor=cursor if state == tk.NORMAL else "arrow",
+            **kwargs,
+        )
         self.command = command
         self.state = state
         self.base_bg = bg
@@ -27,19 +50,32 @@ class CustomButton(tk.Frame):
         self.disabled_fg = "#CCCCCC"
         self.juice_callback = juice_callback
         self.hover_bg = self._adjust_color(self.base_bg, 1.2)
-        
-        self.label = tk.Label(self, text=text, font=font, bg=self.base_bg, fg=self.fg, 
-                              padx=padx, pady=pady, wraplength=wraplength, justify=tk.CENTER)
+
+        self.label = tk.Label(
+            self,
+            text=text,
+            font=font,
+            bg=self.base_bg,
+            fg=self.fg,
+            padx=padx,
+            pady=pady,
+            wraplength=wraplength,
+            justify=tk.CENTER,
+        )
         self.label.pack(fill=tk.BOTH, expand=True)
-        
+
         self._clicking = False
         self._bind_events()
         self._apply_state()
 
     def _adjust_color(self, hex_color, factor):
         try:
-            hex_color = hex_color.lstrip('#')
-            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            hex_color = hex_color.lstrip("#")
+            r, g, b = (
+                int(hex_color[0:2], 16),
+                int(hex_color[2:4], 16),
+                int(hex_color[4:6], 16),
+            )
             r = min(255, int(r * factor))
             g = min(255, int(g * factor))
             b = min(255, int(b * factor))
@@ -122,15 +158,19 @@ class CustomButton(tk.Frame):
             super().config(**kwargs)
 
     def __getitem__(self, key):
-        if key == "state": return self.state
-        if key == "text": return self.label.cget("text")
+        if key == "state":
+            return self.state
+        if key == "text":
+            return self.label.cget("text")
         return super().__getitem__(key)
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+# =============================================================================
 # Wrapped Title Label
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 class WrappedTitleLabel(tk.Label):
     """A Label subclass that dynamically adjusts its wraplength to match its rendered width, ensuring card titles in the Trade Orders window break naturally into multiple lines."""
+
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
         self.bind("<Configure>", self._on_configure)
@@ -138,61 +178,96 @@ class WrappedTitleLabel(tk.Label):
     def _on_configure(self, event):
         self.config(wraplength=max(1, event.width - 20))
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+# =============================================================================
 # Boon Manager (Weighted RNG Pool)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 class BoonManager:
     def __init__(self, game_state_provider):
         self.game_state_provider = game_state_provider
         self.boons = [
             {
-                "id": "silk_wind", "name": "Silk Winds", "icon": "🌬️",
+                "id": "silk_wind",
+                "name": "Silk Winds",
+                "icon": "🌬️",
                 "desc": "Transport cost for Silk & Silk products is halved this round.",
                 "modifiers": {"transport_silk_discount": 0.5},
-                "weight_func": lambda gs: 2.5 if gs["inventory"].get("Silk", 0) > 2 or len(gs["master_weavers"]) > 0 else 0.8
+                "weight_func": lambda gs: (
+                    2.5
+                    if gs["inventory"].get("Silk", 0) > 2
+                    or len(gs["master_weavers"]) > 0
+                    else 0.8
+                ),
             },
             {
-                "id": "favorable_tides", "name": "Favorable Tides", "icon": "🌊",
+                "id": "favorable_tides",
+                "name": "Favorable Tides",
+                "icon": "🌊",
                 "desc": "Base transport cost reduced by 4 Gold this round.",
                 "modifiers": {"transport_flat_discount": 4},
-                "weight_func": lambda gs: 1.5
+                "weight_func": lambda gs: 1.5,
             },
             {
-                "id": "merchant_charm", "name": "Merchant's Charm", "icon": "✨",
+                "id": "merchant_charm",
+                "name": "Merchant's Charm",
+                "icon": "✨",
                 "desc": "15% discount on all port purchases this round.",
                 "modifiers": {"purchase_discount": 0.15},
-                "weight_func": lambda gs: 2.0 if gs["money"] > 40 else 0.5
+                "weight_func": lambda gs: 2.0 if gs["money"] > 40 else 0.5,
             },
             {
-                "id": "artisan_inspiration", "name": "Artisan's Inspiration", "icon": "🔨",
+                "id": "artisan_inspiration",
+                "name": "Artisan's Inspiration",
+                "icon": "🔨",
                 "desc": "All workers produce +1 extra item this round.",
                 "modifiers": {"worker_bonus_production": 1},
-                "weight_func": lambda gs: 3.0 if (len(gs["weavers"]) + len(gs["master_weavers"]) + len(gs["sachet_makers"])) > 0 else 0.0
+                "weight_func": lambda gs: (
+                    3.0
+                    if (
+                        len(gs["weavers"])
+                        + len(gs["master_weavers"])
+                        + len(gs["sachet_makers"])
+                    )
+                    > 0
+                    else 0.0
+                ),
             },
             {
-                "id": "emergency_loan", "name": "Emergency Loan", "icon": "💰",
+                "id": "emergency_loan",
+                "name": "Emergency Loan",
+                "icon": "💰",
                 "desc": "Gain 40 Gold immediately. No strings attached.",
                 "modifiers": {"instant_gold": 40},
-                "weight_func": lambda gs: 4.0 if gs["money"] < 30 else 0.2
+                "weight_func": lambda gs: 4.0 if gs["money"] < 30 else 0.2,
             },
             {
-                "id": "tax_shelter", "name": "Tax Shelter", "icon": "📜",
+                "id": "tax_shelter",
+                "name": "Tax Shelter",
+                "icon": "📜",
                 "desc": "Income tax rate reduced to 5% this round.",
                 "modifiers": {"income_tax_override": 0.05},
-                "weight_func": lambda gs: 1.5
+                "weight_func": lambda gs: 1.5,
             },
             {
-                "id": "hemp_monopoly", "name": "Hemp Monopoly", "icon": "🧶",
+                "id": "hemp_monopoly",
+                "name": "Hemp Monopoly",
+                "icon": "🧶",
                 "desc": "Hemp purchase prices reduced by 2 Gold per unit.",
                 "modifiers": {"hemp_price_reduction": 2},
-                "weight_func": lambda gs: 2.0 if gs["inventory"].get("Hemp", 0) < 5 or len(gs["weavers"]) > 0 else 1.0
+                "weight_func": lambda gs: (
+                    2.0
+                    if gs["inventory"].get("Hemp", 0) < 5 or len(gs["weavers"]) > 0
+                    else 1.0
+                ),
             },
             {
-                "id": "master_apprentice", "name": "Master's Apprentice", "icon": "🎓",
+                "id": "master_apprentice",
+                "name": "Master's Apprentice",
+                "icon": "🎓",
                 "desc": "Hiring workers costs 50% less this round.",
                 "modifiers": {"hire_discount": 0.5},
-                "weight_func": lambda gs: 1.5
-            }
+                "weight_func": lambda gs: 1.5,
+            },
         ]
 
     def get_draft_choices(self, count=3):
@@ -202,11 +277,12 @@ class BoonManager:
             weight = boon["weight_func"](gs)
             if weight > 0:
                 weighted_boons.append((boon, weight))
-        
+
         choices = []
         available = list(weighted_boons)
         for _ in range(count):
-            if not available: break
+            if not available:
+                break
             total_w = sum(w for _, w in available)
             r = random.uniform(0, total_w)
             current = 0
@@ -218,45 +294,75 @@ class BoonManager:
                     break
         return choices
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+# =============================================================================
 # Ship Modules (The Synergy Engine)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 class ShipModule:
     def __init__(self):
         self.id = "base"
         self.name = "Base Module"
         self.icon = "📦"
         self.desc = "Does nothing."
-        
-    def on_purchase(self, game, card): pass
-    def on_order_complete(self, game, order, reward, transport_cost): return reward, transport_cost
-    def modify_transport_cost(self, game, cost, items, has_silk): return cost
-    def modify_vat(self, game, vat): return vat
-    def modify_income_tax(self, game, tax): return tax
-    def modify_production(self, game, worker_type, amount): return amount
-    def modify_wages(self, game, worker_type, wage): return wage
-    def modify_purchase_cost(self, game, cost, card): return cost
-    def on_equip(self, game): pass
-    def on_unequip(self, game): pass
+
+    def on_order_complete(self, game, order, reward, transport_cost):
+        return reward, transport_cost
+
+    def modify_transport_cost(self, game, cost, items, has_silk):
+        return cost
+
+    def modify_vat(self, game, vat):
+        return vat
+
+    def modify_income_tax(self, game, tax):
+        return tax
+
+    def modify_production(self, game, worker_type, amount):
+        return amount
+
+    def modify_wages(self, game, worker_type, wage):
+        return wage
+
+    def modify_purchase_cost(self, game, cost, card):
+        return cost
+
+    def on_equip(self, game):
+        pass
+
+    def on_unequip(self, game):
+        pass
+
 
 class SmugglersHold(ShipModule):
     def __init__(self):
         self.id = "smugglers_hold"
         self.name = "Smuggler's Hold"
         self.icon = "🏴‍☠️"
-        self.desc = "Purchase costs -15%. Income Tax +20%."
-    def modify_purchase_cost(self, game, cost, card): return int(cost * 0.85)
-    def modify_income_tax(self, game, tax): return int(tax * 1.2)
+        self.desc = "Purchase costs drop 15%. Income Tax rises 20%."
+
+    def modify_purchase_cost(self, game, cost, card):
+        return int(cost * 0.85)
+
+    def modify_income_tax(self, game, tax):
+        return int(tax * 1.2)
+
 
 class BulkHaulerRigging(ShipModule):
     def __init__(self):
         self.id = "bulk_hauler"
         self.name = "Bulk Hauler Rigging"
         self.icon = "🏗️"
-        self.desc = "Transport cost -1 per item. Ship upgrades cost +15 Gold."
-    def modify_transport_cost(self, game, cost, items, has_silk): return max(0, cost - items)
-    def on_equip(self, game): game.ship_upgrade_penalty += 15
-    def on_unequip(self, game): game.ship_upgrade_penalty -= 15
+        self.desc = "Transport cost drops 1 per item. Ship upgrades cost 15 more Gold."
+
+    def modify_transport_cost(self, game, cost, items, has_silk):
+        return max(0, cost - items)
+
+    def on_equip(self, game):
+        game.ship_upgrade_penalty += 15
+
+    def on_unequip(self, game):
+        game.ship_upgrade_penalty -= 15
+
 
 class ArtisansWorkshop(ShipModule):
     def __init__(self):
@@ -264,8 +370,13 @@ class ArtisansWorkshop(ShipModule):
         self.name = "Artisan's Workshop"
         self.icon = "🛠️"
         self.desc = "Workers produce +1 item. Wages +20%."
-    def modify_production(self, game, worker_type, amount): return amount + 1
-    def modify_wages(self, game, worker_type, wage): return int(wage * 1.2)
+
+    def modify_production(self, game, worker_type, amount):
+        return amount + 1
+
+    def modify_wages(self, game, worker_type, wage):
+        return int(wage * 1.2)
+
 
 class TaxEvasionLedger(ShipModule):
     def __init__(self):
@@ -273,13 +384,19 @@ class TaxEvasionLedger(ShipModule):
         self.name = "Tax Evasion Ledger"
         self.icon = "📕"
         self.desc = "Income Tax & VAT halved. 15% chance to lose 20 Gold on order complete (Audit)."
-    def modify_vat(self, game, vat): return int(vat * 0.5)
-    def modify_income_tax(self, game, tax): return int(tax * 0.5)
+
+    def modify_vat(self, game, vat):
+        return int(vat * 0.5)
+
+    def modify_income_tax(self, game, tax):
+        return int(tax * 0.5)
+
     def on_order_complete(self, game, order, reward, transport_cost):
         if random.random() < 0.15:
             game.money -= 20
             game.log_message("🚨 AUDIT! Tax Evasion Ledger triggered. Lost 20 Gold!")
         return reward, transport_cost
+
 
 class SilkRoadMonopoly(ShipModule):
     def __init__(self):
@@ -287,15 +404,22 @@ class SilkRoadMonopoly(ShipModule):
         self.name = "Silk Road Monopoly"
         self.icon = "👘"
         self.desc = "Silk transport cost is 0. Silk product orders yield +20% reward."
+
     def modify_transport_cost(self, game, cost, items, has_silk):
-        if has_silk: return 0
-        return cost
-    def on_order_complete(self, game, order, reward, transport_cost):
-        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
         if has_silk:
+            return 0
+        return cost
+
+    def on_order_complete(self, game, order, reward, transport_cost):
+        has_silk = any(
+            r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"]
+            for r in order["resources"]
+        )
+        if has_silk and order.get("is_product_order", False):
             reward = int(reward * 1.2)
             game.log_message("👘 Silk Monopoly: +20% Reward!")
         return reward, transport_cost
+
 
 class BrokersNetwork(ShipModule):
     def __init__(self):
@@ -303,8 +427,13 @@ class BrokersNetwork(ShipModule):
         self.name = "Broker's Network"
         self.icon = "🕵️"
         self.desc = "Intel costs 2 Gold. Reveals 2 rumors per purchase."
-    def on_equip(self, game): game.intel_cost = 2
-    def on_unequip(self, game): game.intel_cost = 5
+
+    def on_equip(self, game):
+        game.intel_cost = 2
+
+    def on_unequip(self, game):
+        game.intel_cost = 5
+
 
 class SalvageCrane(ShipModule):
     def __init__(self):
@@ -312,35 +441,47 @@ class SalvageCrane(ShipModule):
         self.name = "Salvage Crane"
         self.icon = "♻️"
         self.desc = "30% chance to refund transport cost on order complete."
+
     def on_order_complete(self, game, order, reward, transport_cost):
+        # The reconciliation block in complete_order refunds the difference
+        # after the hooks run, so the hook only reports the refunded amount.
         if random.random() < 0.30:
-            game.money += transport_cost
-            game.log_message(f"♻️ Salvage Crane: Refunded {transport_cost} Gold transport!")
+            game.log_message(
+                f"♻️ Salvage Crane: Refunded {transport_cost} Gold transport!"
+            )
             transport_cost = 0
         return reward, transport_cost
+
 
 class OverdriveEngine(ShipModule):
     def __init__(self):
         self.id = "overdrive_engine"
         self.name = "Overdrive Engine"
         self.icon = "⚙️"
-        self.desc = "Transport cost -5 Gold. Maintenance +10 Gold."
-    def modify_transport_cost(self, game, cost, items, has_silk): return max(0, cost - 5)
-    def on_equip(self, game): game.maintenance_penalty += 10
-    def on_unequip(self, game): game.maintenance_penalty -= 10
+        self.desc = "Transport cost drops 5 Gold. Maintenance rises 10 Gold."
 
-# ─────────────────────────────────────────────────────────────────────────────
+    def modify_transport_cost(self, game, cost, items, has_silk):
+        return max(0, cost - 5)
+
+    def on_equip(self, game):
+        game.maintenance_penalty += 10
+
+    def on_unequip(self, game):
+        game.maintenance_penalty -= 10
+
+
+# =============================================================================
 # Main Game Class
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 class PortMasters:
-    """PortMasters – A maritime trade tycoon game with production-ready GUI."""
-    
-    # ── Layout constants ──────────────────────────────────────────────
+    """PortMasters: a maritime trade tycoon game with a polished GUI."""
+
+    # == Layout constants ==============================================
     PAD_SM = 4
     PAD_MD = 8
     PAD_LG = 16
     PAD_XL = 24
-    
+
     FONT_TITLE = ("Segoe UI", 22, "bold")
     FONT_SUBTITLE = ("Segoe UI", 14)
     FONT_BODY = ("Segoe UI", 11)
@@ -357,24 +498,45 @@ class PortMasters:
         self.window.title("PortMasters")
         self.window.geometry("1600x950")
         self.window.minsize(1400, 850)
-        
+
         self.colors = {
-            "bg_light": "#E6F2FF", "bg_dark": "#1A3C8C", "accent_blue": "#2E5AA7",
-            "accent_gold": "#FFD700", "accent_red": "#FF6B6B", "accent_green": "#4CAF50",
-            "text_dark": "#1A237E", "text_light": "#FFFFFF", "button_primary": "#2E5AA7",
-            "button_success": "#4CAF50", "button_warning": "#FF9800", "button_danger": "#FF5252",
-            "button_dark_grey": "#424242", "hemp": "#8B7355", "silk": "#DC143C", "tea": "#228B22",
-            "linen_clothes": "#D2691E", "cotton_clothes": "#4169E1", "silk_brocade": "#8B008B",
-            "sachet": "#FF1493", "worker_bg": "#FFF8DC", "card_bg": "#F0F8FF",
-            "card_header": "#E6F2FF", "separator": "#2E5AA7",
+            "bg_light": "#E6F2FF",
+            "bg_dark": "#1A3C8C",
+            "accent_blue": "#2E5AA7",
+            "accent_gold": "#FFD700",
+            "accent_red": "#FF6B6B",
+            "accent_green": "#4CAF50",
+            "text_dark": "#1A237E",
+            "text_light": "#FFFFFF",
+            "button_primary": "#2E5AA7",
+            "button_success": "#4CAF50",
+            "button_warning": "#FF9800",
+            "button_danger": "#FF5252",
+            "button_dark_grey": "#424242",
+            "hemp": "#8B7355",
+            "silk": "#DC143C",
+            "tea": "#228B22",
+            "linen_clothes": "#D2691E",
+            "cotton_clothes": "#4169E1",
+            "silk_brocade": "#8B008B",
+            "sachet": "#FF1493",
+            "worker_bg": "#FFF8DC",
+            "card_bg": "#F0F8FF",
+            "card_header": "#E6F2FF",
+            "separator": "#2E5AA7",
         }
         self.BUTTON_FONT = self.FONT_BUTTON
         self.window.configure(bg=self.colors["bg_light"])
 
-        # ── Game state ────────────────────────────────────────────────
+        # == Game state ================================================
         self.inventory = {
-            "Hemp": 8, "Silk": 5, "Tea": 3,
-            "Linen Clothes": 0, "Cotton Clothes": 0, "Brocade": 0, "Sachet": 0
+            "Hemp": 8,
+            "Silk": 5,
+            "Tea": 3,
+            "Linen Clothes": 0,
+            "Cotton Clothes": 0,
+            "Brocade": 0,
+            "Sachet": 0,
         }
         self.money = 100
         self.score = 0
@@ -388,54 +550,88 @@ class PortMasters:
         self.vat_paid = 0
         self.income_tax_paid = 0
         self.round_revenue = 0
-        self.round_costs = 0
-        
+
         self.weavers = []
         self.master_weavers = []
         self.sachet_makers = []
-        
+
         self.WEAVER_WAGE = 8
         self.MASTER_WEAVER_WAGE = 12
         self.SACHET_MAKER_WAGE = 20
-        
+
         self.RECIPES = {
-            "Linen Clothes": {"materials": {"Hemp": 2}, "value": 15, "worker_type": "weaver"},
-            "Cotton Clothes": {"materials": {"Hemp": 2, "Silk": 1}, "value": 35, "worker_type": "weaver"},
+            "Linen Clothes": {
+                "materials": {"Hemp": 2},
+                "value": 15,
+                "worker_type": "weaver",
+            },
+            "Cotton Clothes": {
+                "materials": {"Hemp": 2, "Silk": 1},
+                "value": 35,
+                "worker_type": "weaver",
+            },
             "Brocade": {"materials": {"Silk": 3}, "value": 60, "worker_type": "master"},
-            "Sachet": {"materials": {"Silk": 1, "Tea": 2}, "value": 80, "worker_type": "sachet_maker"}
+            "Sachet": {
+                "materials": {"Silk": 1, "Tea": 2},
+                "value": 80,
+                "worker_type": "sachet_maker",
+            },
         }
-        
+
         self.fixed_cost = 15
         self.resource_types = ["Hemp", "Silk", "Tea"]
         self.product_types = ["Linen Clothes", "Cotton Clothes", "Brocade", "Sachet"]
-        
+
         self.resource_colors = {
-            "Hemp": self.colors["hemp"], "Silk": self.colors["silk"], "Tea": self.colors["tea"],
-            "Linen Clothes": self.colors["linen_clothes"], "Cotton Clothes": self.colors["cotton_clothes"],
-            "Brocade": self.colors["silk_brocade"], "Sachet": self.colors["sachet"]
+            "Hemp": self.colors["hemp"],
+            "Silk": self.colors["silk"],
+            "Tea": self.colors["tea"],
+            "Linen Clothes": self.colors["linen_clothes"],
+            "Cotton Clothes": self.colors["cotton_clothes"],
+            "Brocade": self.colors["silk_brocade"],
+            "Sachet": self.colors["sachet"],
         }
         self.resource_icons = {
-            "Hemp": "🧶", "Silk": "👘", "Tea": "🍵",
-            "Linen Clothes": "👔", "Cotton Clothes": "👕", "Brocade": "👗", "Sachet": "🌸"
+            "Hemp": "🧶",
+            "Silk": "👘",
+            "Tea": "🍵",
+            "Linen Clothes": "👔",
+            "Cotton Clothes": "👕",
+            "Brocade": "👗",
+            "Sachet": "🌸",
         }
-        
-        self.ports = ["Quanzhou Port", "Guangzhou Port", "Ningbo Port", "Yangzhou Port", "Hangzhou Port"]
+
+        self.ports = [
+            "Quanzhou Port",
+            "Guangzhou Port",
+            "Ningbo Port",
+            "Yangzhou Port",
+            "Hangzhou Port",
+        ]
         self.commodities = {
             "Hemp": {"ports": ["Quanzhou Port", "Ningbo Port"], "base_price": (3, 6)},
-            "Silk": {"ports": ["Hangzhou Port", "Yangzhou Port"], "base_price": (6, 10)},
-            "Tea": {"ports": ["Guangzhou Port", "Quanzhou Port"], "base_price": (10, 14)}
+            "Silk": {
+                "ports": ["Hangzhou Port", "Yangzhou Port"],
+                "base_price": (6, 10),
+            },
+            "Tea": {
+                "ports": ["Guangzhou Port", "Quanzhou Port"],
+                "base_price": (10, 14),
+            },
         }
         self.product_prices = {
-            "Linen Clothes": (30, 42), "Cotton Clothes": (50, 65),
-            "Brocade": (70, 90), "Sachet": (95, 120)
+            "Linen Clothes": (30, 42),
+            "Cotton Clothes": (50, 65),
+            "Brocade": (70, 90),
+            "Sachet": (95, 120),
         }
         self.resource_probabilities = {"Hemp": 0.4, "Silk": 0.35, "Tea": 0.25}
-        
+
         self.ship_level = 0
         self.ship_upgrade_cost = [15, 25, 40]
         self.ship_upgrade_penalty = 0
         self.maintenance_penalty = 0
-        
+
         self.phase = 0
         self.resource_cards = []
         self.customer_cards = []
@@ -444,74 +640,105 @@ class PortMasters:
         self.purchase_count = 0
         self.order_count = 0
         self.game_over = False
-        
+
         self.purchase_buttons = []
         self.order_buttons = []
-        
+
         self.save_file = "portmasters_save.json"
-        
-        # ── Boon & Modifier State ─────────────────────────────────────
+
+        # == Boon & Modifier State =====================================
         self.modifier_flags = {}
         self.boon_manager = BoonManager(self.get_game_state_for_boons)
-        
-        # ── Ship Modules State ────────────────────────────────────────
+
+        # == Ship Modules State ========================================
         self.module_classes = [
-            SmugglersHold, BulkHaulerRigging, ArtisansWorkshop, 
-            TaxEvasionLedger, SilkRoadMonopoly, BrokersNetwork, 
-            SalvageCrane, OverdriveEngine
+            SmugglersHold,
+            BulkHaulerRigging,
+            ArtisansWorkshop,
+            TaxEvasionLedger,
+            SilkRoadMonopoly,
+            BrokersNetwork,
+            SalvageCrane,
+            OverdriveEngine,
         ]
         self.equipped_modules = []
-        
+
+        # The module offer is locked per round. The batch may be changed at
+        # most once per round, and leaving or reentering the draft screen
+        # never rerolls it.
+        self._draft_batch = None
+        self._draft_changes_left = 1
+
         # 🔮 INTEL SYSTEM: Broker's Whisper attributes
-        self.phase2_demand_tags = []      
-        self.revealed_intel = []          
-        self.intel_cost = 5               
-        self._intel_order_used = False    
-        self.rumor_window = None          
+        self.phase2_demand_tags = []
+        self.revealed_intel = []
+        self.intel_cost = 5
+        self._intel_order_used = False
+        self.rumor_window = None
 
         self.setup_styles()
         self.create_widgets()
         self.setup_keyboard_shortcuts()
-        
+
         if os.path.exists(self.save_file):
-            if messagebox.askyesno("Load Save", "Detected previous save, continue playing?"):
+            if messagebox.askyesno(
+                "Load Save", "Detected previous save, continue playing?"
+            ):
                 self.load_game()
                 return
         self.show_welcome()
 
     def get_game_state_for_boons(self):
         return {
-            "money": self.money, "inventory": self.inventory,
-            "weavers": self.weavers, "master_weavers": self.master_weavers,
-            "sachet_makers": self.sachet_makers, "ship_level": self.ship_level,
-            "revealed_intel": self.revealed_intel
+            "money": self.money,
+            "inventory": self.inventory,
+            "weavers": self.weavers,
+            "master_weavers": self.master_weavers,
+            "sachet_makers": self.sachet_makers,
+            "ship_level": self.ship_level,
+            "revealed_intel": self.revealed_intel,
         }
 
     def apply_modifiers(self, modifiers):
         self.modifier_flags = modifiers
         if "instant_gold" in modifiers:
             self.money += modifiers["instant_gold"]
-            self.log_message(f"💰 Boon applied: Gained {modifiers['instant_gold']} Gold!")
+            self.log_message(
+                f"💰 Boon applied: Gained {modifiers['instant_gold']} Gold!"
+            )
         self.update_display()
 
-    # ── Juice / UI Polish ─────────────────────────────────────────────
+    # == Juice / UI Polish =============================================
     def trigger_juice(self, root_x, root_y):
         def _play():
             try:
                 import wave, struct, io
+
                 sr = 44100
+
                 def tone(freq, ms, vol=0.5, decay_k=8):
                     n = int(sr * ms / 1000)
-                    return b''.join(
-                        struct.pack('<h', int(32767 * vol
-                            * math.exp(-decay_k * i / n)
-                            * math.sin(2 * math.pi * freq * i / sr)))
+                    return b"".join(
+                        struct.pack(
+                            "<h",
+                            int(
+                                32767
+                                * vol
+                                * math.exp(-decay_k * i / n)
+                                * math.sin(2 * math.pi * freq * i / sr)
+                            ),
+                        )
                         for i in range(n)
                     )
-                gap = b'\x00\x00' * int(sr * 0.04)
-                data = tone(120, 150, vol=0.8, decay_k=10) + gap + tone(1047, 400, vol=0.5, decay_k=5)
+
+                gap = b"\x00\x00" * int(sr * 0.04)
+                data = (
+                    tone(120, 150, vol=0.8, decay_k=10)
+                    + gap
+                    + tone(1047, 400, vol=0.5, decay_k=5)
+                )
                 buf = io.BytesIO()
-                with wave.open(buf, 'wb') as wf:
+                with wave.open(buf, "wb") as wf:
                     wf.setnchannels(1)
                     wf.setsampwidth(2)
                     wf.setframerate(sr)
@@ -519,35 +746,44 @@ class PortMasters:
                 wav_bytes = buf.getvalue()
                 try:
                     import winsound
+
                     winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
                 except ImportError:
                     import subprocess, tempfile
-                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                         f.write(wav_bytes)
                         tmp = f.name
                     try:
-                        subprocess.run(['afplay', tmp], capture_output=True)
+                        subprocess.run(["afplay", tmp], capture_output=True)
                     finally:
-                        try: os.unlink(tmp)
-                        except Exception: pass
+                        try:
+                            os.unlink(tmp)
+                        except Exception:
+                            pass
             except Exception:
                 pass
+
         threading.Thread(target=_play, daemon=True).start()
         self.shake_window()
         self.trigger_particle_burst(root_x, root_y)
 
     def shake_window(self):
         try:
-            geo = self.window.geometry().split('+')
+            geo = self.window.geometry().split("+")
             if len(geo) >= 3:
                 x, y = int(geo[1]), int(geo[2])
             else:
                 x, y = 100, 100
-            w, h = geo[0].split('x')
+            w, h = geo[0].split("x")
             steps = [(-4, -4), (4, 4), (-2, 2), (2, -2), (0, 0)]
             for i, (dx, dy) in enumerate(steps):
-                self.window.after(i * 30, lambda nx=x+dx, ny=y+dy, w=w, h=h: 
-                                  self.window.geometry(f"{w}x{h}+{nx}+{ny}"))
+                self.window.after(
+                    i * 30,
+                    lambda nx=x + dx, ny=y + dy, w=w, h=h: self.window.geometry(
+                        f"{w}x{h}+{nx}+{ny}"
+                    ),
+                )
         except Exception:
             pass
 
@@ -556,11 +792,13 @@ class PortMasters:
         wy = self.window.winfo_rooty()
         x = root_x - wx
         y = root_y - wy
-        
-        canvas = tk.Canvas(self.window, highlightthickness=0, bg=self.colors["bg_light"])
+
+        canvas = tk.Canvas(
+            self.window, highlightthickness=0, bg=self.colors["bg_light"]
+        )
         canvas.place(x=0, y=0, relwidth=1, relheight=1)
         canvas.bind("<Button-1>", lambda e: canvas.destroy())
-        
+
         particles = []
         colors = ["#FFD700", "#FFA500", "#4CAF50", "#2E5AA7", "#FFFFFF", "#E6F2FF"]
         for _ in range(35):
@@ -568,68 +806,93 @@ class PortMasters:
             py = y + random.randint(-10, 10)
             r = random.randint(5, 15)
             color = random.choice(colors)
-            p = canvas.create_oval(px-r, py-r, px+r, py+r, fill=color, outline="")
-            particles.append((p, px, py, r, random.uniform(-8, 8), random.uniform(-10, -2)))
-            
+            p = canvas.create_oval(
+                px - r, py - r, px + r, py + r, fill=color, outline=""
+            )
+            particles.append(
+                (p, px, py, r, random.uniform(-8, 8), random.uniform(-10, -2))
+            )
+
         sparkles = ["✨", "⭐", "💫"]
         texts = []
         for _ in range(5):
             sx = x + random.randint(-40, 40)
             sy = y + random.randint(-40, 40)
-            t = canvas.create_text(sx, sy, text=random.choice(sparkles), font=("Segoe UI", random.randint(16, 24)))
+            t = canvas.create_text(
+                sx,
+                sy,
+                text=random.choice(sparkles),
+                font=("Segoe UI", random.randint(16, 24)),
+            )
             texts.append((t, sx, sy, random.uniform(-3, 3), random.uniform(-5, -1)))
 
         def animate(step=0):
             if step > 15:
-                try: canvas.destroy()
-                except: pass
+                try:
+                    canvas.destroy()
+                except:
+                    pass
                 return
             for p, px, py, r, vx, vy in particles:
                 nx = px + vx * step
                 ny = py + vy * step + 1.5 * step
                 nr = max(0, r - step * 0.6)
-                try: canvas.coords(p, nx-nr, ny-nr, nx+nr, ny+nr)
-                except: pass
+                try:
+                    canvas.coords(p, nx - nr, ny - nr, nx + nr, ny + nr)
+                except:
+                    pass
             for t, sx, sy, vx, vy in texts:
                 nx = sx + vx * step
                 ny = sy + vy * step
-                try: canvas.coords(t, nx, ny)
-                except: pass
+                try:
+                    canvas.coords(t, nx, ny)
+                except:
+                    pass
             try:
-                self.window.after(25, lambda: animate(step+1))
+                self.window.after(25, lambda: animate(step + 1))
             except:
                 pass
+
         animate()
 
-    # ── Keyboard shortcuts ────────────────────────────────────────────
+    # == Keyboard shortcuts ============================================
     def setup_keyboard_shortcuts(self):
-        self.window.bind('<Control-s>', lambda e: self.save_game())
-        self.window.bind('<Control-n>', lambda e: self.next_phase())
-        self.window.bind('<Control-r>', lambda e: self.restart_game())
-        self.window.bind('<Control-h>', lambda e: self.show_worker_management())
-        self.window.bind('<F1>', lambda e: self.show_instructions())
+        self.window.bind("<Control-s>", lambda e: self.save_game())
+        self.window.bind("<Control-n>", lambda e: self.next_phase())
+        self.window.bind("<Control-r>", lambda e: self.restart_game())
+        self.window.bind("<Control-h>", lambda e: self.show_worker_management())
+        self.window.bind("<F1>", lambda e: self.show_instructions())
 
-    # ── Save / Load ───────────────────────────────────────────────────
+    # == Save / Load ===================================================
     def save_game(self):
         game_data = {
-            "inventory": self.inventory, "money": self.money, "score": self.score,
-            "current_round": self.current_round, "ship_level": self.ship_level,
-            "phase": self.phase, "purchase_count": self.purchase_count,
+            "inventory": self.inventory,
+            "money": self.money,
+            "score": self.score,
+            "current_round": self.current_round,
+            "ship_level": self.ship_level,
+            "phase": self.phase,
+            "purchase_count": self.purchase_count,
             "order_count": self.order_count,
             "purchased_cards": list(self.purchased_cards),
             "completed_orders": list(self.completed_orders),
-            "resource_cards": self.resource_cards, "customer_cards": self.customer_cards,
-            "weavers": self.weavers, "master_weavers": self.master_weavers,
+            "resource_cards": self.resource_cards,
+            "customer_cards": self.customer_cards,
+            "weavers": self.weavers,
+            "master_weavers": self.master_weavers,
             "sachet_makers": self.sachet_makers,
-            "total_revenue": self.total_revenue, "total_costs": self.total_costs,
-            "material_costs": self.material_costs, "worker_wages": self.worker_wages,
+            "total_revenue": self.total_revenue,
+            "total_costs": self.total_costs,
+            "material_costs": self.material_costs,
+            "worker_wages": self.worker_wages,
             "maintenance_costs": self.maintenance_costs,
-            "vat_paid": self.vat_paid, "income_tax_paid": self.income_tax_paid,
+            "vat_paid": self.vat_paid,
+            "income_tax_paid": self.income_tax_paid,
             "phase2_demand_tags": self.phase2_demand_tags,
             "revealed_intel": self.revealed_intel,
             "equipped_modules": [m.id for m in self.equipped_modules],
             "ship_upgrade_penalty": self.ship_upgrade_penalty,
-            "maintenance_penalty": self.maintenance_penalty
+            "maintenance_penalty": self.maintenance_penalty,
         }
         try:
             with open(self.save_file, "w", encoding="utf-8") as f:
@@ -671,7 +934,7 @@ class PortMasters:
             self.revealed_intel = game_data.get("revealed_intel", [])
             self._intel_order_used = False
             self.rumor_window = None
-            
+
             self.ship_upgrade_penalty = 0
             self.maintenance_penalty = 0
             self.equipped_modules = []
@@ -682,17 +945,24 @@ class PortMasters:
                         self.equipped_modules.append(inst)
                         inst.on_equip(self)
                         break
-            
+
             self.log_message("📂 Save Loaded!")
             self.update_display()
-            
-            if self.phase == 0: self.show_welcome()
-            elif self.phase == 1: self.start_phase1()
-            elif self.phase == 2: self.start_phase2()
-            elif self.phase == 3: self.start_phase3()
-            elif self.phase == 4: self.start_phase4()
-            elif self.phase == 5: self.start_boon_drafting()
-            else: self.show_worker_management()
+
+            if self.phase == 0:
+                self.show_welcome()
+            elif self.phase == 1:
+                self.start_phase1()
+            elif self.phase == 2:
+                self.start_phase2()
+            elif self.phase == 3:
+                self.start_phase3()
+            elif self.phase == 4:
+                self.start_phase4()
+            elif self.phase == 5:
+                self.start_boon_drafting()
+            else:
+                self.show_worker_management()
         except Exception as e:
             self.log_message(f"❌ Failed to load save: {str(e)}")
             messagebox.showerror("Load Failed", "Cannot read save, start new game.")
@@ -703,7 +973,7 @@ class PortMasters:
             os.remove(self.save_file)
             self.log_message("🗑️ Save Deleted")
 
-    # ── Cost calculations (with Modifier Injection) ───────────────────
+    # == Cost calculations (with Modifier Injection) ===================
     def calculate_transport_cost(self, total_items, has_silk=False):
         base_cost = total_items * 2
         discount = self.ship_level * 5
@@ -711,11 +981,15 @@ class PortMasters:
             discount += self.modifier_flags["transport_flat_discount"]
         final_cost = max(5, base_cost - discount)
         if has_silk and "transport_silk_discount" in self.modifier_flags:
-            final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
-            
+            final_cost = max(
+                5, int(final_cost * self.modifier_flags["transport_silk_discount"])
+            )
+
         for m in self.equipped_modules:
-            final_cost = m.modify_transport_cost(self, final_cost, total_items, has_silk)
-            
+            final_cost = m.modify_transport_cost(
+                self, final_cost, total_items, has_silk
+            )
+
         return max(0, final_cost)
 
     def show_transport_cost_detail(self, total_items, has_silk=False):
@@ -723,18 +997,16 @@ class PortMasters:
         discount = self.ship_level * 5
         if "transport_flat_discount" in self.modifier_flags:
             discount += self.modifier_flags["transport_flat_discount"]
-        final_cost = max(5, base_cost - discount)
-        if has_silk and "transport_silk_discount" in self.modifier_flags:
-            final_cost = max(5, int(final_cost * self.modifier_flags["transport_silk_discount"]))
-            
-        for m in self.equipped_modules:
-            final_cost = m.modify_transport_cost(self, final_cost, total_items, has_silk)
-        final_cost = max(0, final_cost)
-        
+        # The final number delegates to calculate_transport_cost so the
+        # displayed freight always equals the charged freight.
+        final_cost = self.calculate_transport_cost(total_items, has_silk)
+
         return {
-            "total_items": total_items, "base_cost": base_cost,
-            "discount": discount, "final_cost": final_cost,
-            "formula": f"max(0, ({total_items} × 2) - {discount} + mods) = {final_cost}"
+            "total_items": total_items,
+            "base_cost": base_cost,
+            "discount": discount,
+            "final_cost": final_cost,
+            "formula": f"max(0, ({total_items} × 2) minus {discount} plus mods) = {final_cost}",
         }
 
     def calculate_vat(self, product, selling_price):
@@ -744,16 +1016,21 @@ class PortMasters:
             avg_price = sum(self.commodities[material]["base_price"]) / 2
             material_cost += avg_price * amount
         worker_cost = 0
-        if recipe["worker_type"] == "weaver": worker_cost = self.WEAVER_WAGE
-        elif recipe["worker_type"] == "master": worker_cost = self.MASTER_WEAVER_WAGE
-        elif recipe["worker_type"] == "sachet_maker": worker_cost = self.SACHET_MAKER_WAGE
-        
+        if recipe["worker_type"] == "weaver":
+            worker_cost = self.WEAVER_WAGE
+        elif recipe["worker_type"] == "master":
+            worker_cost = self.MASTER_WEAVER_WAGE
+        elif recipe["worker_type"] == "sachet_maker":
+            worker_cost = self.SACHET_MAKER_WAGE
+
         taxable_amount = selling_price - material_cost - worker_cost
         if taxable_amount > 0:
             vat = math.floor(taxable_amount * 0.05)
             for m in self.equipped_modules:
                 vat = m.modify_vat(self, vat)
-            self.log_message(f"🧮 VAT: 5% × ({selling_price} - {material_cost:.1f}(Mat) - {worker_cost}(Wage)) = {vat}")
+            self.log_message(
+                f"🧮 VAT: 5% × ({selling_price} minus {material_cost:.1f}(Mat) minus {worker_cost}(Wage)) = {vat}"
+            )
             return vat
         return 0
 
@@ -766,12 +1043,16 @@ class PortMasters:
             return tax
         return 0
 
-    # ── Worker management ─────────────────────────────────────────────
+    # == Worker management =============================================
     def get_hire_cost(self, worker_type):
-        if worker_type == "weaver": wage = self.WEAVER_WAGE
-        elif worker_type == "master": wage = self.MASTER_WEAVER_WAGE
-        elif worker_type == "sachet_maker": wage = self.SACHET_MAKER_WAGE
-        else: return 0
+        if worker_type == "weaver":
+            wage = self.WEAVER_WAGE
+        elif worker_type == "master":
+            wage = self.MASTER_WEAVER_WAGE
+        elif worker_type == "sachet_maker":
+            wage = self.SACHET_MAKER_WAGE
+        else:
+            return 0
         if "hire_discount" in self.modifier_flags:
             wage = int(wage * (1 - self.modifier_flags["hire_discount"]))
         return wage
@@ -779,16 +1060,42 @@ class PortMasters:
     def hire_worker(self, worker_type):
         wage = self.get_hire_cost(worker_type)
         if self.money >= wage:
+            hire_discount = self.modifier_flags.get("hire_discount", 0)
             if worker_type == "weaver":
-                self.weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
+                self.weavers.append(
+                    {
+                        "task": None,
+                        "progress": 0,
+                        "produced_count": 0,
+                        "is_skilled": False,
+                        "hire_discount": hire_discount,
+                    }
+                )
                 self.log_message(f"👩‍🔧 Hired a Weaver! Wage: {wage} Gold / Round")
             elif worker_type == "master":
-                self.master_weavers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
-                self.log_message(f"👩‍🎨 Hired a Master Weaver! Wage: {wage} Gold / Round")
+                self.master_weavers.append(
+                    {
+                        "task": None,
+                        "progress": 0,
+                        "produced_count": 0,
+                        "is_skilled": False,
+                        "hire_discount": hire_discount,
+                    }
+                )
+                self.log_message(
+                    f"👩‍🎨 Hired a Master Weaver! Wage: {wage} Gold / Round"
+                )
             elif worker_type == "sachet_maker":
-                self.sachet_makers.append({'task': None, 'progress': 0, 'produced_count': 0, 'is_skilled': False})
+                self.sachet_makers.append(
+                    {
+                        "task": None,
+                        "progress": 0,
+                        "produced_count": 0,
+                        "is_skilled": False,
+                        "hire_discount": hire_discount,
+                    }
+                )
                 self.log_message(f"🌸 Hired a Sachet Maker! Wage: {wage} Gold / Round")
-            self.worker_wages += wage
             self.update_display()
             return True
         self.log_message("❌ Insufficient funds to hire workers!")
@@ -798,29 +1105,41 @@ class PortMasters:
         if worker_type == "weaver":
             worker_list, wage, worker_name = self.weavers, self.WEAVER_WAGE, "Weaver"
         elif worker_type == "master":
-            worker_list, wage, worker_name = self.master_weavers, self.MASTER_WEAVER_WAGE, "Master Weaver"
+            worker_list, wage, worker_name = (
+                self.master_weavers,
+                self.MASTER_WEAVER_WAGE,
+                "Master Weaver",
+            )
         elif worker_type == "sachet_maker":
-            worker_list, wage, worker_name = self.sachet_makers, self.SACHET_MAKER_WAGE, "Sachet Maker"
-        else: return False
-        
+            worker_list, wage, worker_name = (
+                self.sachet_makers,
+                self.SACHET_MAKER_WAGE,
+                "Sachet Maker",
+            )
+        else:
+            return False
+
         if index < 0 or index >= len(worker_list):
             self.log_message("❌ Invalid worker ID!")
             return False
-            
+
         if self.money >= wage:
             self.money -= wage
             worker = worker_list.pop(index)
             self.log_message(f"💔 Dismissed a {worker_name}. Severance: {wage} Gold")
-            if worker['task']: self.log_message(f"  This worker was making: {worker['task']}")
+            if worker["task"]:
+                self.log_message(f"  This worker was making: {worker['task']}")
             self.update_display()
             return True
         else:
-            self.log_message(f"❌ Insufficient funds for {worker_name}'s severance: {wage} Gold")
+            self.log_message(
+                f"❌ Insufficient funds for {worker_name}'s severance: {wage} Gold"
+            )
             return False
 
     def assign_worker_task(self, worker_list, worker_type, task):
         for worker in worker_list:
-            if worker['task'] is None:
+            if worker["task"] is None:
                 recipe = self.RECIPES[task]
                 can_produce = True
                 for material, amount in recipe["materials"].items():
@@ -830,11 +1149,15 @@ class PortMasters:
                 if can_produce:
                     for material, amount in recipe["materials"].items():
                         self.inventory[material] -= amount
-                        self.material_costs += amount * (sum(self.commodities[material]["base_price"]) / 2)
-                    worker['task'] = task
-                    worker['progress'] = 0
-                    material_list = [f"{self.resource_icons[m]}{m}×{a}" for m, a in recipe["materials"].items()]
-                    self.log_message(f"📋 Assigned: Produce {self.resource_icons[task]}{task} (Req: {' + '.join(material_list)})")
+                    worker["task"] = task
+                    worker["progress"] = 0
+                    material_list = [
+                        f"{self.resource_icons[m]}{m}×{a}"
+                        for m, a in recipe["materials"].items()
+                    ]
+                    self.log_message(
+                        f"📋 Assigned: Produce {self.resource_icons[task]}{task} (Req: {' + '.join(material_list)})"
+                    )
                     self.update_display()
                     return True
                 else:
@@ -846,126 +1169,168 @@ class PortMasters:
     def process_production(self):
         bonus = self.modifier_flags.get("worker_bonus_production", 0)
         for weaver in self.weavers:
-            if weaver['task']:
-                base_prod = 2 if weaver.get('is_skilled', False) else 1
+            if weaver["task"]:
+                base_prod = 2 if weaver.get("is_skilled", False) else 1
                 amount = base_prod + bonus
                 for m in self.equipped_modules:
                     amount = m.modify_production(self, "weaver", amount)
-                product = weaver['task']
+                product = weaver["task"]
                 self.inventory[product] = self.inventory.get(product, 0) + amount
-                weaver['produced_count'] = weaver.get('produced_count', 0) + amount
+                weaver["produced_count"] = weaver.get("produced_count", 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ Skilled Weaver finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
-                elif weaver.get('is_skilled', False):
-                    self.log_message(f"✅ Skilled Weaver finished 2× {self.resource_icons[product]}{product}!")
+                    self.log_message(
+                        f"✅ Weaver finished {amount}× {self.resource_icons[product]}{product}! (Bonus)"
+                    )
+                elif weaver.get("is_skilled", False):
+                    self.log_message(
+                        f"✅ Skilled Weaver finished 2× {self.resource_icons[product]}{product}!"
+                    )
                 else:
-                    self.log_message(f"✅ Weaver finished {self.resource_icons[product]}{product}!")
-                if weaver.get('produced_count', 0) >= 2:
-                    weaver['is_skilled'] = True
-                    self.log_message("⭐ Weaver Promotion! Can now produce 2 items per round!")
-                weaver['task'] = None
-                weaver['progress'] = 0
+                    self.log_message(
+                        f"✅ Weaver finished {self.resource_icons[product]}{product}!"
+                    )
+                if weaver.get("produced_count", 0) >= 2:
+                    weaver["is_skilled"] = True
+                    self.log_message(
+                        "⭐ Weaver Promotion! Can now produce 2 items per round!"
+                    )
+                weaver["task"] = None
+                weaver["progress"] = 0
 
         for master in self.master_weavers:
-            if master['task']:
-                base_prod = 2 if master.get('is_skilled', False) else 1
+            if master["task"]:
+                base_prod = 2 if master.get("is_skilled", False) else 1
                 amount = base_prod + bonus
                 for m in self.equipped_modules:
                     amount = m.modify_production(self, "master", amount)
-                product = master['task']
+                product = master["task"]
                 self.inventory[product] = self.inventory.get(product, 0) + amount
-                master['produced_count'] = master.get('produced_count', 0) + amount
+                master["produced_count"] = master.get("produced_count", 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ Skilled Master finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
-                elif master.get('is_skilled', False):
-                    self.log_message(f"✅ Skilled Master finished 2× {self.resource_icons[product]}{product}!")
+                    self.log_message(
+                        f"✅ Master finished {amount}× {self.resource_icons[product]}{product}! (Bonus)"
+                    )
+                elif master.get("is_skilled", False):
+                    self.log_message(
+                        f"✅ Skilled Master finished 2× {self.resource_icons[product]}{product}!"
+                    )
                 else:
-                    self.log_message(f"✅ Master finished {self.resource_icons[product]}{product}!")
-                if master.get('produced_count', 0) >= 2:
-                    master['is_skilled'] = True
-                    self.log_message("⭐ Master Promotion! Can now produce 2 items per round!")
-                master['task'] = None
-                master['progress'] = 0
+                    self.log_message(
+                        f"✅ Master finished {self.resource_icons[product]}{product}!"
+                    )
+                if master.get("produced_count", 0) >= 2:
+                    master["is_skilled"] = True
+                    self.log_message(
+                        "⭐ Master Promotion! Can now produce 2 items per round!"
+                    )
+                master["task"] = None
+                master["progress"] = 0
 
         for maker in self.sachet_makers:
-            if maker['task']:
-                base_prod = 2 if maker.get('is_skilled', False) else 1
+            if maker["task"]:
+                base_prod = 2 if maker.get("is_skilled", False) else 1
                 amount = base_prod + bonus
                 for m in self.equipped_modules:
                     amount = m.modify_production(self, "sachet_maker", amount)
-                product = maker['task']
+                product = maker["task"]
                 self.inventory[product] = self.inventory.get(product, 0) + amount
-                maker['produced_count'] = maker.get('produced_count', 0) + amount
+                maker["produced_count"] = maker.get("produced_count", 0) + amount
                 if amount > base_prod:
-                    self.log_message(f"✅ Skilled Maker finished {amount}× {self.resource_icons[product]}{product}! (Boon Bonus)")
-                elif maker.get('is_skilled', False):
-                    self.log_message(f"✅ Skilled Maker finished 2× {self.resource_icons[product]}{product}!")
+                    self.log_message(
+                        f"✅ Maker finished {amount}× {self.resource_icons[product]}{product}! (Bonus)"
+                    )
+                elif maker.get("is_skilled", False):
+                    self.log_message(
+                        f"✅ Skilled Maker finished 2× {self.resource_icons[product]}{product}!"
+                    )
                 else:
-                    self.log_message(f"✅ Maker finished {self.resource_icons[product]}{product}!")
-                if maker.get('produced_count', 0) >= 2:
-                    maker['is_skilled'] = True
-                    self.log_message("⭐ Maker Promotion! Can now produce 2 items per round!")
-                maker['task'] = None
-                maker['progress'] = 0
+                    self.log_message(
+                        f"✅ Maker finished {self.resource_icons[product]}{product}!"
+                    )
+                if maker.get("produced_count", 0) >= 2:
+                    maker["is_skilled"] = True
+                    self.log_message(
+                        "⭐ Maker Promotion! Can now produce 2 items per round!"
+                    )
+                maker["task"] = None
+                maker["progress"] = 0
+
+    def calculate_worker_wage(self, worker, worker_type):
+        if worker_type == "weaver":
+            base_wage = self.WEAVER_WAGE
+        elif worker_type == "master":
+            base_wage = self.MASTER_WEAVER_WAGE
+        else:
+            base_wage = self.SACHET_MAKER_WAGE
+        if worker.get("hire_discount"):
+            base_wage = int(base_wage * (1 - worker["hire_discount"]))
+        if worker.get("is_skilled", False):
+            base_wage = int(base_wage * 1.5)
+        for m in self.equipped_modules:
+            base_wage = m.modify_wages(self, worker_type, base_wage)
+        return base_wage
 
     def pay_worker_wages(self):
-        total_paid = 0
         weaver_wages = 0
         for weaver in self.weavers:
-            base_wage = self.WEAVER_WAGE
-            if weaver.get('double_production_this_round', False):
-                base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 Weaver High Yield (2 items), Wage → {base_wage} Gold")
-            for m in self.equipped_modules:
-                base_wage = m.modify_wages(self, "weaver", base_wage)
+            base_wage = self.calculate_worker_wage(weaver, "weaver")
+            weaver.pop("hire_discount", None)
+            if weaver.get("is_skilled", False):
+                self.log_message(
+                    f"💪 Weaver High Yield (2 items), Wage → {base_wage} Gold"
+                )
             weaver_wages += base_wage
 
         master_wages = 0
         for master in self.master_weavers:
-            base_wage = self.MASTER_WEAVER_WAGE
-            if master.get('double_production_this_round', False):
-                base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 Master High Yield (2 items), Wage → {base_wage} Gold")
-            for m in self.equipped_modules:
-                base_wage = m.modify_wages(self, "master", base_wage)
+            base_wage = self.calculate_worker_wage(master, "master")
+            master.pop("hire_discount", None)
+            if master.get("is_skilled", False):
+                self.log_message(
+                    f"💪 Master High Yield (2 items), Wage → {base_wage} Gold"
+                )
             master_wages += base_wage
 
         maker_wages = 0
         for maker in self.sachet_makers:
-            base_wage = self.SACHET_MAKER_WAGE
-            if maker.get('double_production_this_round', False):
-                base_wage = int(base_wage * 1.5)
-                self.log_message(f"💪 Maker High Yield (2 items), Wage → {base_wage} Gold")
-            for m in self.equipped_modules:
-                base_wage = m.modify_wages(self, "sachet_maker", base_wage)
+            base_wage = self.calculate_worker_wage(maker, "sachet_maker")
+            maker.pop("hire_discount", None)
+            if maker.get("is_skilled", False):
+                self.log_message(
+                    f"💪 Maker High Yield (2 items), Wage → {base_wage} Gold"
+                )
             maker_wages += base_wage
 
         total_wages = weaver_wages + master_wages + maker_wages
-        if total_wages == 0: return True
-        
+        if total_wages == 0:
+            return True
+
         if self.money >= total_wages:
             self.money -= total_wages
-            total_paid = total_wages
             self.worker_wages += total_wages
-            self.round_costs += total_wages
-            if weaver_wages > 0: self.log_message(f"💰 Paid wages for {len(self.weavers)} Weavers: {weaver_wages} Gold")
-            if master_wages > 0: self.log_message(f"💰 Paid wages for {len(self.master_weavers)} Masters: {master_wages} Gold")
-            if maker_wages > 0: self.log_message(f"💰 Paid wages for {len(self.sachet_makers)} Makers: {maker_wages} Gold")
-            self._clear_wage_markers()
+            if weaver_wages > 0:
+                self.log_message(
+                    f"💰 Paid wages for {len(self.weavers)} Weavers: {weaver_wages} Gold"
+                )
+            if master_wages > 0:
+                self.log_message(
+                    f"💰 Paid wages for {len(self.master_weavers)} Masters: {master_wages} Gold"
+                )
+            if maker_wages > 0:
+                self.log_message(
+                    f"💰 Paid wages for {len(self.sachet_makers)} Makers: {maker_wages} Gold"
+                )
             self.update_display()
             return True
         else:
-            self.log_message(f"⚠️ Insufficient funds! Needed: {total_wages} Gold, Have: {self.money} Gold")
+            self.log_message(
+                f"⚠️ Insufficient funds! Needed: {total_wages} Gold, Have: {self.money} Gold"
+            )
             self.log_message("💥 Could not pay wages, workers strike...")
             self.log_message("💥 Reputation collapsed, forced bankruptcy!")
             return "bankruptcy"
 
-    def _clear_wage_markers(self):
-        for worker in self.weavers + self.master_weavers + self.sachet_makers:
-            if 'double_production_this_round' in worker:
-                del worker['double_production_this_round']
-
-    # ── 🔮 INTEL SYSTEM: Order generation with constraint injection ──
+    # == 🔮 INTEL SYSTEM: Order generation with constraint injection ==
     def _generate_phase2_demand_tags(self, count=5):
         tags = []
         all_items = self.resource_types + self.product_types
@@ -978,29 +1343,46 @@ class PortMasters:
     def purchase_intel(self):
         if not self.phase2_demand_tags:
             self.log_message("🔮 The Broker has no more whispers...")
-            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            if (
+                hasattr(self, "rumor_window")
+                and self.rumor_window
+                and self.rumor_window.winfo_exists()
+            ):
                 self._populate_rumor_list()
             return
         if self.money < self.intel_cost:
             self.log_message(f"❌ Need {self.intel_cost} Gold for a rumor")
-            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            if (
+                hasattr(self, "rumor_window")
+                and self.rumor_window
+                and self.rumor_window.winfo_exists()
+            ):
                 self._populate_rumor_list()
             return
-            
-        rumors_to_buy = 2 if any(m.id == 'brokers_network' for m in self.equipped_modules) else 1
-        
+
+        rumors_to_buy = (
+            2 if any(m.id == "brokers_network" for m in self.equipped_modules) else 1
+        )
+
         for _ in range(rumors_to_buy):
-            if not self.phase2_demand_tags: break
+            if not self.phase2_demand_tags:
+                break
             revealed_item = random.choice(self.phase2_demand_tags)
             self.phase2_demand_tags.remove(revealed_item)
             port = random.choice(self.ports)
             self.revealed_intel.append({"item": revealed_item, "port": port})
-            self.log_message(f"🗣️ Broker's Whisper: 'Word from {port}: High demand for {revealed_item}!'")
-            
+            self.log_message(
+                f"🗣️ Broker's Whisper: 'Word from {port}: High demand for {revealed_item}!'"
+            )
+
         self.money -= self.intel_cost
         self.update_display()
-        
-        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+
+        if (
+            hasattr(self, "rumor_window")
+            and self.rumor_window
+            and self.rumor_window.winfo_exists()
+        ):
             self._populate_rumor_list()
 
     def generate_raw_material_order(self, resource_filter=None):
@@ -1015,7 +1397,8 @@ class PortMasters:
             resources.append({"type": resource_filter, "required": required})
         else:
             for _ in range(num_resources):
-                if not available_resources: break
+                if not available_resources:
+                    break
                 resource = random.choice(available_resources)
                 available_resources.remove(resource)
                 required = random.randint(2, 5)
@@ -1023,8 +1406,13 @@ class PortMasters:
                 resources.append({"type": resource, "required": required})
         base_reward = sum(r["required"] * 5 for r in resources)
         reward = base_reward + random.randint(10, 25)
-        return {"demand_port": demand_port, "resources": resources, "reward": reward,
-                "total_items": total_items, "is_product_order": False}
+        return {
+            "demand_port": demand_port,
+            "resources": resources,
+            "reward": reward,
+            "total_items": total_items,
+            "is_product_order": False,
+        }
 
     def generate_product_order(self, product_filter=None):
         if product_filter and product_filter in self.product_types:
@@ -1035,9 +1423,13 @@ class PortMasters:
         demand_port = random.choice(self.ports)
         base_price = random.randint(*self.product_prices[product])
         reward = base_price * required
-        return {"demand_port": demand_port, 
-                "resources": [{"type": product, "required": required}], 
-                "reward": reward, "total_items": required, "is_product_order": True}
+        return {
+            "demand_port": demand_port,
+            "resources": [{"type": product, "required": required}],
+            "reward": reward,
+            "total_items": required,
+            "is_product_order": True,
+        }
 
     def generate_mixed_order(self):
         if self.revealed_intel and not self._intel_order_used:
@@ -1062,7 +1454,8 @@ class PortMasters:
         probabilities = list(self.resource_probabilities.values())
         port = random.choice(self.ports)
         for _ in range(num_resources):
-            if not available_resources: break
+            if not available_resources:
+                break
             resource = random.choices(available_resources, weights=probabilities)[0]
             idx = available_resources.index(resource)
             available_resources.pop(idx)
@@ -1070,10 +1463,19 @@ class PortMasters:
             quantity = random.randint(1, 3)
             price_range = self.commodities[resource]["base_price"]
             base_price = random.randint(price_range[0], price_range[1])
-            price = base_price - 1 if port in self.commodities[resource]["ports"] else base_price + 1
+            price = (
+                base_price - 1
+                if port in self.commodities[resource]["ports"]
+                else base_price + 1
+            )
             resources.append({"type": resource, "quantity": quantity, "price": price})
         total_cost = sum(r["quantity"] * r["price"] for r in resources)
-        return {"port": port, "resources": resources, "total_cost": total_cost, "is_product_card": False}
+        return {
+            "port": port,
+            "resources": resources,
+            "total_cost": total_cost,
+            "is_product_card": False,
+        }
 
     def generate_product_purchase_card(self):
         product = random.choice(self.product_types)
@@ -1091,23 +1493,38 @@ class PortMasters:
         min_price, max_price = self.product_prices[product]
         unit_price = max(min_price, min(unit_price, max_price))
         total_cost = unit_price * quantity
-        resources = [{"type": product, "quantity": quantity, "price": unit_price, 
-                      "material_cost": material_cost, 
-                      "material_details": " + ".join(material_details)}]
-        return {"port": port, "resources": resources, "total_cost": total_cost, "is_product_card": True}
+        resources = [
+            {
+                "type": product,
+                "quantity": quantity,
+                "price": unit_price,
+                "material_cost": material_cost,
+                "material_details": " + ".join(material_details),
+            }
+        ]
+        return {
+            "port": port,
+            "resources": resources,
+            "total_cost": total_cost,
+            "is_product_card": True,
+        }
 
-    # ── Modifier Helper for Purchases ─────────────────────────────────
+    # == Modifier Helper for Purchases =================================
     def get_card_final_cost(self, card):
         final_cost = card["total_cost"]
         if "purchase_discount" in self.modifier_flags:
-            final_cost = int(final_cost * (1 - self.modifier_flags["purchase_discount"]))
+            final_cost = int(
+                final_cost * (1 - self.modifier_flags["purchase_discount"])
+            )
         if "hemp_price_reduction" in self.modifier_flags:
             for r in card["resources"]:
                 if r["type"] == "Hemp":
-                    final_cost -= r["quantity"] * self.modifier_flags["hemp_price_reduction"]
+                    final_cost -= (
+                        r["quantity"] * self.modifier_flags["hemp_price_reduction"]
+                    )
         return max(0, final_cost)
 
-    # ── Purchase / Order execution ────────────────────────────────────
+    # == Purchase / Order execution ====================================
     def purchase_card_specific(self, card):
         if card["id"] in self.purchased_cards:
             return
@@ -1115,59 +1532,78 @@ class PortMasters:
         for m in self.equipped_modules:
             final_cost = m.modify_purchase_cost(self, final_cost, card)
         final_cost = max(0, final_cost)
-        
+
         if self.money >= final_cost:
             self.money -= final_cost
-            self.round_costs += final_cost
+            self.material_costs += final_cost
             self.total_costs += final_cost
             for resource_info in card["resources"]:
                 self.inventory[resource_info["type"]] += resource_info["quantity"]
             self.purchased_cards.add(card["id"])
             self.purchase_count += 1
-            
+
             if card.get("is_product_card"):
                 for r in card["resources"]:
                     self.log_message(
                         f"🛒 Bought Product at {card['port']}: "
                         f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}"
                         f"(@{r['price']} Gold/item, Mat Cost {r.get('material_cost', '?')} Gold), "
-                        f"Total {final_cost} Gold")
-                self.log_message("   💡 Tip: VAT applies when selling finished products")
+                        f"Total {final_cost} Gold"
+                    )
+                self.log_message(
+                    "   💡 Tip: VAT applies when selling finished products"
+                )
             else:
                 resources_text = " + ".join(
                     f"{self.resource_icons.get(r['type'])}{r['type']}×{r['quantity']}({r['price']} Gold/item)"
-                    for r in card["resources"])
-                self.log_message(f"🛒 Bought at {card['port']}: {resources_text}, Total {final_cost} Gold")
-                
+                    for r in card["resources"]
+                )
+                self.log_message(
+                    f"🛒 Bought at {card['port']}: {resources_text}, Total {final_cost} Gold"
+                )
+
             if final_cost < card["total_cost"]:
-                self.log_message(f"   ✨ Boon Discount Applied! Saved {card['total_cost'] - final_cost} Gold")
-                
+                self.log_message(
+                    f"   ✨ Boon Discount Applied! Saved {card['total_cost'] - final_cost} Gold"
+                )
+
             self.update_display()
             self.update_purchase_buttons()
             self.log_message(f"📊 Purchased {self.purchase_count} cargo batches")
         else:
-            self.log_message(f"❌ Insufficient funds! Need {final_cost} Gold, Have {self.money} Gold")
+            self.log_message(
+                f"❌ Insufficient funds! Need {final_cost} Gold, Have {self.money} Gold"
+            )
 
     def complete_order(self, order):
         if order["id"] in self.completed_orders:
             return
         for resource_info in order["resources"]:
             if self.inventory.get(resource_info["type"], 0) < resource_info["required"]:
-                self.log_message(f"❌ Inventory short! Need {resource_info['type']}×{resource_info['required']}")
+                self.log_message(
+                    f"❌ Inventory short! Need {resource_info['type']}×{resource_info['required']}"
+                )
                 return
-                
-        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
+
+        has_silk = any(
+            r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"]
+            for r in order["resources"]
+        )
         transport_cost = self.calculate_transport_cost(order["total_items"], has_silk)
-        transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
-        
+        transport_detail = self.show_transport_cost_detail(
+            order["total_items"], has_silk
+        )
+
         for resource_info in order["resources"]:
             self.inventory[resource_info["type"]] -= resource_info["required"]
-            
+
         reward = order["reward"]
         is_product = order.get("is_product_order", False)
         if is_product:
             product = order["resources"][0]["type"]
-            vat = self.calculate_vat(product, reward / order["resources"][0]["required"])
+            vat = self.calculate_vat(
+                product, reward / order["resources"][0]["required"]
+            )
             total_vat = vat * order["resources"][0]["required"]
             actual_reward = reward - total_vat
             self.vat_paid += total_vat
@@ -1175,39 +1611,48 @@ class PortMasters:
         else:
             actual_reward = reward
             total_vat = 0
-            
+
         self.money -= transport_cost
-        self.round_costs += transport_cost
+        self.material_costs += transport_cost
         self.total_costs += transport_cost
-        
+
         original_transport_cost = transport_cost
         for m in self.equipped_modules:
-            actual_reward, transport_cost = m.on_order_complete(self, order, actual_reward, transport_cost)
-            
+            actual_reward, transport_cost = m.on_order_complete(
+                self, order, actual_reward, transport_cost
+            )
+
         if transport_cost != original_transport_cost:
             diff = original_transport_cost - transport_cost
             self.money += diff
-            self.round_costs -= diff
+            self.material_costs -= diff
             self.total_costs -= diff
-            
+
         self.money += actual_reward
         self.round_revenue += actual_reward
         self.total_revenue += actual_reward
         self.score += int(actual_reward - transport_cost)
         self.completed_orders.add(order["id"])
         self.order_count += 1
-        
+
         resources_text = " + ".join(
-            f"{self.resource_icons.get(r['type'])}{r['type']}×{r['required']}" for r in order["resources"])
+            f"{self.resource_icons.get(r['type'])}{r['type']}×{r['required']}"
+            for r in order["resources"]
+        )
         net_profit = actual_reward - transport_cost
-        
-        self.log_message(f"📦 Completed Order at {order['demand_port']}: {resources_text}")
-        self.log_message(f"   📦 Total Items: {transport_detail['total_items']} × 2 = {transport_detail['base_cost']} Gold")
-        self.log_message(f"   🚢 Discount: -{transport_detail['discount']} Gold")
+
+        self.log_message(
+            f"📦 Completed Order at {order['demand_port']}: {resources_text}"
+        )
+        self.log_message(
+            f"   📦 Total Items: {transport_detail['total_items']} × 2 = {transport_detail['base_cost']} Gold"
+        )
+        self.log_message(f"   🚢 Discount Applied: {transport_detail['discount']} Gold")
         self.log_message(f"   ⚓ Final Freight: {transport_detail['final_cost']} Gold")
         self.log_message(
-            f"   💰 Reward: {actual_reward} Gold - ⚓ Freight: {transport_cost} Gold = 📊 Net Profit: {net_profit} Gold")
-        
+            f"   💰 Reward: {actual_reward} Gold | ⚓ Freight: {transport_cost} Gold = 📊 Net Profit: {net_profit} Gold"
+        )
+
         self.update_display()
         self.update_order_buttons()
         self.log_message(f"📊 Completed {self.order_count} transactions")
@@ -1217,7 +1662,6 @@ class PortMasters:
         if self.money >= cost:
             self.money -= cost
             self.maintenance_costs += cost
-            self.round_costs += cost
             self.total_costs += cost
             self.log_message(f"💸 Paid Ship Maintenance Fee: {cost} Gold")
             self.update_display()
@@ -1231,7 +1675,6 @@ class PortMasters:
             paid = min(self.money, cost)
             self.money -= paid
             self.maintenance_costs += paid
-            self.round_costs += paid
             self.total_costs += paid
             self.log_message(f"⚠️ Forced payment of {paid} Gold (Needed {cost} Gold)")
             self.update_display()
@@ -1247,40 +1690,47 @@ class PortMasters:
     def end_round(self):
         self.log_message(f"\n📊=== Round {self.current_round} Settlement ===")
         self.log_message(f"💰 Revenue this round: {self.round_revenue} Gold")
-        total_round_costs = self.round_costs + self.maintenance_costs + self.worker_wages
+        total_round_costs = (
+            self.material_costs + self.maintenance_costs + self.worker_wages
+        )
         self.log_message(f"💸 Total Cost this round: {total_round_costs} Gold")
         self.log_message(f"   🔧 Maintenance: {self.maintenance_costs} Gold")
         self.log_message(f"   📦 Materials: {self.material_costs} Gold")
         self.log_message(f"   👥 Wages: {self.worker_wages} Gold")
-        
+
         pre_tax_profit = self.round_revenue - total_round_costs
-        self.log_message(f"📈 Pre-tax Profit: {pre_tax_profit} Gold")
-        
+        self.log_message(f"📈 Profit Before Tax: {pre_tax_profit} Gold")
+
         income_tax = self.calculate_income_tax(pre_tax_profit)
         if income_tax > 0:
             self.money -= income_tax
             self.income_tax_paid += income_tax
-            self.log_message(f"🏛️ Income Tax Paid ({self.modifier_flags.get('income_tax_override', 0.1)*100:.0f}%): {income_tax} Gold")
+            self.log_message(
+                f"🏛️ Income Tax Paid ({self.modifier_flags.get('income_tax_override', 0.1)*100:.0f}%): {income_tax} Gold"
+            )
         else:
             self.log_message("🏛️ No profit, no income tax due")
-            
+
         if self.vat_paid > 0:
             self.log_message(f"🧾 VAT Paid this round: {self.vat_paid} Gold")
-            
+
         self.modifier_flags = {}
         self.phase2_demand_tags = []
         self.revealed_intel = []
         self._intel_order_used = False
-        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+        if (
+            hasattr(self, "rumor_window")
+            and self.rumor_window
+            and self.rumor_window.winfo_exists()
+        ):
             self.rumor_window.destroy()
             self.rumor_window = None
-            
+
         self.round_revenue = 0
-        self.round_costs = 0
         self.maintenance_costs = 0
         self.material_costs = 0
         self.worker_wages = 0
-        
+
         self.current_round += 1
         if self.current_round > self.max_rounds:
             self.end_game()
@@ -1293,312 +1743,608 @@ class PortMasters:
             self.customer_cards = []
             self.purchased_cards.clear()
             self.completed_orders.clear()
+            self._draft_batch = None
+            self._draft_changes_left = 1
             self.update_display()
             self.start_boon_drafting()
             self.update_button_states()
 
-    # ── Helper: inventory row in worker mgmt ──────────────────────────
+    # == Helper: inventory row in worker mgmt ==========================
     def create_inventory_row(self, parent, item):
         color = self.resource_colors.get(item, "black")
         icon = self.resource_icons.get(item, "")
         frame = tk.Frame(parent, bg=self.colors["card_bg"])
         frame.pack(fill=tk.X, padx=20, pady=2)
-        tk.Label(frame, text=icon, font=self.FONT_BODY_BOLD, bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, 5))
-        tk.Label(frame, text=item, font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                 fg=color, width=15, anchor="w").pack(side=tk.LEFT)
-        tk.Label(frame, text=str(self.inventory.get(item, 0)), font=self.FONT_BODY_BOLD, 
-                 bg=self.colors["card_bg"], fg=color, width=5).pack(side=tk.RIGHT)
+        tk.Label(
+            frame, text=icon, font=self.FONT_BODY_BOLD, bg=self.colors["card_bg"]
+        ).pack(side=tk.LEFT, padx=(0, 5))
+        tk.Label(
+            frame,
+            text=item,
+            font=self.FONT_BODY,
+            bg=self.colors["card_bg"],
+            fg=color,
+            width=15,
+            anchor="w",
+        ).pack(side=tk.LEFT)
+        tk.Label(
+            frame,
+            text=str(self.inventory.get(item, 0)),
+            font=self.FONT_BODY_BOLD,
+            bg=self.colors["card_bg"],
+            fg=color,
+            width=5,
+        ).pack(side=tk.RIGHT)
 
-    # ── 🔮 INTEL SYSTEM: Rumor Board Toplevel Window ──────────────────
+    # == 🔮 INTEL SYSTEM: Rumor Board Toplevel Window ==================
     def show_rumor_board(self):
-        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+        if (
+            hasattr(self, "rumor_window")
+            and self.rumor_window
+            and self.rumor_window.winfo_exists()
+        ):
             self.rumor_window.lift()
             return
-            
+
         self.rumor_window = tk.Toplevel(self.window)
         self.rumor_window.title("🗣️ Broker's Rumor Board")
         self.rumor_window.geometry("500x400")
         self.rumor_window.transient(self.window)
         self.rumor_window.grab_set()
         self.rumor_window.configure(bg=self.colors["bg_light"])
-        
-        tk.Label(self.rumor_window, text="🗣️ Broker's Rumor Board", font=self.FONT_HERO, 
-                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(pady=10)
-        tk.Label(self.rumor_window, text="Spend gold to reveal Phase 2 demand rumors!", 
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(pady=(0, 10))
-                 
-        CustomButton(self.rumor_window, text=f"🔮 Buy Rumor ({self.intel_cost}💰)", 
-                     font=self.BUTTON_FONT, bg=self.colors["accent_gold"], 
-                     fg=self.colors["text_dark"], relief=tk.RAISED, borderwidth=2, 
-                     padx=20, pady=10, juice_callback=self.trigger_juice, 
-                     command=self.purchase_intel).pack(pady=10)
-                     
-        list_frame = tk.Frame(self.rumor_window, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+
+        tk.Label(
+            self.rumor_window,
+            text="🗣️ Broker's Rumor Board",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=10)
+        tk.Label(
+            self.rumor_window,
+            text="Spend gold to reveal Phase 2 demand rumors!",
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_blue"],
+        ).pack(pady=(0, 10))
+
+        CustomButton(
+            self.rumor_window,
+            text=f"🔮 Buy Rumor ({self.intel_cost}💰)",
+            font=self.BUTTON_FONT,
+            bg=self.colors["accent_gold"],
+            fg=self.colors["text_dark"],
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=10,
+            juice_callback=self.trigger_juice,
+            command=self.purchase_intel,
+        ).pack(pady=10)
+
+        list_frame = tk.Frame(
+            self.rumor_window,
+            bg=self.colors["card_bg"],
+            relief=tk.RAISED,
+            borderwidth=2,
+        )
         list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
-        
+
         canvas = tk.Canvas(list_frame, highlightthickness=0, bg=self.colors["card_bg"])
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
         self.rumor_list_frame = tk.Frame(canvas, bg=self.colors["card_bg"])
-        self.rumor_list_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        
-        window_id = canvas.create_window((0, 0), window=self.rumor_list_frame, anchor="n")
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        self.rumor_list_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        window_id = canvas.create_window(
+            (0, 0), window=self.rumor_list_frame, anchor="n"
+        )
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
+
         def on_mousewheel(event):
             if not canvas.winfo_exists():
                 return
-            if sys.platform == 'darwin':
+            if sys.platform == "darwin":
                 delta = -1 * event.delta
             else:
                 delta = int(-1 * (event.delta / 120))
             canvas.yview_scroll(delta, "units")
+
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
         self._populate_rumor_list()
-        
-        CustomButton(self.rumor_window, text="Close Board", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", 
-                     padx=20, pady=10, command=self.rumor_window.destroy).pack(pady=10)
+
+        CustomButton(
+            self.rumor_window,
+            text="Close Board",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            padx=20,
+            pady=10,
+            command=self.rumor_window.destroy,
+        ).pack(pady=10)
 
     def _populate_rumor_list(self):
-        if not hasattr(self, 'rumor_list_frame'): return
+        if not hasattr(self, "rumor_list_frame"):
+            return
         for widget in self.rumor_list_frame.winfo_children():
             widget.destroy()
-            
+
         if self.revealed_intel:
-            tk.Label(self.rumor_list_frame, text="📜 Revealed Intel:", 
-                     font=self.FONT_SMALL_BOLD, bg=self.colors["card_bg"], 
-                     fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=10, pady=(5, 2))
+            tk.Label(
+                self.rumor_list_frame,
+                text="📜 Revealed Intel:",
+                font=self.FONT_SMALL_BOLD,
+                bg=self.colors["card_bg"],
+                fg=self.colors["accent_blue"],
+            ).pack(anchor=tk.W, padx=10, pady=(5, 2))
             for intel in self.revealed_intel:
-                label = tk.Label(self.rumor_list_frame, 
-                                 text=f"• 🗣️ '{intel['port']} wants {intel['item']}'", 
-                                 font=self.FONT_SMALL, bg=self.colors["card_bg"], 
-                                 fg=self.colors["text_dark"], anchor=tk.W, justify=tk.LEFT)
+                label = tk.Label(
+                    self.rumor_list_frame,
+                    text=f"• 🗣️ '{intel['port']} wants {intel['item']}'",
+                    font=self.FONT_SMALL,
+                    bg=self.colors["card_bg"],
+                    fg=self.colors["text_dark"],
+                    anchor=tk.W,
+                    justify=tk.LEFT,
+                )
                 label.pack(anchor=tk.W, padx=25, pady=2)
         else:
-            tk.Label(self.rumor_list_frame, text="  ✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.", 
-                     font=self.FONT_SMALL, bg=self.colors["card_bg"], 
-                     fg="#888888", anchor=tk.W, justify=tk.LEFT).pack(anchor=tk.W, padx=10, pady=20)
-                     
-        if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            tk.Label(
+                self.rumor_list_frame,
+                text="  ✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.",
+                font=self.FONT_SMALL,
+                bg=self.colors["card_bg"],
+                fg="#888888",
+                anchor=tk.W,
+                justify=tk.LEFT,
+            ).pack(anchor=tk.W, padx=10, pady=20)
+
+        if (
+            hasattr(self, "rumor_window")
+            and self.rumor_window
+            and self.rumor_window.winfo_exists()
+        ):
             self.rumor_list_frame.update_idletasks()
             canvas = self.rumor_list_frame.master
             canvas.configure(scrollregion=canvas.bbox("all"))
 
-    # ── Worker management screen ──────────────────────────────────────
+    # == Worker management screen ======================================
     def show_worker_management(self, in_phase=False):
         self.clear_phase_content()
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
-        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
+        canvas = tk.Canvas(
+            main_container, highlightthickness=0, bg=self.colors["bg_light"]
+        )
+        scrollbar = ttk.Scrollbar(
+            main_container, orient="vertical", command=canvas.yview
+        )
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        scrollable_frame.bind("<Configure>", 
-                              lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
-        
+
         title_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         title_frame.pack(fill=tk.X, pady=self.PAD_XL)
-        tk.Label(title_frame, text="👥 Worker Management", font=self.FONT_HERO, 
-                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(pady=(0, 10))
-        funds_text = (f"💰 Current Funds: {self.money} Gold | 📦 See Inventory Below" 
-                      if not in_phase else f"💰 Current Funds: {self.money} Gold")
-        tk.Label(title_frame, text=funds_text, font=self.FONT_SUBTITLE, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack()
-                 
-        inv_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+        tk.Label(
+            title_frame,
+            text="👥 Worker Management",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=(0, 10))
+        funds_text = (
+            f"💰 Current Funds: {self.money} Gold | 📦 See Inventory Below"
+            if not in_phase
+            else f"💰 Current Funds: {self.money} Gold"
+        )
+        tk.Label(
+            title_frame,
+            text=funds_text,
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_blue"],
+        ).pack()
+
+        inv_frame = tk.Frame(
+            scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2
+        )
         inv_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-        tk.Label(inv_frame, text="📦 Current Inventory", font=self.FONT_CARD_TITLE, 
-                 bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
-                 
+        tk.Label(
+            inv_frame,
+            text="📦 Current Inventory",
+            font=self.FONT_CARD_TITLE,
+            bg=self.colors["card_bg"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=10)
+
         materials_frame = tk.Frame(inv_frame, bg=self.colors["card_bg"])
         materials_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(materials_frame, text="Raw Materials:", font=self.FONT_BODY_BOLD, 
-                 bg=self.colors["card_bg"], fg=self.colors["accent_blue"]).pack(anchor=tk.W)
+        tk.Label(
+            materials_frame,
+            text="Raw Materials:",
+            font=self.FONT_BODY_BOLD,
+            bg=self.colors["card_bg"],
+            fg=self.colors["accent_blue"],
+        ).pack(anchor=tk.W)
         for resource in self.resource_types:
             self.create_inventory_row(materials_frame, resource)
-            
+
         products_frame = tk.Frame(inv_frame, bg=self.colors["card_bg"])
         products_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(products_frame, text="Finished Goods:", font=self.FONT_BODY_BOLD, 
-                 bg=self.colors["card_bg"], fg=self.colors["accent_blue"]).pack(anchor=tk.W)
+        tk.Label(
+            products_frame,
+            text="Finished Goods:",
+            font=self.FONT_BODY_BOLD,
+            bg=self.colors["card_bg"],
+            fg=self.colors["accent_blue"],
+        ).pack(anchor=tk.W)
         for product in self.product_types:
             self.create_inventory_row(products_frame, product)
-            
-        tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(fill=tk.X, padx=50, pady=self.PAD_LG)
-        
-        hire_frame = tk.Frame(scrollable_frame, bg=self.colors["worker_bg"], relief=tk.RAISED, borderwidth=2)
+
+        tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(
+            fill=tk.X, padx=50, pady=self.PAD_LG
+        )
+
+        hire_frame = tk.Frame(
+            scrollable_frame,
+            bg=self.colors["worker_bg"],
+            relief=tk.RAISED,
+            borderwidth=2,
+        )
         hire_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-        tk.Label(hire_frame, text="🔨 Hire Workers", font=("Segoe UI", 18, "bold"), 
-                 bg=self.colors["worker_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
-                 
+        tk.Label(
+            hire_frame,
+            text="🔨 Hire Workers",
+            font=("Segoe UI", 18, "bold"),
+            bg=self.colors["worker_bg"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=10)
+
         workers_info = [
-            ("👩‍🔧 Weaver", 
-             f"Making: Linen Clothes(2 Hemp) or Cotton Clothes(2 Hemp+1 Silk)\nWage: {self.WEAVER_WAGE} Gold/Round"),
-            ("👩‍🎨 Master Weaver", 
-             f"Making: Linen Clothes, Cotton Clothes or Brocade(3 Silk)\nWage: {self.MASTER_WEAVER_WAGE} Gold/Round"),
-            ("🌸 Sachet Maker", 
-             f"Making: Sachet(1 Silk+2 Tea)\nWage: {self.SACHET_MAKER_WAGE} Gold/Round")
+            (
+                "👩‍🔧 Weaver",
+                f"Making: Linen Clothes(2 Hemp) or Cotton Clothes(2 Hemp+1 Silk)\nWage: {self.WEAVER_WAGE} Gold/Round",
+            ),
+            (
+                "👩‍🎨 Master Weaver",
+                f"Making: Linen Clothes, Cotton Clothes or Brocade(3 Silk)\nWage: {self.MASTER_WEAVER_WAGE} Gold/Round",
+            ),
+            (
+                "🌸 Sachet Maker",
+                f"Making: Sachet(1 Silk+2 Tea)\nWage: {self.SACHET_MAKER_WAGE} Gold/Round",
+            ),
         ]
         for title, desc in workers_info:
             info_frame = tk.Frame(hire_frame, bg=self.colors["worker_bg"])
             info_frame.pack(fill=tk.X, padx=20, pady=5)
-            tk.Label(info_frame, text=title, font=self.FONT_BODY_BOLD, 
-                     bg=self.colors["worker_bg"], fg=self.colors["text_dark"]).pack(anchor=tk.W)
-            tk.Label(info_frame, text=desc, font=self.FONT_SMALL, 
-                     bg=self.colors["worker_bg"], fg="#666666", justify=tk.LEFT).pack(anchor=tk.W, padx=20)
-                     
+            tk.Label(
+                info_frame,
+                text=title,
+                font=self.FONT_BODY_BOLD,
+                bg=self.colors["worker_bg"],
+                fg=self.colors["text_dark"],
+            ).pack(anchor=tk.W)
+            tk.Label(
+                info_frame,
+                text=desc,
+                font=self.FONT_SMALL,
+                bg=self.colors["worker_bg"],
+                fg="#666666",
+                justify=tk.LEFT,
+            ).pack(anchor=tk.W, padx=20)
+
         hire_buttons_frame = tk.Frame(hire_frame, bg=self.colors["worker_bg"])
         hire_buttons_frame.pack(pady=15)
-        
-        refresh_func = self.show_worker_management_in_phase if in_phase else self.show_worker_management
+
+        refresh_func = (
+            self.show_worker_management_in_phase
+            if in_phase
+            else self.show_worker_management
+        )
         weaver_cost = self.get_hire_cost("weaver")
         master_cost = self.get_hire_cost("master")
         maker_cost = self.get_hire_cost("sachet_maker")
-        
-        CustomButton(hire_buttons_frame, text=f"👩‍🔧 Hire Weaver ({weaver_cost}💰)", 
-                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                     relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                     command=lambda: [self.hire_worker("weaver"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"👩‍🎨 Hire Master Weaver ({master_cost}💰)", 
-                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                     relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                     command=lambda: [self.hire_worker("master"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-        CustomButton(hire_buttons_frame, text=f"🌸 Hire Sachet Maker ({maker_cost}💰)", 
-                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                     relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                     command=lambda: [self.hire_worker("sachet_maker"), refresh_func()]).pack(side=tk.LEFT, padx=10)
-                     
+
+        CustomButton(
+            hire_buttons_frame,
+            text=f"👩‍🔧 Hire Weaver ({weaver_cost}💰)",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=15,
+            command=lambda: [self.hire_worker("weaver"), refresh_func()],
+        ).pack(side=tk.LEFT, padx=10)
+        CustomButton(
+            hire_buttons_frame,
+            text=f"👩‍🎨 Hire Master Weaver ({master_cost}💰)",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=15,
+            command=lambda: [self.hire_worker("master"), refresh_func()],
+        ).pack(side=tk.LEFT, padx=10)
+        CustomButton(
+            hire_buttons_frame,
+            text=f"🌸 Hire Sachet Maker ({maker_cost}💰)",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=15,
+            command=lambda: [self.hire_worker("sachet_maker"), refresh_func()],
+        ).pack(side=tk.LEFT, padx=10)
+
         if self.weavers or self.master_weavers or self.sachet_makers:
-            status_frame = tk.Frame(scrollable_frame, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+            status_frame = tk.Frame(
+                scrollable_frame,
+                bg=self.colors["card_bg"],
+                relief=tk.RAISED,
+                borderwidth=2,
+            )
             status_frame.pack(fill=tk.X, padx=50, pady=self.PAD_MD)
-            tk.Label(status_frame, text="👥 Worker Status & Tasks", font=("Segoe UI", 18, "bold"), 
-                     bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(pady=10)
-                     
+            tk.Label(
+                status_frame,
+                text="👥 Worker Status & Tasks",
+                font=("Segoe UI", 18, "bold"),
+                bg=self.colors["card_bg"],
+                fg=self.colors["bg_dark"],
+            ).pack(pady=10)
+
             if self.weavers:
-                tk.Label(status_frame, text=f"👩‍🔧 Weavers: {len(self.weavers)}", 
-                         font=self.FONT_STAT, bg=self.colors["card_bg"], 
-                         fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=5)
+                tk.Label(
+                    status_frame,
+                    text=f"👩‍🔧 Weavers: {len(self.weavers)}",
+                    font=self.FONT_STAT,
+                    bg=self.colors["card_bg"],
+                    fg=self.colors["accent_blue"],
+                ).pack(anchor=tk.W, padx=20, pady=5)
                 for i, weaver in enumerate(self.weavers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
-                    if weaver['task']:
-                        skill_text = "(Skilled)" if weaver.get('is_skilled', False) else ""
+                    if weaver["task"]:
+                        skill_text = (
+                            "(Skilled)" if weaver.get("is_skilled", False) else ""
+                        )
                         task_text = f"Working on: {weaver['task']}{skill_text}"
                     else:
-                        skill_text = " ⭐ Skilled" if weaver.get('is_skilled', False) else ""
+                        skill_text = (
+                            " ⭐ Skilled" if weaver.get("is_skilled", False) else ""
+                        )
                         task_text = f"Idle{skill_text}"
-                    tk.Label(worker_frame, text=f"  Weaver {i + 1}: {task_text}", 
-                             font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                             fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
-                    if in_phase and weaver['task'] is None:
-                        CustomButton(worker_frame, text=f"Dismiss ({self.WEAVER_WAGE}💰)", 
-                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                                     padx=10, pady=5, 
-                                     command=lambda idx=i: [self.fire_worker("weaver", idx), 
-                                                            self.show_worker_management_in_phase()]).pack(
-                                     side=tk.RIGHT, padx=5)
+                    tk.Label(
+                        worker_frame,
+                        text=f"  Weaver {i + 1}: {task_text}",
+                        font=self.FONT_BODY,
+                        bg=self.colors["card_bg"],
+                        fg=self.colors["text_dark"],
+                    ).pack(side=tk.LEFT, padx=(0, 10))
+                    if in_phase and weaver["task"] is None:
+                        CustomButton(
+                            worker_frame,
+                            text=f"Dismiss ({self.WEAVER_WAGE}💰)",
+                            font=self.BUTTON_FONT,
+                            bg=self.colors["button_dark_grey"],
+                            fg="white",
+                            padx=10,
+                            pady=5,
+                            command=lambda idx=i: [
+                                self.fire_worker("weaver", idx),
+                                self.show_worker_management_in_phase(),
+                            ],
+                        ).pack(side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
-                CustomButton(task_frame, text="Make Linen Clothes (Needs 2 Hemp)", 
-                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                             padx=15, pady=10, 
-                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "Linen Clothes"), 
-                                              refresh_func()]).pack(side=tk.LEFT, padx=5)
-                CustomButton(task_frame, text="Make Cotton Clothes (Needs 2 Hemp+1 Silk)", 
-                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                             padx=15, pady=10, 
-                             command=lambda: [self.assign_worker_task(self.weavers, "weaver", "Cotton Clothes"), 
-                                              refresh_func()]).pack(side=tk.LEFT, padx=5)
-                                              
+                CustomButton(
+                    task_frame,
+                    text="Make Linen Clothes (Needs 2 Hemp)",
+                    font=self.BUTTON_FONT,
+                    bg=self.colors["button_dark_grey"],
+                    fg="white",
+                    padx=15,
+                    pady=10,
+                    command=lambda: [
+                        self.assign_worker_task(
+                            self.weavers, "weaver", "Linen Clothes"
+                        ),
+                        refresh_func(),
+                    ],
+                ).pack(side=tk.LEFT, padx=5)
+                CustomButton(
+                    task_frame,
+                    text="Make Cotton Clothes (Needs 2 Hemp+1 Silk)",
+                    font=self.BUTTON_FONT,
+                    bg=self.colors["button_dark_grey"],
+                    fg="white",
+                    padx=15,
+                    pady=10,
+                    command=lambda: [
+                        self.assign_worker_task(
+                            self.weavers, "weaver", "Cotton Clothes"
+                        ),
+                        refresh_func(),
+                    ],
+                ).pack(side=tk.LEFT, padx=5)
+
             if self.master_weavers:
-                tk.Label(status_frame, text=f"👩‍🎨 Master Weavers: {len(self.master_weavers)}", 
-                         font=self.FONT_STAT, bg=self.colors["card_bg"], 
-                         fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=10)
+                tk.Label(
+                    status_frame,
+                    text=f"👩‍🎨 Master Weavers: {len(self.master_weavers)}",
+                    font=self.FONT_STAT,
+                    bg=self.colors["card_bg"],
+                    fg=self.colors["accent_blue"],
+                ).pack(anchor=tk.W, padx=20, pady=10)
                 for i, master in enumerate(self.master_weavers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
-                    if master['task']:
-                        skill_text = "(Skilled)" if master.get('is_skilled', False) else ""
+                    if master["task"]:
+                        skill_text = (
+                            "(Skilled)" if master.get("is_skilled", False) else ""
+                        )
                         task_text = f"Working on: {master['task']}{skill_text}"
                     else:
-                        skill_text = " ⭐ Skilled" if master.get('is_skilled', False) else ""
+                        skill_text = (
+                            " ⭐ Skilled" if master.get("is_skilled", False) else ""
+                        )
                         task_text = f"Idle{skill_text}"
-                    tk.Label(worker_frame, text=f"  Master {i + 1}: {task_text}", 
-                             font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                             fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
-                    if in_phase and master['task'] is None:
-                        CustomButton(worker_frame, text=f"Dismiss ({self.MASTER_WEAVER_WAGE}💰)", 
-                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                                     padx=10, pady=5, 
-                                     command=lambda idx=i: [self.fire_worker("master", idx), 
-                                                            self.show_worker_management_in_phase()]).pack(
-                                     side=tk.RIGHT, padx=5)
+                    tk.Label(
+                        worker_frame,
+                        text=f"  Master {i + 1}: {task_text}",
+                        font=self.FONT_BODY,
+                        bg=self.colors["card_bg"],
+                        fg=self.colors["text_dark"],
+                    ).pack(side=tk.LEFT, padx=(0, 10))
+                    if in_phase and master["task"] is None:
+                        CustomButton(
+                            worker_frame,
+                            text=f"Dismiss ({self.MASTER_WEAVER_WAGE}💰)",
+                            font=self.BUTTON_FONT,
+                            bg=self.colors["button_dark_grey"],
+                            fg="white",
+                            padx=10,
+                            pady=5,
+                            command=lambda idx=i: [
+                                self.fire_worker("master", idx),
+                                self.show_worker_management_in_phase(),
+                            ],
+                        ).pack(side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
                 for task in ["Linen Clothes", "Cotton Clothes", "Brocade"]:
                     clean_task = task
                     recipe = self.RECIPES[clean_task]
                     materials = [f"{a}{m}" for m, a in recipe["materials"].items()]
-                    CustomButton(task_frame, text=f"Make {clean_task} (Need {'+'.join(materials)})", 
-                                 font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                                 padx=15, pady=10, 
-                                 command=lambda t=clean_task: [
-                                     self.assign_worker_task(self.master_weavers, "master", t), 
-                                     refresh_func()]).pack(side=tk.LEFT, padx=5)
-                                     
+                    CustomButton(
+                        task_frame,
+                        text=f"Make {clean_task} (Need {'+'.join(materials)})",
+                        font=self.BUTTON_FONT,
+                        bg=self.colors["button_dark_grey"],
+                        fg="white",
+                        padx=15,
+                        pady=10,
+                        command=lambda t=clean_task: [
+                            self.assign_worker_task(self.master_weavers, "master", t),
+                            refresh_func(),
+                        ],
+                    ).pack(side=tk.LEFT, padx=5)
+
             if self.sachet_makers:
-                tk.Label(status_frame, text=f"🌸 Sachet Makers: {len(self.sachet_makers)}", 
-                         font=self.FONT_STAT, bg=self.colors["card_bg"], 
-                         fg=self.colors["accent_blue"]).pack(anchor=tk.W, padx=20, pady=10)
+                tk.Label(
+                    status_frame,
+                    text=f"🌸 Sachet Makers: {len(self.sachet_makers)}",
+                    font=self.FONT_STAT,
+                    bg=self.colors["card_bg"],
+                    fg=self.colors["accent_blue"],
+                ).pack(anchor=tk.W, padx=20, pady=10)
                 for i, maker in enumerate(self.sachet_makers):
                     worker_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                     worker_frame.pack(fill=tk.X, padx=20, pady=5)
-                    task_text = f"Working on: {maker['task']}" if maker['task'] else "Idle"
-                    tk.Label(worker_frame, text=f"  Maker {i + 1}: {task_text}", 
-                             font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                             fg=self.colors["text_dark"]).pack(side=tk.LEFT, padx=(0, 10))
-                    if in_phase and maker['task'] is None:
-                        CustomButton(worker_frame, text=f"Dismiss ({self.SACHET_MAKER_WAGE}💰)", 
-                                     font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                                     padx=10, pady=5, 
-                                     command=lambda idx=i: [self.fire_worker("sachet_maker", idx), 
-                                                            self.show_worker_management_in_phase()]).pack(
-                                     side=tk.RIGHT, padx=5)
+                    task_text = (
+                        f"Working on: {maker['task']}" if maker["task"] else "Idle"
+                    )
+                    tk.Label(
+                        worker_frame,
+                        text=f"  Maker {i + 1}: {task_text}",
+                        font=self.FONT_BODY,
+                        bg=self.colors["card_bg"],
+                        fg=self.colors["text_dark"],
+                    ).pack(side=tk.LEFT, padx=(0, 10))
+                    if in_phase and maker["task"] is None:
+                        CustomButton(
+                            worker_frame,
+                            text=f"Dismiss ({self.SACHET_MAKER_WAGE}💰)",
+                            font=self.BUTTON_FONT,
+                            bg=self.colors["button_dark_grey"],
+                            fg="white",
+                            padx=10,
+                            pady=5,
+                            command=lambda idx=i: [
+                                self.fire_worker("sachet_maker", idx),
+                                self.show_worker_management_in_phase(),
+                            ],
+                        ).pack(side=tk.RIGHT, padx=5)
                 task_frame = tk.Frame(status_frame, bg=self.colors["card_bg"])
                 task_frame.pack(pady=10)
-                CustomButton(task_frame, text="Make Sachet (Need 1 Silk+2 Tea)", 
-                             font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                             padx=15, pady=10, 
-                             command=lambda: [self.assign_worker_task(self.sachet_makers, "sachet_maker", "Sachet"), 
-                                              refresh_func()]).pack(side=tk.LEFT, padx=5)
-                                              
-        tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(fill=tk.X, padx=50, pady=self.PAD_LG)
-        
+                CustomButton(
+                    task_frame,
+                    text="Make Sachet (Need 1 Silk+2 Tea)",
+                    font=self.BUTTON_FONT,
+                    bg=self.colors["button_dark_grey"],
+                    fg="white",
+                    padx=15,
+                    pady=10,
+                    command=lambda: [
+                        self.assign_worker_task(
+                            self.sachet_makers, "sachet_maker", "Sachet"
+                        ),
+                        refresh_func(),
+                    ],
+                ).pack(side=tk.LEFT, padx=5)
+
+        tk.Frame(scrollable_frame, height=2, bg=self.colors["separator"]).pack(
+            fill=tk.X, padx=50, pady=self.PAD_LG
+        )
+
         if in_phase:
-            CustomButton(scrollable_frame, text="✅ Complete Workers, Sailing", 
-                         font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                         relief=tk.RAISED, borderwidth=3, padx=30, pady=15, 
-                         command=self.start_phase2).pack(pady=10)
+            CustomButton(
+                scrollable_frame,
+                text="✅ Complete Workers, Sailing",
+                font=self.BUTTON_FONT,
+                bg=self.colors["button_dark_grey"],
+                fg="white",
+                relief=tk.RAISED,
+                borderwidth=3,
+                padx=30,
+                pady=15,
+                command=self.start_phase2,
+            ).pack(pady=10)
         else:
-            CustomButton(scrollable_frame, text="🔙 Return Home", 
-                         font=self.BUTTON_FONT, bg=self.colors["button_dark_grey"], fg="white", 
-                         relief=tk.RAISED, borderwidth=3, padx=30, pady=15, 
-                         command=self.show_welcome).pack(pady=10)
-                         
+            CustomButton(
+                scrollable_frame,
+                text="🔙 Return Home",
+                font=self.BUTTON_FONT,
+                bg=self.colors["button_dark_grey"],
+                fg="white",
+                relief=tk.RAISED,
+                borderwidth=3,
+                padx=30,
+                pady=15,
+                command=self.show_welcome,
+            ).pack(pady=10)
+
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
         canvas.yview_moveto(0)
@@ -1606,62 +2352,98 @@ class PortMasters:
     def show_worker_management_in_phase(self):
         self.show_worker_management(in_phase=True)
 
-    # ── Mousewheel ────────────────────────────────────────────────────
+    # == Mousewheel ====================================================
     def bind_mousewheel(self, canvas):
         def on_mousewheel(event):
             if not canvas.winfo_exists():
                 return
-            if sys.platform == 'darwin':
+            if sys.platform == "darwin":
                 delta = -1 * event.delta
             else:
                 delta = int(-1 * (event.delta / 120))
             canvas.yview_scroll(delta, "units")
+
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", on_mousewheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
-    # ── Styles ────────────────────────────────────────────────────────
+    # == Styles ========================================================
     def setup_styles(self):
         style = ttk.Style()
-        style.theme_use('clam')
-        style.configure("Title.TLabel", font=self.FONT_TITLE, 
-                        foreground=self.colors["text_dark"], background=self.colors["bg_light"])
-        style.configure("Subtitle.TLabel", font=self.FONT_SUBTITLE, 
-                        foreground=self.colors["accent_blue"], background=self.colors["bg_light"])
-        style.configure("DarkFrame.TLabelframe", background=self.colors["bg_light"], 
-                        foreground=self.colors["text_dark"])
-        style.configure("DarkFrame.TLabelframe.Label", background=self.colors["bg_light"], 
-                        foreground=self.colors["accent_blue"])
+        style.theme_use("clam")
+        style.configure(
+            "Title.TLabel",
+            font=self.FONT_TITLE,
+            foreground=self.colors["text_dark"],
+            background=self.colors["bg_light"],
+        )
+        style.configure(
+            "Subtitle.TLabel",
+            font=self.FONT_SUBTITLE,
+            foreground=self.colors["accent_blue"],
+            background=self.colors["bg_light"],
+        )
+        style.configure(
+            "DarkFrame.TLabelframe",
+            background=self.colors["bg_light"],
+            foreground=self.colors["text_dark"],
+        )
+        style.configure(
+            "DarkFrame.TLabelframe.Label",
+            background=self.colors["bg_light"],
+            foreground=self.colors["accent_blue"],
+        )
 
-    # ── Main widget construction ──────────────────────────────────────
+    # == Main widget construction ======================================
     def create_widgets(self):
         main_frame = ttk.Frame(self.window, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.configure(style="DarkFrame.TLabelframe")
-        
+
         title_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
-        title_frame.grid(row=0, column=0, columnspan=3, pady=(0, self.PAD_SM), sticky=(tk.W, tk.E))
-        
-        title_container = tk.Frame(title_frame, bg=self.colors["bg_dark"], padx=self.PAD_LG, pady=self.PAD_MD)
+        title_frame.grid(
+            row=0, column=0, columnspan=3, pady=(0, self.PAD_SM), sticky=(tk.W, tk.E)
+        )
+
+        title_container = tk.Frame(
+            title_frame, bg=self.colors["bg_dark"], padx=self.PAD_LG, pady=self.PAD_MD
+        )
         title_container.pack(fill=tk.X)
-        tk.Label(title_container, text="⚓ PortMasters 🚢", 
-                 font=("Segoe UI", 22, "bold"), 
-                 bg=self.colors["bg_dark"], fg=self.colors["accent_gold"]).pack(side=tk.LEFT, padx=(0, 30))
-        tk.Label(title_container, text="⚓ Navigation | 🚢 Upgrades | 👥 Work | 🧾 Taxes", 
-                 font=self.FONT_SMALL, bg=self.colors["bg_dark"], 
-                 fg=self.colors["text_light"]).pack(side=tk.LEFT, padx=(0, 20))
-        tk.Label(title_container, 
-                 text="Shortcuts: Ctrl+S Save | Ctrl+N Next | Ctrl+H Workers | Ctrl+R Restart | F1 Help", 
-                 font=("Segoe UI", 8), bg=self.colors["bg_dark"], fg="#AAC4E8").pack(side=tk.RIGHT)
-                 
+        tk.Label(
+            title_container,
+            text="⚓ PortMasters 🚢",
+            font=("Segoe UI", 22, "bold"),
+            bg=self.colors["bg_dark"],
+            fg=self.colors["accent_gold"],
+        ).pack(side=tk.LEFT, padx=(0, 30))
+        tk.Label(
+            title_container,
+            text="⚓ Navigation | 🚢 Upgrades | 👥 Work | 🧾 Taxes",
+            font=self.FONT_SMALL,
+            bg=self.colors["bg_dark"],
+            fg=self.colors["text_light"],
+        ).pack(side=tk.LEFT, padx=(0, 20))
+        tk.Label(
+            title_container,
+            text="Shortcuts: Ctrl+S Save | Ctrl+N Next | Ctrl+H Workers | Ctrl+R Restart | F1 Help",
+            font=("Segoe UI", 8),
+            bg=self.colors["bg_dark"],
+            fg="#AAC4E8",
+        ).pack(side=tk.RIGHT)
+
         content_frame = ttk.Frame(main_frame, style="DarkFrame.TLabelframe")
-        content_frame.grid(row=1, column=0, columnspan=3, 
-                           sticky=(tk.W, tk.E, tk.N, tk.S), pady=self.PAD_MD)
-                           
+        content_frame.grid(
+            row=1,
+            column=0,
+            columnspan=3,
+            sticky=(tk.W, tk.E, tk.N, tk.S),
+            pady=self.PAD_MD,
+        )
+
         self.create_status_panel(content_frame)
         self.create_phase_panel(content_frame)
         self.create_control_panel(main_frame)
         self.create_log_panel(main_frame)
-        
+
         self.window.columnconfigure(0, weight=1)
         self.window.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=0)
@@ -1673,172 +2455,316 @@ class PortMasters:
         content_frame.rowconfigure(0, weight=1)
 
     def create_status_panel(self, parent):
-        status_panel = ttk.LabelFrame(parent, text="📊 Navigation Log", 
-                                      padding="10", style="DarkFrame.TLabelframe")
-        status_panel.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, self.PAD_MD))
-        
-        self.round_label = tk.Label(status_panel, text=f"🌊 Round 1/{self.max_rounds}", 
-                                    font=self.FONT_STAT, bg=self.colors["bg_light"], 
-                                    fg=self.colors["bg_dark"])
-        self.round_label.grid(row=0, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W)
-        
-        self.money_label = tk.Label(status_panel, text="💰 Funds: 100 Gold", 
-                                    font=self.FONT_BODY_BOLD, bg=self.colors["bg_light"], 
-                                    fg=self.colors["accent_green"])
-        self.money_label.grid(row=1, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W)
-        
-        self.score_label = tk.Label(status_panel, text="🏆 Reputation: 0", 
-                                    font=self.FONT_BODY, bg=self.colors["bg_light"], 
-                                    fg=self.colors["text_dark"])
-        self.score_label.grid(row=2, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=tk.W)
-        
+        status_panel = ttk.LabelFrame(
+            parent,
+            text="📊 Navigation Log",
+            padding="10",
+            style="DarkFrame.TLabelframe",
+        )
+        status_panel.grid(
+            row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, self.PAD_MD)
+        )
+
+        self.round_label = tk.Label(
+            status_panel,
+            text=f"🌊 Round 1/{self.max_rounds}",
+            font=self.FONT_STAT,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        )
+        self.round_label.grid(
+            row=0, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W
+        )
+
+        self.money_label = tk.Label(
+            status_panel,
+            text="💰 Funds: 100 Gold",
+            font=self.FONT_BODY_BOLD,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_green"],
+        )
+        self.money_label.grid(
+            row=1, column=0, columnspan=2, pady=(0, self.PAD_SM), sticky=tk.W
+        )
+
+        self.score_label = tk.Label(
+            status_panel,
+            text="🏆 Reputation: 0",
+            font=self.FONT_BODY,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        )
+        self.score_label.grid(
+            row=2, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=tk.W
+        )
+
         self.create_ship_panel(status_panel)
         self.create_inventory_panel(status_panel)
         status_panel.rowconfigure(4, weight=1)
 
     def create_ship_panel(self, parent):
-        ship_frame = ttk.LabelFrame(parent, text="🚢 Ship Status", 
-                                    padding=self.PAD_MD, style="DarkFrame.TLabelframe")
-        ship_frame.grid(row=3, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=(tk.W, tk.E))
-        
-        self.ship_label = tk.Label(ship_frame, text="🚢 Merchant Ship: Level 0", 
-                                   font=self.FONT_BODY, bg=self.colors["bg_light"], 
-                                   fg=self.colors["text_dark"])
+        ship_frame = ttk.LabelFrame(
+            parent,
+            text="🚢 Ship Status",
+            padding=self.PAD_MD,
+            style="DarkFrame.TLabelframe",
+        )
+        ship_frame.grid(
+            row=3, column=0, columnspan=2, pady=(0, self.PAD_MD), sticky=(tk.W, tk.E)
+        )
+
+        self.ship_label = tk.Label(
+            ship_frame,
+            text="🚢 Merchant Ship: Level 0",
+            font=self.FONT_BODY,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        )
         self.ship_label.pack(anchor=tk.W, pady=2)
-        
-        self.transport_label = tk.Label(ship_frame, text="⚓ Freight: max(5, Items×2 - 0) Gold", 
-                                        font=self.FONT_BODY, bg=self.colors["bg_light"], 
-                                        fg=self.colors["accent_red"])
+
+        self.transport_label = tk.Label(
+            ship_frame,
+            text="⚓ Freight: max(5, Items×2) Gold",
+            font=self.FONT_BODY,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_red"],
+        )
         self.transport_label.pack(anchor=tk.W, pady=2)
 
     def create_inventory_panel(self, parent):
-        inv_frame = ttk.LabelFrame(parent, text="📦 Cargo Hold", 
-                                   padding=self.PAD_SM, style="DarkFrame.TLabelframe")
+        inv_frame = ttk.LabelFrame(
+            parent,
+            text="📦 Cargo Hold",
+            padding=self.PAD_SM,
+            style="DarkFrame.TLabelframe",
+        )
         inv_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        canvas = tk.Canvas(inv_frame, height=200, highlightthickness=0, bg=self.colors["bg_light"])
+
+        canvas = tk.Canvas(
+            inv_frame, height=200, highlightthickness=0, bg=self.colors["bg_light"]
+        )
         scrollbar = ttk.Scrollbar(inv_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        scrollable_frame.bind("<Configure>", 
-                              lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.configure(yscrollcommand=scrollbar.set)
         self.bind_mousewheel(canvas)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
+
         self.inventory_labels = {}
-        
-        tk.Label(scrollable_frame, text="━━ Raw Materials ━━", font=self.FONT_SMALL_BOLD, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(
-                 anchor=tk.W, pady=(5, 2), padx=5)
+
+        tk.Label(
+            scrollable_frame,
+            text="Raw Materials",
+            font=self.FONT_SMALL_BOLD,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_blue"],
+        ).pack(anchor=tk.W, pady=(5, 2), padx=5)
         for resource in self.resource_types:
             self.create_inventory_item(scrollable_frame, resource)
-            
-        tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(fill=tk.X, pady=5, padx=5)
-        
-        tk.Label(scrollable_frame, text="━━ Finished Goods ━━", font=self.FONT_SMALL_BOLD, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(
-                 anchor=tk.W, pady=(5, 2), padx=5)
+
+        tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(
+            fill=tk.X, pady=5, padx=5
+        )
+
+        tk.Label(
+            scrollable_frame,
+            text="Finished Goods",
+            font=self.FONT_SMALL_BOLD,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_gold"],
+        ).pack(anchor=tk.W, pady=(5, 2), padx=5)
         for product in self.product_types:
             self.create_inventory_item(scrollable_frame, product)
-            
+
         if self.weavers or self.master_weavers or self.sachet_makers:
-            tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(fill=tk.X, pady=5, padx=5)
-            tk.Label(scrollable_frame, text="━━ Workers ━━", font=self.FONT_SMALL_BOLD, 
-                     bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(
-                     anchor=tk.W, pady=(5, 2), padx=5)
+            tk.Frame(scrollable_frame, height=1, bg=self.colors["separator"]).pack(
+                fill=tk.X, pady=5, padx=5
+            )
+            tk.Label(
+                scrollable_frame,
+                text="Workers",
+                font=self.FONT_SMALL_BOLD,
+                bg=self.colors["bg_light"],
+                fg=self.colors["accent_blue"],
+            ).pack(anchor=tk.W, pady=(5, 2), padx=5)
             workers_info = [
                 ("👩‍🔧 Weavers", len(self.weavers)),
                 ("👩‍🎨 Masters", len(self.master_weavers)),
-                ("🌸 Makers", len(self.sachet_makers))
+                ("🌸 Makers", len(self.sachet_makers)),
             ]
             for name, count in workers_info:
                 frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
                 frame.pack(fill=tk.X, padx=10, pady=1)
-                tk.Label(frame, text=name, font=self.FONT_SMALL, 
-                         bg=self.colors["bg_light"], fg=self.colors["text_dark"], 
-                         width=14, anchor="w").pack(side=tk.LEFT)
-                tk.Label(frame, text=str(count), font=self.FONT_SMALL_BOLD, 
-                         bg=self.colors["bg_light"], fg=self.colors["accent_blue"], 
-                         width=4, anchor="e").pack(side=tk.RIGHT)
+                tk.Label(
+                    frame,
+                    text=name,
+                    font=self.FONT_SMALL,
+                    bg=self.colors["bg_light"],
+                    fg=self.colors["text_dark"],
+                    width=14,
+                    anchor="w",
+                ).pack(side=tk.LEFT)
+                tk.Label(
+                    frame,
+                    text=str(count),
+                    font=self.FONT_SMALL_BOLD,
+                    bg=self.colors["bg_light"],
+                    fg=self.colors["accent_blue"],
+                    width=4,
+                    anchor="e",
+                ).pack(side=tk.RIGHT)
 
     def create_inventory_item(self, parent, item):
         color = self.resource_colors.get(item, "black")
         icon = self.resource_icons.get(item, "")
         frame = tk.Frame(parent, bg=self.colors["bg_light"])
         frame.pack(fill=tk.X, padx=10, pady=1)
-        tk.Label(frame, text=icon, font=self.FONT_BODY, 
-                 bg=self.colors["bg_light"]).pack(side=tk.LEFT, padx=(0, 3))
-        tk.Label(frame, text=item, font=self.FONT_SMALL, 
-                 bg=self.colors["bg_light"], fg=color, 
-                 width=14, anchor="w").pack(side=tk.LEFT)
-        label_value = tk.Label(frame, text=str(self.inventory.get(item, 0)), 
-                               font=self.FONT_SMALL_BOLD, bg=self.colors["bg_light"], 
-                               fg=color, width=5, anchor="e")
+        tk.Label(
+            frame, text=icon, font=self.FONT_BODY, bg=self.colors["bg_light"]
+        ).pack(side=tk.LEFT, padx=(0, 3))
+        tk.Label(
+            frame,
+            text=item,
+            font=self.FONT_SMALL,
+            bg=self.colors["bg_light"],
+            fg=color,
+            width=14,
+            anchor="w",
+        ).pack(side=tk.LEFT)
+        label_value = tk.Label(
+            frame,
+            text=str(self.inventory.get(item, 0)),
+            font=self.FONT_SMALL_BOLD,
+            bg=self.colors["bg_light"],
+            fg=color,
+            width=5,
+            anchor="e",
+        )
         label_value.pack(side=tk.RIGHT, padx=(0, 5))
         self.inventory_labels[item] = label_value
 
     def create_phase_panel(self, parent):
-        self.phase_frame = ttk.LabelFrame(parent, text="🌊 Trade Phases", 
-                                          padding=self.PAD_LG, style="DarkFrame.TLabelframe")
-        self.phase_frame.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.phase_frame = ttk.LabelFrame(
+            parent,
+            text="🌊 Trade Phases",
+            padding=self.PAD_LG,
+            style="DarkFrame.TLabelframe",
+        )
+        self.phase_frame.grid(
+            row=0, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
+        )
         self.phase_content = ttk.Frame(self.phase_frame, style="DarkFrame.TLabelframe")
         self.phase_content.pack(fill=tk.BOTH, expand=True)
 
     def create_control_panel(self, parent):
         control_panel = ttk.Frame(parent, style="DarkFrame.TLabelframe")
-        control_panel.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(self.PAD_MD, 0))
-        
-        control_container = tk.Frame(control_panel, bg=self.colors["bg_dark"], padx=self.PAD_MD, pady=self.PAD_SM)
+        control_panel.grid(
+            row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(self.PAD_MD, 0)
+        )
+
+        control_container = tk.Frame(
+            control_panel, bg=self.colors["bg_dark"], padx=self.PAD_MD, pady=self.PAD_SM
+        )
         control_container.pack(fill=tk.X)
-        
+
         row1_frame = tk.Frame(control_container, bg=self.colors["bg_dark"])
         row1_frame.pack(fill=tk.X, pady=3)
-        
-        self.start_btn = CustomButton(row1_frame, text="🚢 Start Voyage", 
-                                      font=self.BUTTON_FONT, 
-                                      bg=self.colors["button_primary"], fg="white", 
-                                      relief=tk.RAISED, borderwidth=2, padx=20, pady=10, 
-                                      cursor="hand2", command=self.show_worker_management)
+
+        self.start_btn = CustomButton(
+            row1_frame,
+            text="🚢 Start Voyage",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_primary"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=10,
+            cursor="hand2",
+            command=self.show_worker_management,
+        )
         self.start_btn.pack(side=tk.LEFT, padx=2)
-        
-        self.next_btn = CustomButton(row1_frame, text="⏭️ Continue Voyage", 
-                                     font=self.BUTTON_FONT, 
-                                     bg=self.colors["button_primary"], fg="white", 
-                                     relief=tk.RAISED, borderwidth=2, padx=20, pady=10, 
-                                     cursor="hand2", state=tk.DISABLED, command=self.next_phase)
+
+        self.next_btn = CustomButton(
+            row1_frame,
+            text="⏭️ Continue Voyage",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_primary"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=10,
+            cursor="hand2",
+            state=tk.DISABLED,
+            command=self.next_phase,
+        )
         self.next_btn.pack(side=tk.LEFT, padx=2)
-        
+
         row2_frame = tk.Frame(control_container, bg=self.colors["bg_dark"])
         row2_frame.pack(fill=tk.X, pady=3)
-        
+
         buttons = [
             ("📖 Guide", self.show_instructions),
             ("💾 Save", self.save_game),
-            ("🔄 Restart", self.restart_game)
+            ("🔄 Restart", self.restart_game),
         ]
         for text, command in buttons:
-            CustomButton(row2_frame, text=text, font=self.BUTTON_FONT, 
-                         bg=self.colors["button_dark_grey"], fg="white", 
-                         relief=tk.RAISED, borderwidth=2, 
-                         padx=20, pady=10, cursor="hand2", command=command).pack(side=tk.LEFT, padx=2)
+            CustomButton(
+                row2_frame,
+                text=text,
+                font=self.BUTTON_FONT,
+                bg=self.colors["button_dark_grey"],
+                fg="white",
+                relief=tk.RAISED,
+                borderwidth=2,
+                padx=20,
+                pady=10,
+                cursor="hand2",
+                command=command,
+            ).pack(side=tk.LEFT, padx=2)
 
     def create_log_panel(self, parent):
-        log_frame = ttk.LabelFrame(parent, text="📜 Voyage Log", 
-                                   padding=self.PAD_SM, style="DarkFrame.TLabelframe")
-        log_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(self.PAD_SM, 0))
-        
+        log_frame = ttk.LabelFrame(
+            parent,
+            text="📜 Voyage Log",
+            padding=self.PAD_SM,
+            style="DarkFrame.TLabelframe",
+        )
+        log_frame.grid(
+            row=3,
+            column=0,
+            columnspan=3,
+            sticky=(tk.W, tk.E, tk.N, tk.S),
+            pady=(self.PAD_SM, 0),
+        )
+
         log_container = ttk.Frame(log_frame, style="DarkFrame.TLabelframe")
         log_container.pack(fill=tk.BOTH, expand=True)
-        
-        self.log_text = tk.Text(log_container, height=5, font=("Consolas", 9), 
-                                bg="#F8F9FA", fg=self.colors["text_dark"], 
-                                wrap=tk.WORD, borderwidth=1, relief=tk.SOLID)
-        scrollbar = ttk.Scrollbar(log_container, orient="vertical", command=self.log_text.yview)
+
+        self.log_text = tk.Text(
+            log_container,
+            height=5,
+            font=("Consolas", 9),
+            bg="#F8F9FA",
+            fg=self.colors["text_dark"],
+            wrap=tk.WORD,
+            borderwidth=1,
+            relief=tk.SOLID,
+        )
+        scrollbar = ttk.Scrollbar(
+            log_container, orient="vertical", command=self.log_text.yview
+        )
         self.log_text.configure(yscrollcommand=scrollbar.set)
         self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1859,60 +2785,103 @@ class PortMasters:
         self.score_label.config(text=f"🏆 Reputation: {self.score}")
         discount = self.ship_level * 5
         self.ship_label.config(text=f"🚢 Merchant Ship: Level {self.ship_level}")
-        self.transport_label.config(text=f"⚓ Freight: max(5, Items×2 - {discount}) Gold")
+        self.transport_label.config(
+            text=f"⚓ Freight: max(5, Items×2 minus {discount}) Gold"
+        )
         for item, label in self.inventory_labels.items():
             label.config(text=str(self.inventory.get(item, 0)))
 
-    # ── Boon Drafting Phase ───────────────────────────────────────────
+    # == Boon Drafting Phase ===========================================
     def start_boon_drafting(self):
         self.phase = 5
         self.clear_phase_content()
         self.log_message("\n🧭=== The Navigator's Compass ===")
         self.log_message("Choose a Boon to bend the rules of the upcoming voyage...")
-        
+
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🧭 The Navigator's Compass", font=self.FONT_HERO, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
-        tk.Label(main_container, text="Draft a Boon to synergize with your strategy", 
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
+        tk.Label(
+            main_container,
+            text="🧭 The Navigator's Compass",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_gold"],
+        ).pack(pady=(20, 5))
+        tk.Label(
+            main_container,
+            text="Draft a Boon to synergize with your strategy",
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        ).pack(pady=(0, 20))
+
         boons = self.boon_manager.get_draft_choices(3)
         cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         for i in range(3):
             cards_frame.columnconfigure(i, weight=1, uniform="boon_col")
-            
+
         for i, boon in enumerate(boons):
             self.create_boon_card(cards_frame, boon, 0, i)
-            
+
         self.update_button_states()
 
     def create_boon_card(self, parent, boon, row, col):
-        card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
+        card = tk.Frame(
+            parent,
+            bg=self.colors["card_bg"],
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=20,
+            pady=20,
+        )
         card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
-        
-        tk.Label(card, text=boon["icon"], font=("Segoe UI", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
-        tk.Label(card, text=boon["name"], font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"], 
-                 fg=self.colors["bg_dark"]).pack(pady=5)
-        tk.Label(card, text=boon["desc"], font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                 fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
-                 
-        btn = CustomButton(card, text="🔒 Lock In Boon", font=self.BUTTON_FONT, 
-                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"], 
-                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                           juice_callback=self.trigger_juice, 
-                           command=lambda b=boon: self.select_boon(b))
+
+        tk.Label(
+            card, text=boon["icon"], font=("Segoe UI", 40), bg=self.colors["card_bg"]
+        ).pack(pady=(10, 5))
+        tk.Label(
+            card,
+            text=boon["name"],
+            font=self.FONT_CARD_TITLE,
+            bg=self.colors["card_bg"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=5)
+        tk.Label(
+            card,
+            text=boon["desc"],
+            font=self.FONT_BODY,
+            bg=self.colors["card_bg"],
+            fg=self.colors["text_dark"],
+            wraplength=250,
+            justify=tk.CENTER,
+        ).pack(pady=10, fill=tk.X, expand=True)
+
+        btn = CustomButton(
+            card,
+            text="🔒 Lock In Boon",
+            font=self.BUTTON_FONT,
+            bg=self.colors["accent_gold"],
+            fg=self.colors["text_dark"],
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=15,
+            juice_callback=self.trigger_juice,
+            command=lambda b=boon: self.select_boon(b),
+        )
         btn.pack(fill=tk.X, pady=(10, 0))
 
     def select_boon(self, boon):
         self.log_message(f"🧭 Boon Selected: {boon['icon']} {boon['name']}")
         self.apply_modifiers(boon["modifiers"])
-        self.show_welcome()
+        self.start_phase1()
 
-    # ── Welcome screen ────────────────────────────────────────────────
+    # == Welcome screen ================================================
     def show_welcome(self):
         self.phase = 0
         self.clear_phase_content()
@@ -1921,59 +2890,90 @@ class PortMasters:
         self.log_message("🚢 Sail across ports, build your business empire!")
         self.log_message("👥 Hire artisans to craft valuable goods for higher profits!")
         self.log_message("=" * 50)
-        
+
         welcome_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         welcome_frame.pack(fill=tk.BOTH, expand=True, pady=30)
-        
-        tk.Label(welcome_frame, text="⚓ PortMasters 🚢", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
-                 fg=self.colors["bg_dark"]).pack(pady=(20, 10))
-        tk.Label(welcome_frame, text="🌊 Eight Voyages await, become the Sea Master!", 
-                 font=("Segoe UI", 16), bg=self.colors["bg_light"], 
-                 fg=self.colors["accent_blue"]).pack(pady=(0, 30))
-                 
+
+        tk.Label(
+            welcome_frame,
+            text="⚓ PortMasters 🚢",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=(20, 10))
+        tk.Label(
+            welcome_frame,
+            text="🌊 Eight Voyages await, become the Sea Master!",
+            font=("Segoe UI", 16),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_blue"],
+        ).pack(pady=(0, 30))
+
         if os.path.exists(self.save_file):
-            CustomButton(welcome_frame, text="📂 Continue Voyage", font=self.BUTTON_FONT, 
-                         bg=self.colors["button_primary"], fg="white", 
-                         relief=tk.RAISED, borderwidth=3, padx=30, pady=15, 
-                         cursor="hand2", command=self.load_game).pack(pady=10)
-                         
-        CustomButton(welcome_frame, text="🚢 Set Sail", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_success"], fg="white", 
-                     relief=tk.RAISED, borderwidth=3, padx=30, pady=15, 
-                     cursor="hand2", command=self.start_phase1).pack(pady=20)
-                     
+            CustomButton(
+                welcome_frame,
+                text="📂 Continue Voyage",
+                font=self.BUTTON_FONT,
+                bg=self.colors["button_primary"],
+                fg="white",
+                relief=tk.RAISED,
+                borderwidth=3,
+                padx=30,
+                pady=15,
+                cursor="hand2",
+                command=self.load_game,
+            ).pack(pady=10)
+
+        CustomButton(
+            welcome_frame,
+            text="🚢 Set Sail",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_success"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=30,
+            pady=15,
+            cursor="hand2",
+            command=self.start_boon_drafting,
+        ).pack(pady=20)
+
         tips_frame = ttk.Frame(welcome_frame, style="DarkFrame.TLabelframe")
         tips_frame.pack(pady=20)
         tips = [
             "📦 Initial Goods: Hemp×8, Silk×5, Tea×3",
             "💰 Starting Funds: 100 Gold",
-            "👥 Hire artisans to craft high-value products",
+            "👥 Hire artisans to craft high value products",
             "🧾 Product sales incur VAT, end-round tax on profit",
             "🚢 8 Voyages, each has 4 Phases: Buy → Trade → Maintain → Upgrade",
-            "⚓ Freight Cost: max(5, ItemCount×2 - ShipLevel×5)",
+            "⚓ Freight Cost: max(5, ItemCount×2 minus ShipLevel×5)",
             "💾 Press Ctrl+S to save progress",
             "🎯 Goal: Accumulate Wealth and Reputation!",
             "🔮 NEW: Visit Broker in Phase 1 to buy demand rumors!",
-            "🔧 NEW: Upgrade Ship in Phase 4 to unlock Module Slots!"
+            "🔧 NEW: Upgrade Ship in Phase 4 to unlock Module Slots!",
         ]
         for tip in tips:
-            tk.Label(tips_frame, text=tip, font=self.FONT_BODY, 
-                     bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(anchor=tk.W, pady=3)
-                     
+            tk.Label(
+                tips_frame,
+                text=tip,
+                font=self.FONT_BODY,
+                bg=self.colors["bg_light"],
+                fg=self.colors["text_dark"],
+            ).pack(anchor=tk.W, pady=3)
+
         self.update_button_states()
 
     def show_instructions(self):
         instructions = """
-⚓ PortMasters - Rules
+⚓ PortMasters Rules
 
 🚢 Objective:
 Travel 8 voyages, accumulate wealth and reputation!
 
 📦 Goods System:
-Raw Materials: Hemp(3-6💰), Silk(6-10💰), Tea(10-14💰)
-Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰), 
-                Brocade(70-90💰), Sachet(95-120💰)
+Raw Materials: Hemp(3 to 6💰), Silk(6 to 10💰), Tea(10 to 14💰)
+Finished Goods: Linen Clothes(30 to 42💰), Cotton Clothes(50 to 65💰),
+                Brocade(70 to 90💰), Sachet(95 to 120💰)
 
 👥 Worker System:
 • Weaver (8 Gold/Round): Makes Linen or Cotton Clothes
@@ -1989,16 +2989,17 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
 • Spend 5 Gold to buy a "rumor" about Phase 2 demand
 • Revealed intel guarantees matching orders will appear
 
-🔧 Ship Modules (NEW!):
+🔧 Ship Modules:
 • Phase 4: Upgrade your ship to unlock Module Slots
 • Draft powerful modules to create unique synergies
+• The module offer batch may be changed once per round
 • Swap modules to adapt to your current run!
 
 🌊 Voyage Phases:
-1. Port Purchase - Buy resources at ports (+ Broker rumors)
-2. Trade Transaction - Complete orders
-3. Maintenance - Pay upkeep fees & process production
-4. Upgrade - Improve ships and install modules
+1. Port Purchase: Buy resources at ports (+ Broker rumors)
+2. Trade Transaction: Complete orders
+3. Maintenance: Pay upkeep fees & process production
+4. Upgrade: Improve ships and install modules
 
 ⌨️ Shortcuts:
 • Ctrl+S: Save Game
@@ -2019,96 +3020,134 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         self.revealed_intel = []
         self._intel_order_used = False
         self.rumor_window = None
-        
+
         self.clear_phase_content()
-        self.log_message(f"\n⚓=== Round {self.current_round} - Phase 1: Port Purchase ===")
+        self.log_message(
+            f"\n⚓=== Round {self.current_round} | Phase 1: Port Purchase ==="
+        )
         self.log_message(f"💰 Current Funds: {self.money} Gold")
-        
+
         self.resource_cards = []
         for i in range(5):
             card = self.generate_mixed_resource_card()
             card["id"] = i
             self.resource_cards.append(card)
-            
+
         self.show_purchase_interface()
         self.update_button_states()
 
     def show_purchase_interface(self):
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
-        tk.Label(header, text="⚓ Port Goods Purchase", font=self.FONT_TITLE, 
-                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(side=tk.LEFT, anchor=tk.W)
-                 
-        CustomButton(header, text="🔮 Broker's Rumor Board", font=self.BUTTON_FONT, 
-                     bg=self.colors["accent_gold"], fg=self.colors["text_dark"], 
-                     relief=tk.RAISED, borderwidth=2, padx=15, pady=8, 
-                     command=self.show_rumor_board).pack(side=tk.RIGHT)
-                     
+        tk.Label(
+            header,
+            text="⚓ Port Goods Purchase",
+            font=self.FONT_TITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(side=tk.LEFT, anchor=tk.W)
+
+        CustomButton(
+            header,
+            text="🔮 Broker's Rumor Board",
+            font=self.BUTTON_FONT,
+            bg=self.colors["accent_gold"],
+            fg=self.colors["text_dark"],
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=15,
+            pady=8,
+            command=self.show_rumor_board,
+        ).pack(side=tk.RIGHT)
+
         cards_container = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_container.pack(fill=tk.BOTH, expand=True)
-        
-        self.create_scrollable_cards(cards_container, self.resource_cards, self.create_purchase_card)
-        self.create_phase_bottom_buttons(main_container, "✅ Complete Purchase, Continue", self.complete_phase1)
+
+        self.create_scrollable_cards(
+            cards_container, self.resource_cards, self.create_purchase_card
+        )
+        self.create_phase_bottom_buttons(
+            main_container, "✅ Complete Purchase, Continue", self.complete_phase1
+        )
 
     def start_phase2(self):
         self.phase = 2
         self.order_count = 0
         self.completed_orders.clear()
         self.clear_phase_content()
-        self.log_message(f"\n🤝=== Round {self.current_round} - Phase 2: Trade Transaction ===")
-        
+        self.log_message(
+            f"\n🤝=== Round {self.current_round} | Phase 2: Trade Transaction ==="
+        )
+
         self.customer_cards = []
         for i in range(5):
             order = self.generate_mixed_order()
             order["id"] = i
             self.customer_cards.append(order)
-            
+
         self.show_orders_interface()
         self.update_button_states()
 
     def show_orders_interface(self):
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
         header = tk.Frame(main_container, bg=self.colors["bg_light"])
         header.pack(fill=tk.X, anchor=tk.W, pady=(0, self.PAD_LG))
-        tk.Label(header, text="🤝 Trade Orders", font=self.FONT_TITLE, 
-                 bg=self.colors["bg_light"], fg=self.colors["bg_dark"]).pack(anchor=tk.W)
-                 
+        tk.Label(
+            header,
+            text="🤝 Trade Orders",
+            font=self.FONT_TITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(anchor=tk.W)
+
         cards_container = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_container.pack(fill=tk.BOTH, expand=True)
-        
-        self.create_scrollable_cards(cards_container, self.customer_cards, self.create_order_card)
-        self.create_phase_bottom_buttons(main_container, "✅ Complete Trades, Continue", self.complete_phase2)
+
+        self.create_scrollable_cards(
+            cards_container, self.customer_cards, self.create_order_card
+        )
+        self.create_phase_bottom_buttons(
+            main_container, "✅ Complete Trades, Continue", self.complete_phase2
+        )
 
     def create_scrollable_cards(self, parent, cards, card_creator):
         canvas = tk.Canvas(parent, highlightthickness=0, bg=self.colors["bg_light"])
         scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        scrollable_frame.bind("<Configure>", 
-                              lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(0, 5))
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
-        
+
         grid_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         grid_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
+
         for i in range(3):
             grid_frame.columnconfigure(i, weight=1, uniform="col", minsize=350)
-            
+
         for i, card in enumerate(cards):
             row, col = self.get_card_grid_position(i, len(cards))
             card_creator(grid_frame, card, row, col)
-            
+
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
         canvas.yview_moveto(0)
@@ -2120,205 +3159,351 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
             return 1, index - 3
 
     def create_purchase_card(self, parent, card, row, col):
-        card_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+        card_frame = tk.Frame(
+            parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2
+        )
         card_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-        
+
         port_frame = tk.Frame(card_frame, bg=self.colors["card_header"])
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
-        
+
         card_type = "Product" if card.get("is_product_card") else "Raw Material"
-        tk.Label(port_frame, text=f"📍 {card['port']} [{card_type}]", 
-                 font=self.FONT_CARD_TITLE, bg=self.colors["card_header"], 
-                 fg=self.colors["bg_dark"], wraplength=320, justify=tk.CENTER).pack(pady=5)
-                 
+        tk.Label(
+            port_frame,
+            text=f"📍 {card['port']} [{card_type}]",
+            font=self.FONT_CARD_TITLE,
+            bg=self.colors["card_header"],
+            fg=self.colors["bg_dark"],
+            wraplength=320,
+            justify=tk.CENTER,
+        ).pack(pady=5)
+
         items_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
-        
+
         for resource_info in card["resources"]:
             self.create_resource_info_row(items_frame, resource_info, font_size=11)
             if card.get("is_product_card") and "material_cost" in resource_info:
                 cost_frame = tk.Frame(items_frame, bg=self.colors["card_bg"])
                 cost_frame.pack(fill=tk.X, pady=2)
-                tk.Label(cost_frame, 
-                         text=f"   📦 Material Cost: {resource_info['material_cost']} Gold "
-                              f"({resource_info['material_details']})", 
-                         font=self.FONT_SMALL, bg=self.colors["card_bg"], 
-                         fg="#888888").pack(anchor=tk.W)
-                profit_margin = resource_info['price'] - resource_info['material_cost']
-                tk.Label(cost_frame, 
-                         text=f"   💰 Markup: +{profit_margin} Gold "
-                              f"({profit_margin / resource_info['material_cost'] * 100:.0f}%)", 
-                         font=self.FONT_SMALL, bg=self.colors["card_bg"], 
-                         fg=self.colors["accent_red"]).pack(anchor=tk.W)
-                         
+                tk.Label(
+                    cost_frame,
+                    text=f"   📦 Material Cost: {resource_info['material_cost']} Gold "
+                    f"({resource_info['material_details']})",
+                    font=self.FONT_SMALL,
+                    bg=self.colors["card_bg"],
+                    fg="#888888",
+                ).pack(anchor=tk.W)
+                profit_margin = resource_info["price"] - resource_info["material_cost"]
+                tk.Label(
+                    cost_frame,
+                    text=f"   💰 Markup: +{profit_margin} Gold "
+                    f"({profit_margin / resource_info['material_cost'] * 100:.0f}%)",
+                    font=self.FONT_SMALL,
+                    bg=self.colors["card_bg"],
+                    fg=self.colors["accent_red"],
+                ).pack(anchor=tk.W)
+
         final_cost = self.get_card_final_cost(card)
         for m in self.equipped_modules:
             final_cost = m.modify_purchase_cost(self, final_cost, card)
         final_cost = max(0, final_cost)
-        
+
         total_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         total_frame.pack(fill=tk.X, padx=15, pady=self.PAD_MD)
-        
+
         cost_text = f"💰 Total: {final_cost} Gold"
         if final_cost < card["total_cost"]:
             cost_text += f" (Was {card['total_cost']})"
-            
-        tk.Label(total_frame, text=cost_text, 
-                 font=self.FONT_STAT, bg=self.colors["card_bg"], 
-                 fg=self.colors["accent_red"]).pack(anchor=tk.W)
-                 
+
+        tk.Label(
+            total_frame,
+            text=cost_text,
+            font=self.FONT_STAT,
+            bg=self.colors["card_bg"],
+            fg=self.colors["accent_red"],
+        ).pack(anchor=tk.W)
+
         is_purchased = card["id"] in self.purchased_cards
         can_afford = self.money >= final_cost and not is_purchased
-        
+
         btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
         btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
-        btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
-        
+        btn_bg = (
+            self.colors["button_success"]
+            if can_afford and not is_purchased
+            else self.colors["button_dark_grey"]
+        )
+
         btn_frame = tk.Frame(card_frame, bg=self.colors["card_bg"])
         btn_frame.pack(fill=tk.X, padx=15, pady=(5, 12))
-        
-        btn = CustomButton(btn_frame, text=btn_text, font=self.BUTTON_FONT, 
-                           bg=btn_bg, fg="white", relief=tk.RAISED, borderwidth=1, 
-                           padx=15, pady=15, wraplength=280, 
-                           state=btn_state, command=lambda c=card: self.purchase_card_specific(c))
+
+        btn = CustomButton(
+            btn_frame,
+            text=btn_text,
+            font=self.BUTTON_FONT,
+            bg=btn_bg,
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=1,
+            padx=15,
+            pady=15,
+            wraplength=280,
+            state=btn_state,
+            command=lambda c=card: self.purchase_card_specific(c),
+        )
         btn.pack(fill=tk.X, expand=True)
-        
-        self.purchase_buttons.append({"button": btn, "card_id": card["id"], "card_ref": card})
+
+        self.purchase_buttons.append(
+            {"button": btn, "card_id": card["id"], "card_ref": card}
+        )
 
     def create_order_card(self, parent, order, row, col):
-        order_frame = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+        order_frame = tk.Frame(
+            parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2
+        )
         order_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-        
+
         port_frame = tk.Frame(order_frame, bg=self.colors["card_header"])
         port_frame.pack(fill=tk.X, padx=10, pady=self.PAD_MD)
-        
-        order_type = "Finished Product Demand" if order.get("is_product_order") else "Raw Material Demand"
-        WrappedTitleLabel(port_frame, text=f"📍 {order['demand_port']} {order_type}",
-                          font=self.FONT_CARD_TITLE, bg=self.colors["card_header"],
-                          fg=self.colors["bg_dark"], justify=tk.CENTER).pack(fill=tk.X, pady=5)
-                 
+
+        order_type = (
+            "Finished Product Demand"
+            if order.get("is_product_order")
+            else "Raw Material Demand"
+        )
+        WrappedTitleLabel(
+            port_frame,
+            text=f"📍 {order['demand_port']} {order_type}",
+            font=self.FONT_CARD_TITLE,
+            bg=self.colors["card_header"],
+            fg=self.colors["bg_dark"],
+            justify=tk.CENTER,
+        ).pack(fill=tk.X, pady=5)
+
         items_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         items_frame.pack(fill=tk.X, padx=15, pady=10)
-        
+
         for resource_info in order["resources"]:
-            has_enough = self.inventory.get(resource_info["type"], 0) >= resource_info["required"]
+            has_enough = (
+                self.inventory.get(resource_info["type"], 0)
+                >= resource_info["required"]
+            )
             status_icon = "✅" if has_enough else "❌"
             item_frame = tk.Frame(items_frame, bg=self.colors["card_bg"])
             item_frame.pack(fill=tk.X, pady=4)
-            tk.Label(item_frame, text=status_icon, font=self.FONT_BODY_BOLD, 
-                     bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, self.PAD_MD))
-            self.create_resource_info_row(item_frame, resource_info, show_inventory=True, font_size=11)
-            
-        has_silk = any(r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"] for r in order["resources"])
-        transport_detail = self.show_transport_cost_detail(order["total_items"], has_silk)
-        
+            tk.Label(
+                item_frame,
+                text=status_icon,
+                font=self.FONT_BODY_BOLD,
+                bg=self.colors["card_bg"],
+            ).pack(side=tk.LEFT, padx=(0, self.PAD_MD))
+            self.create_resource_info_row(
+                item_frame, resource_info, show_inventory=True, font_size=11
+            )
+
+        has_silk = any(
+            r["type"] in ["Silk", "Brocade", "Sachet", "Cotton Clothes"]
+            for r in order["resources"]
+        )
+        transport_detail = self.show_transport_cost_detail(
+            order["total_items"], has_silk
+        )
+
         transport_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         transport_frame.pack(fill=tk.X, padx=15, pady=5)
-        tk.Label(transport_frame, 
-                 text=f"⚓ Freight: {transport_detail['base_cost']} - {transport_detail['discount']} "
-                      f"= {transport_detail['final_cost']} Gold", 
-                 font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                 fg=self.colors["accent_red"], wraplength=320, justify=tk.LEFT).pack(anchor=tk.W)
-                 
-        net_profit = order['reward'] - transport_detail['final_cost']
+        tk.Label(
+            transport_frame,
+            text=(
+                f"⚓ Freight: {transport_detail['final_cost']} Gold "
+                f"(Base {transport_detail['base_cost']}, "
+                f"Discount {transport_detail['discount']})"
+            ),
+            font=self.FONT_BODY,
+            bg=self.colors["card_bg"],
+            fg=self.colors["accent_red"],
+            wraplength=320,
+            justify=tk.LEFT,
+        ).pack(anchor=tk.W)
+
+        net_profit = order["reward"] - transport_detail["final_cost"]
         total_vat = 0
         if order.get("is_product_order"):
             product = order["resources"][0]["type"]
-            estimated_vat = self.calculate_vat(product, order['reward'] / order["resources"][0]["required"])
+            estimated_vat = self.calculate_vat(
+                product, order["reward"] / order["resources"][0]["required"]
+            )
             total_vat = estimated_vat * order["resources"][0]["required"]
             net_profit -= total_vat
-            
+
         finance_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         finance_frame.pack(fill=tk.X, padx=15, pady=self.PAD_MD)
-        finance_text = f"💰 Reward: {order['reward']} Gold 📊 Net Profit: {net_profit} Gold"
+        finance_text = (
+            f"💰 Reward: {order['reward']} Gold 📊 Net Profit: {net_profit} Gold"
+        )
         if order.get("is_product_order"):
             finance_text += f"\n🧾 Est. VAT: {total_vat} Gold"
-            
-        tk.Label(finance_frame, text=finance_text, font=self.FONT_BODY_BOLD, 
-                 bg=self.colors["card_bg"], 
-                 fg=self.colors["accent_green"] if net_profit > 0 else self.colors["accent_red"], 
-                 justify=tk.LEFT, wraplength=320).pack(anchor=tk.W)
-                 
-        can_complete = all(self.inventory.get(r["type"], 0) >= r["required"] for r in order["resources"])
+
+        tk.Label(
+            finance_frame,
+            text=finance_text,
+            font=self.FONT_BODY_BOLD,
+            bg=self.colors["card_bg"],
+            fg=(
+                self.colors["accent_green"]
+                if net_profit > 0
+                else self.colors["accent_red"]
+            ),
+            justify=tk.LEFT,
+            wraplength=320,
+        ).pack(anchor=tk.W)
+
+        can_complete = all(
+            self.inventory.get(r["type"], 0) >= r["required"]
+            for r in order["resources"]
+        )
         is_completed = order["id"] in self.completed_orders
-        
+
         btn_text = "✅ Completed" if is_completed else f"🤝 Trade (Net {net_profit}💰)"
         btn_state = tk.DISABLED if is_completed or not can_complete else tk.NORMAL
-        btn_bg = self.colors["button_primary"] if can_complete and not is_completed else self.colors["button_dark_grey"]
-        
+        btn_bg = (
+            self.colors["button_primary"]
+            if can_complete and not is_completed
+            else self.colors["button_dark_grey"]
+        )
+
         btn_frame = tk.Frame(order_frame, bg=self.colors["card_bg"])
         btn_frame.pack(fill=tk.X, padx=15, pady=(5, 12))
-        
-        btn = CustomButton(btn_frame, text=btn_text, font=self.BUTTON_FONT, 
-                           bg=btn_bg, fg="white", relief=tk.RAISED, borderwidth=1, 
-                           padx=15, pady=15, wraplength=280, 
-                           state=btn_state, command=lambda o=order: self.complete_order(o))
-        btn.pack(fill=tk.X, expand=True)
-        
-        self.order_buttons.append({"button": btn, "order_id": order["id"], "net_profit": net_profit})
 
-    def create_resource_info_row(self, parent, resource_info, show_inventory=False, font_size=10):
+        btn = CustomButton(
+            btn_frame,
+            text=btn_text,
+            font=self.BUTTON_FONT,
+            bg=btn_bg,
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=1,
+            padx=15,
+            pady=15,
+            wraplength=280,
+            state=btn_state,
+            command=lambda o=order: self.complete_order(o),
+        )
+        btn.pack(fill=tk.X, expand=True)
+
+        self.order_buttons.append(
+            {"button": btn, "order_id": order["id"], "net_profit": net_profit}
+        )
+
+    def create_resource_info_row(
+        self, parent, resource_info, show_inventory=False, font_size=10
+    ):
         resource = resource_info["type"]
         color = self.resource_colors.get(resource, "black")
         icon = self.resource_icons.get(resource, "")
-        
+
         item_frame = tk.Frame(parent, bg=self.colors["card_bg"])
         item_frame.pack(fill=tk.X, pady=2)
-        
-        tk.Label(item_frame, text=icon, font=("Segoe UI", font_size + 2), 
-                 bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=(0, 5))
-        tk.Label(item_frame, text=resource, font=("Segoe UI", font_size, "bold"), 
-                 bg=self.colors["card_bg"], fg=color, width=14).pack(side=tk.LEFT)
-                 
+
+        tk.Label(
+            item_frame,
+            text=icon,
+            font=("Segoe UI", font_size + 2),
+            bg=self.colors["card_bg"],
+        ).pack(side=tk.LEFT, padx=(0, 5))
+        tk.Label(
+            item_frame,
+            text=resource,
+            font=("Segoe UI", font_size, "bold"),
+            bg=self.colors["card_bg"],
+            fg=color,
+            width=14,
+        ).pack(side=tk.LEFT)
+
         if "quantity" in resource_info:
-            tk.Label(item_frame, text=f"×{resource_info['quantity']}", 
-                     font=("Segoe UI", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
+            tk.Label(
+                item_frame,
+                text=f"×{resource_info['quantity']}",
+                font=("Segoe UI", font_size),
+                bg=self.colors["card_bg"],
+            ).pack(side=tk.LEFT, padx=5)
         if "price" in resource_info:
-            tk.Label(item_frame, text=f"Unit Price: {resource_info['price']}💰", 
-                     font=("Segoe UI", font_size), bg=self.colors["card_bg"], 
-                     fg="#666").pack(side=tk.LEFT, padx=5)
+            tk.Label(
+                item_frame,
+                text=f"Unit Price: {resource_info['price']}💰",
+                font=("Segoe UI", font_size),
+                bg=self.colors["card_bg"],
+                fg="#666",
+            ).pack(side=tk.LEFT, padx=5)
         elif "required" in resource_info:
-            tk.Label(item_frame, text=f"×{resource_info['required']}", 
-                     font=("Segoe UI", font_size), bg=self.colors["card_bg"]).pack(side=tk.LEFT, padx=5)
-            
+            tk.Label(
+                item_frame,
+                text=f"×{resource_info['required']}",
+                font=("Segoe UI", font_size),
+                bg=self.colors["card_bg"],
+            ).pack(side=tk.LEFT, padx=5)
+
         if show_inventory:
-            inv_color = "green" if self.inventory.get(resource, 0) >= resource_info.get("required", 0) else "red"
-            tk.Label(item_frame, text=f"Inv: {self.inventory.get(resource, 0)}", 
-                     font=("Segoe UI", font_size - 1), bg=self.colors["card_bg"], 
-                     fg=inv_color).pack(side=tk.LEFT, padx=(5, 0))
+            inv_color = (
+                "green"
+                if self.inventory.get(resource, 0) >= resource_info.get("required", 0)
+                else "red"
+            )
+            tk.Label(
+                item_frame,
+                text=f"Inv: {self.inventory.get(resource, 0)}",
+                font=("Segoe UI", font_size - 1),
+                bg=self.colors["card_bg"],
+                fg=inv_color,
+            ).pack(side=tk.LEFT, padx=(5, 0))
 
     def create_phase_bottom_buttons(self, parent, text, command):
         bottom_frame = tk.Frame(parent, bg=self.colors["bg_light"])
         bottom_frame.pack(fill=tk.X, pady=(self.PAD_XL, 5))
-        CustomButton(bottom_frame, text=text, font=self.BUTTON_FONT, 
-                     bg=self.colors["button_primary"], fg="white", relief=tk.RAISED, 
-                     borderwidth=2, padx=30, pady=15, command=command).pack(pady=5)
+        CustomButton(
+            bottom_frame,
+            text=text,
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_primary"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=30,
+            pady=15,
+            command=command,
+        ).pack(pady=5)
 
     def update_purchase_buttons(self):
         for btn_info in self.purchase_buttons:
             card_id = btn_info["card_id"]
             card = btn_info["card_ref"]
             button = btn_info["button"]
-            
+
             is_purchased = card_id in self.purchased_cards
             final_cost = self.get_card_final_cost(card)
             for m in self.equipped_modules:
                 final_cost = m.modify_purchase_cost(self, final_cost, card)
             final_cost = max(0, final_cost)
-            
+
             can_afford = self.money >= final_cost and not is_purchased
-            
+
             btn_text = "✅ Purchased" if is_purchased else f"🛒 Buy ({final_cost}💰)"
             btn_state = tk.DISABLED if is_purchased or not can_afford else tk.NORMAL
-            btn_bg = self.colors["button_success"] if can_afford and not is_purchased else self.colors["button_dark_grey"]
-            
+            btn_bg = (
+                self.colors["button_success"]
+                if can_afford and not is_purchased
+                else self.colors["button_dark_grey"]
+            )
+
             button.config(text=btn_text, state=btn_state, bg=btn_bg)
 
     def complete_phase1(self):
         if self.purchase_count == 0:
             self.log_message("⏭️ Purchasing skipped")
         else:
-            self.log_message(f"✅ Purchasing ended, bought {self.purchase_count} batches")
+            self.log_message(
+                f"✅ Purchasing ended, bought {self.purchase_count} batches"
+            )
         self.show_worker_management_in_phase()
 
     def update_order_buttons(self):
@@ -2326,19 +3511,27 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
             order_id = btn_info["order_id"]
             net_profit = btn_info["net_profit"]
             button = btn_info["button"]
-            
+
             is_completed = order_id in self.completed_orders
             can_complete = True
             for order in self.customer_cards:
                 if order["id"] == order_id:
                     can_complete = all(
-                        self.inventory.get(r["type"], 0) >= r["required"] for r in order["resources"])
+                        self.inventory.get(r["type"], 0) >= r["required"]
+                        for r in order["resources"]
+                    )
                     break
-                    
-            btn_text = "✅ Completed" if is_completed else f"🤝 Trade (Net {net_profit}💰)"
+
+            btn_text = (
+                "✅ Completed" if is_completed else f"🤝 Trade (Net {net_profit}💰)"
+            )
             btn_state = tk.DISABLED if is_completed or not can_complete else tk.NORMAL
-            btn_bg = self.colors["button_primary"] if can_complete and not is_completed else self.colors["button_dark_grey"]
-            
+            btn_bg = (
+                self.colors["button_primary"]
+                if can_complete and not is_completed
+                else self.colors["button_dark_grey"]
+            )
+
             button.config(text=btn_text, state=btn_state, bg=btn_bg)
 
     def complete_phase2(self):
@@ -2353,7 +3546,7 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         self.clear_phase_content()
         self.log_message("\n👥=== Processing Worker Production ===")
         self.process_production()
-        
+
         self.log_message("\n💰=== Paying Worker Wages ===")
         wage_result = self.pay_worker_wages()
         if wage_result == "bankruptcy":
@@ -2364,42 +3557,66 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
             self.log_message("⚠️ Wage payment error occurred!")
             self.show_bankruptcy_screen()
             return
-            
-        self.log_message(f"\n🔧=== Round {self.current_round} - Phase 3: Ship Maintenance ===")
+
+        self.log_message(
+            f"\n🔧=== Round {self.current_round} | Phase 3: Ship Maintenance ==="
+        )
         if self.money <= 0:
             self.log_message("⚠️ Funds at 0, cannot pay maintenance!")
             self.show_bankruptcy_screen()
             return
-            
+
         maintenance_frame = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         maintenance_frame.pack(fill=tk.BOTH, expand=True, pady=40)
-        
-        tk.Label(maintenance_frame, text="🔧 Ship Maintenance", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
-                 fg=self.colors["bg_dark"]).pack(pady=20)
-                 
+
+        tk.Label(
+            maintenance_frame,
+            text="🔧 Ship Maintenance",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=20)
+
         cost = self.fixed_cost + self.maintenance_penalty
-        tk.Label(maintenance_frame, text=f"Monthly Fixed Maintenance Fee: {cost} Gold", 
-                 font=("Segoe UI", 18), bg=self.colors["bg_light"], 
-                 fg=self.colors["text_dark"]).pack(pady=10)
-        tk.Label(maintenance_frame, text=f"Current Funds: {self.money} Gold", 
-                 font=("Segoe UI", 16), bg=self.colors["bg_light"], 
-                 fg=self.colors["accent_green"]).pack(pady=15)
-                 
+        tk.Label(
+            maintenance_frame,
+            text=f"Monthly Fixed Maintenance Fee: {cost} Gold",
+            font=("Segoe UI", 18),
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        ).pack(pady=10)
+        tk.Label(
+            maintenance_frame,
+            text=f"Current Funds: {self.money} Gold",
+            font=("Segoe UI", 16),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_green"],
+        ).pack(pady=15)
+
         tk.Frame(maintenance_frame, height=2, bg=self.colors["separator"]).pack(
-            fill=tk.X, padx=80, pady=self.PAD_XL)
-            
+            fill=tk.X, padx=80, pady=self.PAD_XL
+        )
+
         if self.money >= cost:
             btn_text = f"💸 Pay {cost} Gold"
             btn_command = self.pay_fixed_cost
         else:
             btn_text = f"⚠️ Force Pay ({self.money}/{cost} Gold)"
             btn_command = self.force_pay_cost
-            
-        CustomButton(maintenance_frame, text=btn_text, font=self.BUTTON_FONT, 
-                     bg=self.colors["button_warning"], fg="white", relief=tk.RAISED, borderwidth=3, 
-                     padx=30, pady=15, command=btn_command).pack(pady=20)
-                     
+
+        CustomButton(
+            maintenance_frame,
+            text=btn_text,
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_warning"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=30,
+            pady=15,
+            command=btn_command,
+        ).pack(pady=20)
+
         self.update_button_states()
 
     def show_bankruptcy_screen(self):
@@ -2409,77 +3626,137 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         self.log_message("💥 Bankruptcy!")
         self.log_message("💰 Funds exhausted, cannot continue business")
         self.log_message(f"🏆 Final Reputation: {self.score}")
-        self.log_message(f"🌊 Rounds Completed: {self.current_round - 1}/{self.max_rounds}")
+        self.log_message(
+            f"🌊 Rounds Completed: {self.current_round - 1}/{self.max_rounds}"
+        )
         self.log_message("=" * 50)
-        
+
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
-        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(
+            main_container, highlightthickness=0, bg=self.colors["bg_light"]
+        )
+        scrollbar = ttk.Scrollbar(
+            main_container, orient="vertical", command=canvas.yview
+        )
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        
-        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
 
         bankruptcy_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         bankruptcy_frame.pack(fill=tk.BOTH, expand=True, pady=30)
-        
-        tk.Label(bankruptcy_frame, text="💥", font=("Segoe UI", 80), 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_red"]).pack(pady=15)
-        tk.Label(bankruptcy_frame, text="Ship Fleet Bankrupt!", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
-                 fg=self.colors["accent_red"]).pack(pady=self.PAD_MD)
-                 
-        reason = ("Funds depleted, unable to pay essential operational costs" 
-                  if self.money <= 0 else "Insufficient funds to cover maintenance and wages")
-        tk.Label(bankruptcy_frame, text=reason, font=self.FONT_SUBTITLE, 
-                 bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=self.PAD_MD)
-                 
+
+        tk.Label(
+            bankruptcy_frame,
+            text="💥",
+            font=("Segoe UI", 80),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_red"],
+        ).pack(pady=15)
+        tk.Label(
+            bankruptcy_frame,
+            text="Ship Fleet Bankrupt!",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_red"],
+        ).pack(pady=self.PAD_MD)
+
+        reason = (
+            "Funds depleted, unable to pay essential operational costs"
+            if self.money <= 0
+            else "Insufficient funds to cover maintenance and wages"
+        )
+        tk.Label(
+            bankruptcy_frame,
+            text=reason,
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        ).pack(pady=self.PAD_MD)
+
         tk.Frame(bankruptcy_frame, height=3, bg=self.colors["accent_red"]).pack(
-            fill=tk.X, padx=100, pady=20)
-            
+            fill=tk.X, padx=100, pady=20
+        )
+
         stats_frame = tk.Frame(bankruptcy_frame, bg=self.colors["bg_light"])
         stats_frame.pack(pady=15)
-        
+
         stats = [
             ("🌊 Rounds Completed:", f"{self.current_round - 1}/{self.max_rounds}"),
             ("💰 Final Funds:", f"{self.money} Gold"),
             ("🏆 Final Reputation:", f"{self.score}"),
             ("🚢 Ship Level:", f"{self.ship_level}"),
-            ("👥 Worker Team:", 
-             f"Weavers:{len(self.weavers)} Masters:{len(self.master_weavers)} Makers:{len(self.sachet_makers)}"),
-            ("🧾 Taxes Paid:", f"{self.vat_paid + self.income_tax_paid} Gold")
+            (
+                "👥 Worker Team:",
+                f"Weavers:{len(self.weavers)} Masters:{len(self.master_weavers)} Makers:{len(self.sachet_makers)}",
+            ),
+            ("🧾 Taxes Paid:", f"{self.vat_paid + self.income_tax_paid} Gold"),
         ]
         for label_text, value_text in stats:
             stat_frame = tk.Frame(stats_frame, bg=self.colors["bg_light"])
             stat_frame.pack(fill=tk.X, pady=6)
-            tk.Label(stat_frame, text=label_text, font=self.FONT_BODY, 
-                     bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(side=tk.LEFT)
-            tk.Label(stat_frame, text=value_text, font=self.FONT_BODY_BOLD, 
-                     bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(side=tk.RIGHT)
-                     
+            tk.Label(
+                stat_frame,
+                text=label_text,
+                font=self.FONT_BODY,
+                bg=self.colors["bg_light"],
+                fg=self.colors["text_dark"],
+            ).pack(side=tk.LEFT)
+            tk.Label(
+                stat_frame,
+                text=value_text,
+                font=self.FONT_BODY_BOLD,
+                bg=self.colors["bg_light"],
+                fg=self.colors["accent_blue"],
+            ).pack(side=tk.RIGHT)
+
         tk.Frame(bankruptcy_frame, height=2, bg=self.colors["separator"]).pack(
-            fill=tk.X, padx=100, pady=20)
-            
+            fill=tk.X, padx=100, pady=20
+        )
+
         buttons_frame = tk.Frame(bankruptcy_frame, bg=self.colors["bg_light"])
         buttons_frame.pack(pady=10)
-        
-        CustomButton(buttons_frame, text="🔄 Restart", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_primary"], fg="white", 
-                     relief=tk.RAISED, borderwidth=3, padx=25, pady=15, 
-                     cursor="hand2", command=self.restart_game).pack(side=tk.LEFT, padx=10)
-        CustomButton(buttons_frame, text="💡 Strategy Tips", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", 
-                     relief=tk.RAISED, borderwidth=2, padx=25, pady=15, 
-                     cursor="hand2", command=self.show_bankruptcy_tips).pack(side=tk.LEFT, padx=10)
-                     
+
+        CustomButton(
+            buttons_frame,
+            text="🔄 Restart",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_primary"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=25,
+            pady=15,
+            cursor="hand2",
+            command=self.restart_game,
+        ).pack(side=tk.LEFT, padx=10)
+        CustomButton(
+            buttons_frame,
+            text="💡 Strategy Tips",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=25,
+            pady=15,
+            cursor="hand2",
+            command=self.show_bankruptcy_tips,
+        ).pack(side=tk.LEFT, padx=10)
+
         self.update_button_states()
 
     def show_bankruptcy_tips(self):
@@ -2518,150 +3795,325 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
 3. Avoid over-expansion cash flow issues
 
 💾 Save game progress frequently with Ctrl+S!
-""".format(self.fixed_cost, self.WEAVER_WAGE, self.MASTER_WEAVER_WAGE, 
-           self.SACHET_MAKER_WAGE, self.fixed_cost)
+""".format(
+            self.fixed_cost,
+            self.WEAVER_WAGE,
+            self.MASTER_WEAVER_WAGE,
+            self.SACHET_MAKER_WAGE,
+            self.fixed_cost,
+        )
         messagebox.showinfo("💡 Trade Strategy Advice", tips)
 
     def start_phase4(self):
         self.phase = 4
         self.clear_phase_content()
-        self.log_message(f"\n🚢=== Round {self.current_round} - Phase 4: Shipyard & Modules ===")
-        
+        self.log_message(
+            f"\n🚢=== Round {self.current_round} | Phase 4: Shipyard & Modules ==="
+        )
+
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True)
-        
-        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
-        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+
+        canvas = tk.Canvas(
+            main_container, highlightthickness=0, bg=self.colors["bg_light"]
+        )
+        scrollbar = ttk.Scrollbar(
+            main_container, orient="vertical", command=canvas.yview
+        )
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        scrollable_frame.bind("<Configure>", 
-                              lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=(5, 0))
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
-        
-        tk.Label(scrollable_frame, text="🚢 Shipyard & Module Installation", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
-                 fg=self.colors["bg_dark"]).pack(pady=self.PAD_XL)
-                 
+
+        tk.Label(
+            scrollable_frame,
+            text="🚢 Shipyard & Module Installation",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=self.PAD_XL)
+
         tk.Frame(scrollable_frame, height=3, bg=self.colors["separator"]).pack(
-            fill=tk.X, padx=80, pady=(0, self.PAD_XL))
-            
+            fill=tk.X, padx=80, pady=(0, self.PAD_XL)
+        )
+
         # Ship Status Card
-        current_card = tk.Frame(scrollable_frame, bg=self.colors["card_header"], 
-                                relief=tk.RAISED, borderwidth=3, padx=30, pady=20)
+        current_card = tk.Frame(
+            scrollable_frame,
+            bg=self.colors["card_header"],
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=30,
+            pady=20,
+        )
         current_card.pack(fill=tk.X, padx=50, pady=10)
-        
-        tk.Label(current_card, text=f"🚢 Ship Level: {self.ship_level} | ⚓ Discount: {self.ship_level * 5} Gold", 
-                 font=("Segoe UI", 16, "bold"), bg=self.colors["card_header"], fg=self.colors["bg_dark"]).pack()
-        tk.Label(current_card, text=f"🔌 Module Slots: {len(self.equipped_modules)} / {self.ship_level}", 
-                 font=("Segoe UI", 14), bg=self.colors["card_header"], fg=self.colors["accent_blue"]).pack(pady=5)
-                 
+
+        tk.Label(
+            current_card,
+            text=f"🚢 Ship Level: {self.ship_level} | ⚓ Discount: {self.ship_level * 5} Gold",
+            font=("Segoe UI", 16, "bold"),
+            bg=self.colors["card_header"],
+            fg=self.colors["bg_dark"],
+        ).pack()
+        tk.Label(
+            current_card,
+            text=f"🔌 Module Slots: {len(self.equipped_modules)} / {self.ship_level}",
+            font=("Segoe UI", 14),
+            bg=self.colors["card_header"],
+            fg=self.colors["accent_blue"],
+        ).pack(pady=5)
+
         if self.equipped_modules:
             modules_frame = tk.Frame(current_card, bg=self.colors["card_header"])
             modules_frame.pack(fill=tk.X, pady=10)
             for m in self.equipped_modules:
-                tk.Label(modules_frame, text=f"{m.icon} {m.name}: {m.desc}", 
-                         font=self.FONT_SMALL, bg=self.colors["card_header"], fg=self.colors["text_dark"]).pack(anchor=tk.W, pady=2)
+                tk.Label(
+                    modules_frame,
+                    text=f"{m.icon} {m.name}: {m.desc}",
+                    font=self.FONT_SMALL,
+                    bg=self.colors["card_header"],
+                    fg=self.colors["text_dark"],
+                ).pack(anchor=tk.W, pady=2)
         else:
-            tk.Label(current_card, text="No modules installed. Upgrade ship to unlock slots!", 
-                     font=self.FONT_SMALL, bg=self.colors["card_header"], fg="#666").pack(pady=5)
-                     
+            tk.Label(
+                current_card,
+                text="No modules installed. Upgrade ship to unlock slots!",
+                font=self.FONT_SMALL,
+                bg=self.colors["card_header"],
+                fg="#666",
+            ).pack(pady=5)
+
         # Actions
         actions_frame = tk.Frame(scrollable_frame, bg=self.colors["bg_light"])
         actions_frame.pack(pady=20, fill=tk.X, padx=50)
-        
+
         if self.ship_level < 3:
-            upgrade_cost = self.ship_upgrade_cost[self.ship_level] + self.ship_upgrade_penalty
+            upgrade_cost = (
+                self.ship_upgrade_cost[self.ship_level] + self.ship_upgrade_penalty
+            )
             can_upgrade = self.money >= upgrade_cost
-            CustomButton(actions_frame, text=f"⚓ Upgrade Ship (Lvl {self.ship_level+1})\nCost: {upgrade_cost} Gold | +1 Slot, +5 Discount", 
-                         font=self.BUTTON_FONT, bg=self.colors["button_primary"] if can_upgrade else self.colors["button_dark_grey"], 
-                         fg="white", padx=20, pady=15, state=tk.NORMAL if can_upgrade else tk.DISABLED, 
-                         command=self.upgrade_ship).pack(pady=5, fill=tk.X)
-                         
+            CustomButton(
+                actions_frame,
+                text=f"⚓ Upgrade Ship (Lvl {self.ship_level+1})\nCost: {upgrade_cost} Gold | +1 Slot, +5 Discount",
+                font=self.BUTTON_FONT,
+                bg=(
+                    self.colors["button_primary"]
+                    if can_upgrade
+                    else self.colors["button_dark_grey"]
+                ),
+                fg="white",
+                padx=20,
+                pady=15,
+                state=tk.NORMAL if can_upgrade else tk.DISABLED,
+                command=self.upgrade_ship,
+            ).pack(pady=5, fill=tk.X)
+
         can_draft = self.ship_level > 0
         draft_text = "🔧 Draft & Install Module"
         if len(self.equipped_modules) >= self.ship_level and self.ship_level > 0:
             draft_text = "🔄 Draft & Swap Module (Slots Full)"
-            
-        CustomButton(actions_frame, text=draft_text, font=self.BUTTON_FONT, 
-                     bg=self.colors["accent_gold"] if can_draft else self.colors["button_dark_grey"], 
-                     fg=self.colors["text_dark"] if can_draft else "white", 
-                     padx=20, pady=15, state=tk.NORMAL if can_draft else tk.DISABLED, 
-                     command=self.start_module_drafting).pack(pady=5, fill=tk.X)
-                     
-        CustomButton(actions_frame, text="⏭️ Continue Voyage", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_success"], fg="white", padx=30, pady=15, 
-                     command=self.skip_upgrade).pack(pady=15, fill=tk.X)
-                     
+
+        CustomButton(
+            actions_frame,
+            text=draft_text,
+            font=self.BUTTON_FONT,
+            bg=(
+                self.colors["accent_gold"]
+                if can_draft
+                else self.colors["button_dark_grey"]
+            ),
+            fg=self.colors["text_dark"] if can_draft else "white",
+            padx=20,
+            pady=15,
+            state=tk.NORMAL if can_draft else tk.DISABLED,
+            command=self.start_module_drafting,
+        ).pack(pady=5, fill=tk.X)
+
+        CustomButton(
+            actions_frame,
+            text="⏭️ Continue Voyage",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_success"],
+            fg="white",
+            padx=30,
+            pady=15,
+            command=self.skip_upgrade,
+        ).pack(pady=15, fill=tk.X)
+
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
         canvas.yview_moveto(0)
         self.update_button_states()
 
     def upgrade_ship(self):
-        if self.ship_level >= 3: return
-        upgrade_cost = self.ship_upgrade_cost[self.ship_level] + self.ship_upgrade_penalty
+        if self.ship_level >= 3:
+            return
+        upgrade_cost = (
+            self.ship_upgrade_cost[self.ship_level] + self.ship_upgrade_penalty
+        )
         if self.money >= upgrade_cost:
             self.money -= upgrade_cost
             self.ship_level += 1
-            self.log_message(f"🎉 Ship Upgraded to Level {self.ship_level}! +1 Module Slot, +5 Discount")
+            self.log_message(
+                f"🎉 Ship Upgraded to Level {self.ship_level}! +1 Module Slot, +5 Discount"
+            )
             self.update_display()
             self.start_phase4()
         else:
             messagebox.showerror("Insufficient Funds", f"Need {upgrade_cost} Gold")
 
     def get_module_draft_choices(self, count=3):
-        available = [cls for cls in self.module_classes if cls().id not in [eq.id for eq in self.equipped_modules]]
+        available = [
+            cls
+            for cls in self.module_classes
+            if cls().id not in [eq.id for eq in self.equipped_modules]
+        ]
         if len(available) < count:
             available = self.module_classes
         return [cls() for cls in random.sample(available, min(count, len(available)))]
 
     def start_module_drafting(self):
         self.clear_phase_content()
-        self.draft_choices = self.get_module_draft_choices(3)
-        
+        if self._draft_batch is None:
+            self._draft_batch = self.get_module_draft_choices(3)
+        equipped_ids = {eq.id for eq in self.equipped_modules}
+        self.draft_choices = [m for m in self._draft_batch if m.id not in equipped_ids]
+
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🔧 Module Drafting", font=self.FONT_HERO, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_gold"]).pack(pady=(20, 5))
-        tk.Label(main_container, text="Choose a module to install or swap.", 
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
+        tk.Label(
+            main_container,
+            text="🔧 Module Drafting",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_gold"],
+        ).pack(pady=(20, 5))
+        tk.Label(
+            main_container,
+            text="Choose a module to install or swap.",
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        ).pack(pady=(0, 20))
+
         cards_frame = tk.Frame(main_container, bg=self.colors["bg_light"])
         cards_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         for i in range(3):
             cards_frame.columnconfigure(i, weight=1, uniform="mod_col")
-            
+
         for i, mod in enumerate(self.draft_choices):
             self.create_module_card(cards_frame, mod, 0, i)
-            
-        CustomButton(main_container, text="⬅️ Back to Shipyard", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10, 
-                     command=self.start_phase4).pack(pady=20)
+
+        if not self.draft_choices:
+            tk.Label(
+                main_container,
+                text="Every module in this round's batch is already installed.",
+                font=self.FONT_SUBTITLE,
+                bg=self.colors["bg_light"],
+                fg=self.colors["text_dark"],
+            ).pack(pady=10)
+
+        can_change = self._draft_changes_left > 0
+        CustomButton(
+            main_container,
+            text=(
+                "🔄 Change Batch (1 per Round)"
+                if can_change
+                else "🔒 Batch Change Used"
+            ),
+            font=self.BUTTON_FONT,
+            bg=(
+                self.colors["accent_blue"]
+                if can_change
+                else self.colors["button_dark_grey"]
+            ),
+            fg="white",
+            padx=20,
+            pady=10,
+            state=tk.NORMAL if can_change else tk.DISABLED,
+            command=self.change_module_batch,
+        ).pack(pady=(20, 0))
+
+        CustomButton(
+            main_container,
+            text="⬅️ Back to Shipyard",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            padx=20,
+            pady=10,
+            command=self.start_phase4,
+        ).pack(pady=20)
+
+    def change_module_batch(self):
+        if self._draft_changes_left <= 0:
+            return
+        self._draft_changes_left -= 1
+        self._draft_batch = self.get_module_draft_choices(3)
+        self.start_module_drafting()
 
     def create_module_card(self, parent, mod, row, col):
-        card = tk.Frame(parent, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=3, padx=20, pady=20)
+        card = tk.Frame(
+            parent,
+            bg=self.colors["card_bg"],
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=20,
+            pady=20,
+        )
         card.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
-        
-        tk.Label(card, text=mod.icon, font=("Segoe UI", 40), bg=self.colors["card_bg"]).pack(pady=(10, 5))
-        tk.Label(card, text=mod.name, font=self.FONT_CARD_TITLE, bg=self.colors["card_bg"], 
-                 fg=self.colors["bg_dark"]).pack(pady=5)
-        tk.Label(card, text=mod.desc, font=self.FONT_BODY, bg=self.colors["card_bg"], 
-                 fg=self.colors["text_dark"], wraplength=250, justify=tk.CENTER).pack(pady=10, fill=tk.X, expand=True)
-                 
-        btn_text = "✅ Install" if len(self.equipped_modules) < self.ship_level else "🔄 Swap"
-        btn = CustomButton(card, text=btn_text, font=self.BUTTON_FONT, 
-                           bg=self.colors["accent_gold"], fg=self.colors["text_dark"], 
-                           relief=tk.RAISED, borderwidth=2, padx=20, pady=15, 
-                           juice_callback=self.trigger_juice, 
-                           command=lambda m=mod: self.handle_module_selection(m))
+
+        tk.Label(
+            card, text=mod.icon, font=("Segoe UI", 40), bg=self.colors["card_bg"]
+        ).pack(pady=(10, 5))
+        tk.Label(
+            card,
+            text=mod.name,
+            font=self.FONT_CARD_TITLE,
+            bg=self.colors["card_bg"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=5)
+        tk.Label(
+            card,
+            text=mod.desc,
+            font=self.FONT_BODY,
+            bg=self.colors["card_bg"],
+            fg=self.colors["text_dark"],
+            wraplength=250,
+            justify=tk.CENTER,
+        ).pack(pady=10, fill=tk.X, expand=True)
+
+        btn_text = (
+            "✅ Install" if len(self.equipped_modules) < self.ship_level else "🔄 Swap"
+        )
+        btn = CustomButton(
+            card,
+            text=btn_text,
+            font=self.BUTTON_FONT,
+            bg=self.colors["accent_gold"],
+            fg=self.colors["text_dark"],
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=15,
+            juice_callback=self.trigger_juice,
+            command=lambda m=mod: self.handle_module_selection(m),
+        )
         btn.pack(fill=tk.X, pady=(10, 0))
 
     def handle_module_selection(self, mod):
@@ -2673,36 +4125,79 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
     def show_swap_ui(self, new_module):
         self.clear_phase_content()
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG)
-        
-        tk.Label(main_container, text="🔄 Select Module to Replace", font=self.FONT_HERO, 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_red"]).pack(pady=(20, 5))
-        tk.Label(main_container, text=f"New: {new_module.icon} {new_module.name} - {new_module.desc}", 
-                 font=self.FONT_SUBTITLE, bg=self.colors["bg_light"], fg=self.colors["text_dark"]).pack(pady=(0, 20))
-                 
-        list_frame = tk.Frame(main_container, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2)
+        main_container.pack(
+            fill=tk.BOTH, expand=True, padx=self.PAD_LG, pady=self.PAD_LG
+        )
+
+        tk.Label(
+            main_container,
+            text="🔄 Select Module to Replace",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_red"],
+        ).pack(pady=(20, 5))
+        tk.Label(
+            main_container,
+            text=f"New: {new_module.icon} {new_module.name}, {new_module.desc}",
+            font=self.FONT_SUBTITLE,
+            bg=self.colors["bg_light"],
+            fg=self.colors["text_dark"],
+        ).pack(pady=(0, 20))
+
+        list_frame = tk.Frame(
+            main_container, bg=self.colors["card_bg"], relief=tk.RAISED, borderwidth=2
+        )
         list_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=10)
-        
+
         for i, eq_mod in enumerate(self.equipped_modules):
             row = tk.Frame(list_frame, bg=self.colors["card_bg"])
             row.pack(fill=tk.X, padx=20, pady=10)
-            tk.Label(row, text=f"{eq_mod.icon} {eq_mod.name}", font=self.FONT_CARD_TITLE, 
-                     bg=self.colors["card_bg"], fg=self.colors["bg_dark"]).pack(side=tk.LEFT)
-            tk.Label(row, text=eq_mod.desc, font=self.FONT_SMALL, 
-                     bg=self.colors["card_bg"], fg="#666").pack(side=tk.LEFT, padx=10)
-            CustomButton(row, text="🗑️ Replace", font=self.BUTTON_FONT, bg=self.colors["button_danger"], fg="white", 
-                         padx=15, pady=5, command=lambda m=new_module, idx=i: self.equip_module(m, swap_index=idx)).pack(side=tk.RIGHT)
-                         
-        CustomButton(main_container, text="⬅️ Back to Draft", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_dark_grey"], fg="white", padx=20, pady=10, 
-                     command=self.start_module_drafting).pack(pady=20)
+            tk.Label(
+                row,
+                text=f"{eq_mod.icon} {eq_mod.name}",
+                font=self.FONT_CARD_TITLE,
+                bg=self.colors["card_bg"],
+                fg=self.colors["bg_dark"],
+            ).pack(side=tk.LEFT)
+            tk.Label(
+                row,
+                text=eq_mod.desc,
+                font=self.FONT_SMALL,
+                bg=self.colors["card_bg"],
+                fg="#666",
+            ).pack(side=tk.LEFT, padx=10)
+            CustomButton(
+                row,
+                text="🗑️ Replace",
+                font=self.BUTTON_FONT,
+                bg=self.colors["button_danger"],
+                fg="white",
+                padx=15,
+                pady=5,
+                command=lambda m=new_module, idx=i: self.equip_module(
+                    m, swap_index=idx
+                ),
+            ).pack(side=tk.RIGHT)
+
+        CustomButton(
+            main_container,
+            text="⬅️ Back to Draft",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_dark_grey"],
+            fg="white",
+            padx=20,
+            pady=10,
+            command=self.start_module_drafting,
+        ).pack(pady=20)
 
     def equip_module(self, module_instance, swap_index=None):
         if swap_index is not None:
             old_module = self.equipped_modules[swap_index]
             old_module.on_unequip(self)
             self.equipped_modules[swap_index] = module_instance
-            self.log_message(f"🔄 Swapped {old_module.name} for {module_instance.name}!")
+            self.log_message(
+                f"🔄 Swapped {old_module.name} for {module_instance.name}!"
+            )
         else:
             if len(self.equipped_modules) < self.ship_level:
                 self.equipped_modules.append(module_instance)
@@ -2714,94 +4209,125 @@ Finished Goods: Linen Clothes(30-42💰), Cotton Clothes(50-65💰),
         self.update_display()
         self.start_phase4()
 
-    def show_upgrade_rules(self):
-        rules = """
-🚢 Ship Upgrade & Module Rules:
-
-📊 Freight Cost Formula:
-Freight = max(5, (Total Items × 2) - (Ship Level × 5))
-
-⚓ Ship Upgrades:
-• Level 0 → 1: 15 Gold, +1 Slot, +5 Discount
-• Level 1 → 2: 25 Gold, +1 Slot, +10 Discount
-• Level 2 → 3: 40 Gold, +1 Slot, +15 Discount (Max)
-
-🔧 Modules:
-• Equip powerful synergies in your Ship Slots
-• Swap modules at any time during Phase 4
-• Adapt your build to your current crew and cargo!
-"""
-        messagebox.showinfo("🚢 Upgrade Rules Details", rules)
-
     def skip_upgrade(self):
         self.log_message("⏭️ Skipped Shipyard Actions")
         self.end_round()
 
     def end_game(self):
         self.log_message("\n" + "=" * 50)
-        self.log_message("🎮 PortMasters - Game Over!")
+        self.log_message("🎮 PortMasters: Game Over!")
         self.log_message(f"💰 Final Funds: {self.money} Gold")
         self.log_message(f"🏆 Final Reputation: {self.score}")
-        self.log_message(f"🧾 Total Taxes Paid: {self.vat_paid + self.income_tax_paid} Gold")
+        self.log_message(
+            f"🧾 Total Taxes Paid: {self.vat_paid + self.income_tax_paid} Gold"
+        )
         self.log_message(
             f"👥 Worker Team: Weavers{len(self.weavers)} Masters{len(self.master_weavers)} "
-            f"Makers{len(self.sachet_makers)}")
-            
-        if self.score >= 300: rating = "👑 King of Silk Road"
-        elif self.score >= 200: rating = "🏆 Maritime Tycoon"
-        elif self.score >= 100: rating = "⭐ Successful Merchant"
-        elif self.score >= 50: rating = "👍 Qualified Trader"
-        else: rating = "🌊 Novice Merchant"
-        
+            f"Makers{len(self.sachet_makers)}"
+        )
+
+        if self.score >= 300:
+            rating = "👑 King of Silk Road"
+        elif self.score >= 200:
+            rating = "🏆 Maritime Tycoon"
+        elif self.score >= 100:
+            rating = "⭐ Successful Merchant"
+        elif self.score >= 50:
+            rating = "👍 Qualified Trader"
+        else:
+            rating = "🌊 Novice Merchant"
+
         self.log_message(f"📈 Rank: {rating}")
         self.log_message("=" * 50)
-        
+
         self.clear_phase_content()
-        
+
         main_container = ttk.Frame(self.phase_content, style="DarkFrame.TLabelframe")
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        canvas = tk.Canvas(main_container, highlightthickness=0, bg=self.colors["bg_light"])
-        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(
+            main_container, highlightthickness=0, bg=self.colors["bg_light"]
+        )
+        scrollbar = ttk.Scrollbar(
+            main_container, orient="vertical", command=canvas.yview
+        )
         scrollable_frame = tk.Frame(canvas, bg=self.colors["bg_light"])
-        
-        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        scrollable_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.bind("<Configure>", lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width))
-        
+        canvas.bind(
+            "<Configure>",
+            lambda event, wid=window_id: canvas.itemconfig(wid, width=event.width),
+        )
+
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         self.bind_mousewheel(canvas)
 
         result_frame = ttk.Frame(scrollable_frame, style="DarkFrame.TLabelframe")
         result_frame.pack(fill=tk.BOTH, expand=True, pady=40)
-        
-        tk.Label(result_frame, text="🎮 Game Over!", 
-                 font=self.FONT_HERO, bg=self.colors["bg_light"], 
-                 fg=self.colors["bg_dark"]).pack(pady=20)
-        tk.Label(result_frame, text=f"🏆 Final Reputation: {self.score}", 
-                 font=("Segoe UI", 22, "bold"), 
-                 bg=self.colors["bg_light"], fg=self.colors["accent_blue"]).pack(pady=10)
-        tk.Label(result_frame, text=f"💰 Final Funds: {self.money} Gold", 
-                 font=("Segoe UI", 20), bg=self.colors["bg_light"], 
-                 fg=self.colors["accent_green"]).pack(pady=10)
-        tk.Label(result_frame, text=f"📈 Merchant Rank: {rating}", 
-                 font=("Segoe UI", 20), bg=self.colors["bg_light"], 
-                 fg=self.colors["accent_gold"]).pack(pady=20)
-                 
-        CustomButton(result_frame, text="🔄 Restart", font=self.BUTTON_FONT, 
-                     bg=self.colors["button_primary"], fg="white", relief=tk.RAISED, 
-                     borderwidth=3, padx=30, pady=15, 
-                     command=self.restart_game).pack(pady=self.PAD_XL)
-                     
+
+        tk.Label(
+            result_frame,
+            text="🎮 Game Over!",
+            font=self.FONT_HERO,
+            bg=self.colors["bg_light"],
+            fg=self.colors["bg_dark"],
+        ).pack(pady=20)
+        tk.Label(
+            result_frame,
+            text=f"🏆 Final Reputation: {self.score}",
+            font=("Segoe UI", 22, "bold"),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_blue"],
+        ).pack(pady=10)
+        tk.Label(
+            result_frame,
+            text=f"💰 Final Funds: {self.money} Gold",
+            font=("Segoe UI", 20),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_green"],
+        ).pack(pady=10)
+        tk.Label(
+            result_frame,
+            text=f"📈 Merchant Rank: {rating}",
+            font=("Segoe UI", 20),
+            bg=self.colors["bg_light"],
+            fg=self.colors["accent_gold"],
+        ).pack(pady=20)
+
+        CustomButton(
+            result_frame,
+            text="🔄 Restart",
+            font=self.BUTTON_FONT,
+            bg=self.colors["button_primary"],
+            fg="white",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=30,
+            pady=15,
+            command=self.restart_game,
+        ).pack(pady=self.PAD_XL)
+
         self.delete_save()
         self.update_button_states()
 
     def restart_game(self):
-        if messagebox.askyesno("Restart Voyage", "Confirm restarting the maritime journey?"):
-            self.inventory = {"Hemp": 8, "Silk": 5, "Tea": 3, 
-                              "Linen Clothes": 0, "Cotton Clothes": 0, "Brocade": 0, "Sachet": 0}
+        if messagebox.askyesno(
+            "Restart Voyage", "Confirm restarting the maritime journey?"
+        ):
+            self.inventory = {
+                "Hemp": 8,
+                "Silk": 5,
+                "Tea": 3,
+                "Linen Clothes": 0,
+                "Cotton Clothes": 0,
+                "Brocade": 0,
+                "Sachet": 0,
+            }
             self.money = 100
             self.score = 0
             self.current_round = 1
@@ -2809,6 +4335,8 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
             self.ship_upgrade_penalty = 0
             self.maintenance_penalty = 0
             self.equipped_modules = []
+            self._draft_batch = None
+            self._draft_changes_left = 1
             self.phase = 0
             self.game_over = False
             self.purchase_count = 0
@@ -2828,12 +4356,15 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
             self.vat_paid = 0
             self.income_tax_paid = 0
             self.round_revenue = 0
-            self.round_costs = 0
             self.modifier_flags = {}
             self.phase2_demand_tags = []
             self.revealed_intel = []
             self._intel_order_used = False
-            if hasattr(self, 'rumor_window') and self.rumor_window and self.rumor_window.winfo_exists():
+            if (
+                hasattr(self, "rumor_window")
+                and self.rumor_window
+                and self.rumor_window.winfo_exists()
+            ):
                 self.rumor_window.destroy()
                 self.rumor_window = None
             self.log_text.delete(1.0, tk.END)
@@ -2846,9 +4377,11 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
             self.start_btn.config(state=tk.DISABLED, text="⚠️ Game Over")
             self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
             return
-            
+
         if self.phase == 0:
-            self.start_btn.config(state=tk.NORMAL, text=f"🚢 Start Round {self.current_round}")
+            self.start_btn.config(
+                state=tk.NORMAL, text=f"🚢 Start Round {self.current_round}"
+            )
             self.next_btn.config(state=tk.DISABLED, text="⏭️ Continue Voyage")
         elif self.phase in [1, 2]:
             self.start_btn.config(state=tk.DISABLED, text="🚢 On Voyage...")
@@ -2864,8 +4397,12 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
         phase_actions = {
             1: self.complete_phase1,
             2: self.complete_phase2,
-            3: (self.pay_fixed_cost if self.money >= (self.fixed_cost + self.maintenance_penalty) else self.force_pay_cost),
-            4: self.skip_upgrade
+            3: (
+                self.pay_fixed_cost
+                if self.money >= (self.fixed_cost + self.maintenance_penalty)
+                else self.force_pay_cost
+            ),
+            4: self.skip_upgrade,
         }
         action = phase_actions.get(self.phase)
         if action:
@@ -2873,5 +4410,6 @@ Freight = max(5, (Total Items × 2) - (Ship Level × 5))
 
     def run(self):
         self.window.mainloop()
+
 
 if __name__ == "__main__": PortMasters().run()
