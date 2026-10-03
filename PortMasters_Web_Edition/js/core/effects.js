@@ -3,9 +3,9 @@
 (function () {
   const PM = (window.PM = window.PM || {});
 
-  /* One shared audio context for the whole session. Creating one per sound
-     hits the browser's context limit after a handful of actions, which is why
-     the chime used to stop playing mid game. */
+  /* One shared audio context for the whole session. Browsers cap how many
+     contexts a page may create, so a context per sound would eventually mute
+     the chime mid game. */
   let audioCtx = null;
 
   function triggerJuice() {

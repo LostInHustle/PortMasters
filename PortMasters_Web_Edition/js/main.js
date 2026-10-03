@@ -42,7 +42,8 @@
     "closeModal",
   ];
 
-  /* Tables the renderers dereference unconditionally. */
+  /* The core tables the game reads; assertReady stops the boot if any is
+     missing. */
   const TABLES = [
     "ICONS",
     "COLORS",
@@ -83,13 +84,13 @@
     return true;
   }
 
-  /* Publishes each handler on the global object. */
   function exportHandlers() {
     for (const name of HANDLERS) window[name] = PM[name];
   }
 
-  /* Walks the rendered markup and reports any handler name the page calls but
-     nothing defines. Catches a renamed export the moment it renders. */
+  /* Checks every function name the page's onclick attributes call against
+     the globals the engine published and warns about any gap. Catches a
+     renamed export the moment it renders. */
   function auditHandlers() {
     const calls = new Set();
     const pattern = /(?:^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g;

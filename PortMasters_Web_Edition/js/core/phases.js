@@ -1,4 +1,4 @@
-/* The phase machine: round flow, boon drafting, module drafting, and the
+/* The phase machine: voyage flow, boon drafting, module drafting, and the
    endgame and bankruptcy transitions. */
 "use strict";
 (function () {
@@ -30,7 +30,6 @@
     game.modifierFlags = {};
     game.phase2DemandTags = [];
     game.revealedIntel = [];
-    game.intelOrderUsed = false;
     game.roundRevenue = 0;
     game.maintenanceCosts = 0;
     game.materialCosts = 0;
@@ -94,7 +93,6 @@
       if (!game.phase2DemandTags.includes(t)) game.phase2DemandTags.push(t);
     }
     game.revealedIntel = [];
-    game.intelOrderUsed = false;
     PM.log(L.log.phase1Header(game.currentRound));
     PM.log(L.log.fundsNow(game.money));
     game.resourceCards = [];
@@ -121,8 +119,9 @@
     game.completedOrders.clear();
     PM.log(L.log.phase2Header(game.currentRound));
     game.customerCards = [];
+    // Each revealed rumor claims the order at its own index.
     for (let i = 0; i < 5; i++) {
-      const o = PM.genMixedOrder();
+      const o = PM.genMixedOrder(i);
       o.id = i;
       game.customerCards.push(o);
     }
@@ -136,8 +135,8 @@
     startPhase3();
   }
 
-  /* The one way a run ends early: the voyage is over and the bankruptcy
-     screen takes the phase. */
+  /* Bankruptcy: the only way a run ends before the final voyage. Sets gameOver
+     and hands the phase to the bankruptcy screen. */
   function declareBankruptcy() {
     const game = PM.game;
     game.gameOver = true;

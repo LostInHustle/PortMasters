@@ -1,5 +1,6 @@
-/* Simplified Chinese language pack. Mirrors the keys of en.js exactly;
-   the engine reads only the pack it was loaded with. */
+/* Simplified Chinese language pack. Mirrors the keys of en.js exactly; the
+   engine reads only the pack its entry page loads. Item names double as save
+   keys, so they must stay stable once a pack has shipped. */
 "use strict";
 (function () {
   const PM = (window.PM = window.PM || {});
@@ -25,29 +26,10 @@
       hangzhou: "杭州港",
     },
 
-    icons: {
-      hemp: "🧶",
-      silk: "👘",
-      tea: "🍵",
-      linen_clothes: "👔",
-      cotton_clothes: "👕",
-      brocade: "👗",
-      sachet: "🌸",
-    },
-
-    colors: {
-      hemp: "#8B7355",
-      silk: "#DC143C",
-      tea: "#228B22",
-      linen_clothes: "#D2691E",
-      cotton_clothes: "#4169E1",
-      brocade: "#8B008B",
-      sachet: "#FF1493",
-    },
-
-    /* Each artisan type needs several name forms: the formal name for hire and
-       dismissal logs, the short name used while producing and in wage rows,
-       and the plural for the cargo hold and payroll summaries. */
+    /* Each artisan type needs several name forms: name for the hire and
+       dismissal logs, prodName for the production log, short for the status
+       list and wage rows, plural for the wage summary line, and statusPlural
+       for the cargo hold. hireIcon and icon carry the matching glyphs. */
     workerTypes: {
       weaver: {
         name: "织女",
@@ -82,7 +64,7 @@
       silk_wind: {
         name: "丝路顺风",
         icon: "🌬️",
-        desc: "本航程运输丝绸及成品时，运费减半。",
+        desc: "本航程运输丝绸及含丝绸成品时，运费减半。",
       },
       favorable_tides: {
         name: "顺风顺水",
@@ -117,7 +99,7 @@
       master_apprentice: {
         name: "学徒传承",
         icon: "🎓",
-        desc: "本航程雇佣工匠工资减半。",
+        desc: "本航程雇佣的工匠，首次结算工资减半。",
       },
     },
 
@@ -223,7 +205,7 @@
       wagesShortfall: (total, money) =>
         `⚠️ 资金不足！应付工资: ${total}金币，当前资金: ${money}金币`,
       workersStrike: "💥 无法支付工资，工匠罢工离去...",
-      reputationCollapsed: "💥 商队信誉崩塌，被迫破产！",
+      reputationCollapsed: "💥 声望崩塌，被迫破产！",
 
       maintenancePaid: (cost) => `💸 支付了船只维护费: ${cost}金币`,
       forcedPayment: (paid, cost) =>
@@ -356,7 +338,7 @@
         delayLine: "分配任务 → 成品在阶段3产出",
         delayNote: "工匠不会立刻生产！",
         costsTitle: "💸 航程结算费用",
-        costsMaintenance: "🔧 维护费：每航程固定15金币",
+        costsMaintenance: "🔧 维护费：每航程基础15金币",
         costsWages: "👥 工资在阶段3扣除，不在雇佣时扣",
         taxesTitle: "🧾 税收说明",
         taxesVat: "增值税：成品销售利润的5%",
@@ -370,6 +352,8 @@
         footBroker: "🔮 阶段1牙行：购买密语，锁定保底订单",
         footUpgrade: "🚢 阶段4升级船只：运费折扣 + 解锁模块槽",
         footKeys: "⌨️ Ctrl+S 保存 | Ctrl+N 下一阶段 | F1 帮助",
+        linkPortmasters2: "🎮 试玩《港口大师 2》",
+        linkDeveloper: "👤 开发者：Aaron Zhu",
       },
 
       boon: {
@@ -426,7 +410,7 @@
           `${short}${n}: ${
             w.task
               ? `正在制作: ${w.task}${w.isSkilled ? "(熟练)" : ""}`
-              : `空闲${w.isSkilled ? " ⭐熟练工" : ""}`
+              : `空闲${w.isSkilled ? " ⭐熟练" : ""}`
           }`,
         count: (n) => `${n}人`,
         dismiss: (wage) => `解雇 (${wage}💰)`,
@@ -440,10 +424,10 @@
         rawDemand: "原材料需求",
         inventory: (n) => `库存: ${n}`,
         freight: (cost) => `⚓ 运费: ${cost}金币`,
-        reward: (reward, net) => `💰 报酬: ${reward}金币 📊 净利: ${net}金币`,
+        reward: (reward, net) => `💰 报酬: ${reward}金币 📊 净利润: ${net}金币`,
         estVat: (v) => `🧾 预计增值税: ${v}金币`,
         completed: "✅ 已完成",
-        trade: (net) => `🤝 交易 (净赚${net}💰)`,
+        trade: (net) => `🤝 交易 (净利润${net}💰)`,
         complete: "✅ 完成交易，继续航行",
       },
 
@@ -472,7 +456,7 @@
         moduleSlots: (n, slots) => `🔌 模块槽位: ${n} / ${slots}`,
         noModules: "尚未安装任何模块。升级船只以解锁槽位！",
         upgrade: (next, cost) =>
-          `⚓ 升级船只 (至${next}级)，花费: ${cost} 金币 | +1 槽位, +5 折扣`,
+          `⚓ 升级船只 (至${next}级)，花费: ${cost} 金币 | +1 槽位, +5 运费折扣`,
         draftSwap: "🔄 抽取并替换模块 (槽位已满)",
         draftInstall: "🔧 抽取并安装模块",
         continueVoyage: "⏭️ 继续航行",
@@ -617,7 +601,7 @@
 
 🤝 交易策略：
 1. 优先完成利润高的订单
-2. 注意运输成本对利润的影响
+2. 注意运费对利润的影响
 3. 成品订单利润高但需缴增值税
 
 ⚠️ 风险控制：
@@ -653,7 +637,7 @@
       },
       {
         title: "🏪 阶段1：采购",
-        content: `<p>港口市场有麻布、丝绸和茶叶，价格每次航程都不同。低价买入，阶段2卖出，赚差价。就这么简单。</p>
+        content: `<p>港口市场主要出售麻布、丝绸和茶叶，偶尔也会有整批成品，价格每次航程都不同。低价买入，阶段2卖出，赚差价。就这么简单。</p>
 <p>有个功能值得记一下：<strong>牙行密语</strong>。花少量金币购买密语，阶段2就能保证出现对应的买家订单。当你已经备好某类货又想确保有人接单时很好用。</p>
 <div style="background:#FFF3CD;border:1px solid #FFC107;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
   💡 头两三次航程先做原材料订单。当航程买当航程卖，不用等，没风险。
@@ -684,7 +668,7 @@
   <div style="background:#E3F2FD;border-radius:6px;padding:10px;text-align:center">
     <div style="font-size:22px;margin-bottom:4px">🔧</div>
     <strong>船只维护费</strong><br>
-    <span style="font-size:12px;color:#444">每次航程固定 ${v.fixedCost} 金币</span>
+    <span style="font-size:12px;color:#444">每次航程基础 ${v.fixedCost} 金币</span>
   </div>
   <div style="background:#FCE4EC;border-radius:6px;padding:10px;text-align:center">
     <div style="font-size:22px;margin-bottom:4px">👥</div>

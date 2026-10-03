@@ -1,5 +1,5 @@
 /* Design tokens.
-   Single source of truth for every colour, typeface, and per-edition measure.
+   Single source of truth for every color, typeface, and per-edition measure.
    Both editions load this file; the zh-CN block at the bottom carries the only
    three values that differ between the English and Chinese builds. */
 :root {
@@ -14,7 +14,7 @@
   --panel: #f0f8ff; /* panels, cards, sections */
   --log-surface: #f8f9fa; /* activity log */
   --white: #ffffff;
-  --track: #ebebeb; /* progress track (tutorial, reputation) */
+  --track: #ebebeb; /* tutorial progress track */
 
   /* Ink */
   --ink-navy: #1a237e; /* body copy, score, gold button text */
@@ -77,12 +77,12 @@
   --utility-light: #a883e0;
   --utility-dark: #563d8a;
 
-  /* Phase identity, shared by the voyage strip, the tutorial grid, and the
-     welcome cards. The -fill shades are the same hues one step deeper, for
-     chips that carry white text. */
+  /* Phase identity, shared by the welcome screen's cycle strip and the
+     guide's phase cards. The -fill shades are the same hues one step deeper,
+     for the welcome chips that carry white text. */
   --phase-1: #4caf50;
   --phase-2: #2196f3;
-  --phase-3: #ffa000;
+  --phase-3: #ffc107;
   --phase-4: #e91e63;
   --phase-1-fill: #2e7d32;
   --phase-2-fill: #1976d2;

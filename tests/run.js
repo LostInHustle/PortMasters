@@ -58,6 +58,19 @@ function loadFixture(lang) {
   return JSON.parse(fs.readFileSync(fixturePath(lang), "utf8"));
 }
 
+/* Every .js file under a directory, recursively. */
+function jsFilesUnder(dir) {
+  const files = [];
+  (function walk(d) {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, entry.name);
+      if (entry.isDirectory()) walk(p);
+      else if (entry.name.endsWith(".js")) files.push(p);
+    }
+  })(dir);
+  return files;
+}
+
 function recordFixture(lang, rev) {
   const spec = H.baselineSpec(lang, rev);
   const scenarios = {};
@@ -76,7 +89,10 @@ function updateFixtures() {
   fs.mkdirSync(FIXTURE_DIR, { recursive: true });
   for (const lang of ["en", "zh"]) {
     const fixture = recordFixture(lang, H.BASELINE_REV);
-    fs.writeFileSync(fixturePath(lang), JSON.stringify(fixture, null, 1));
+    fs.writeFileSync(
+      fixturePath(lang),
+      JSON.stringify(fixture, null, 2) + "\n",
+    );
     console.log(`recorded tests/fixtures/baseline-${lang}.json`);
   }
 }
@@ -102,15 +118,7 @@ function resolvePath(obj, parts) {
    A use is satisfied when any candidate resolves. Catches typos that would
    otherwise surface as "undefined" inside rendered markup. */
 function packKeysUsed() {
-  const dir = path.join(H.WEB_DIR, "js");
-  const files = [];
-  (function walk(d) {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      const p = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(p);
-      else if (entry.name.endsWith(".js")) files.push(p);
-    }
-  })(dir);
+  const files = jsFilesUnder(path.join(H.WEB_DIR, "js"));
 
   const uses = [];
   for (const file of files) {
@@ -264,6 +272,15 @@ function unitSuite() {
     assertEqual(state.inventory[run("PM.lang.items.tea")], 3, "tea");
   });
 
+  check("the state carries no retired fields", () => {
+    const keys = run("Object.keys(PM.createInitialState())");
+    const revived = keys.filter((k) => H.RETIRED_STATE_KEYS.has(k));
+    assert(
+      revived.length === 0,
+      `retired fields came back: ${revived.join(", ")}`,
+    );
+  });
+
   check("every pack key the engine reads exists in the pack", () => {
     const pack = g.run("PM.lang");
     const missing = [];
@@ -277,6 +294,31 @@ function unitSuite() {
     assert(
       missing.length === 0,
       `missing pack keys: ${missing.join(", ") || "none"}`,
+    );
+  });
+
+  check("both language packs define the same keys", () => {
+    // The check above walks the English pack; this one keeps the Mandarin
+    // pack from silently lagging behind on a key no scenario happens to
+    // render. Values are exercised by the both-language integration runs.
+    const keysOf = (game) => {
+      const out = [];
+      const walk = (node, prefix) => {
+        for (const [k, v] of Object.entries(node)) {
+          const p = prefix ? `${prefix}.${k}` : k;
+          if (v && typeof v === "object" && !Array.isArray(v)) walk(v, p);
+          else out.push(p);
+        }
+      };
+      walk(game.run("PM.lang"), "");
+      return out;
+    };
+    const en = keysOf(freshGame("en"));
+    const zh = new Set(keysOf(freshGame("zh")));
+    const missing = en.filter((k) => !zh.has(k));
+    assert(
+      missing.length === 0,
+      `the zh pack is missing: ${missing.join(", ") || "none"}`,
     );
   });
 
@@ -644,6 +686,37 @@ function verificationSuite() {
     }
   });
 
+  check(
+    "the welcome screen links out to PortMasters 2 and the developer",
+    () => {
+      // The fixture comparison deliberately never sees these links (see the
+      // divergences list in tests/README.md), so this check owns them.
+      for (const lang of Object.keys(H.ENTRIES)) {
+        const g = freshGame(lang);
+        g.run("PM.render()");
+        const panel = g.state.panels["phase-panel"];
+        const t = g.run("PM.lang.ui.welcome");
+        const anchors =
+          panel.match(
+            /<a href="[^"]+" target="_blank" rel="noopener">[^<]*<\/a>/g,
+          ) || [];
+        assert(anchors.length === 2, `${lang}: exactly two community links`);
+        assert(
+          panel.includes(
+            `<a href="https://portmasters2.onrender.com/" target="_blank" rel="noopener">${t.linkPortmasters2}</a>`,
+          ),
+          `${lang}: the PortMasters 2 link and label`,
+        );
+        assert(
+          panel.includes(
+            `<a href="https://funny-youngster.github.io/aaronzhu-tech/aaronzhu" target="_blank" rel="noopener">${t.linkDeveloper}</a>`,
+          ),
+          `${lang}: the developer link and label`,
+        );
+      }
+    },
+  );
+
   check("the guide quotes the live wage, tax, and rumor tables", () => {
     const g = freshGame();
     g.run("showInstructions()");
@@ -689,6 +762,57 @@ function verificationSuite() {
     );
   });
 
+  check("every revealed whisper returns as a matching order", () => {
+    for (const lang of Object.keys(H.ENTRIES)) {
+      const g = freshGame(lang);
+      g.run("startBoonDrafting()");
+      g.run("selectBoonById(PM.BOONS[0].id)");
+      // A fixed pool, so the single buy and the two for one buy both land.
+      g.run(
+        "PM.game.phase2DemandTags = [PM.lang.items.silk, PM.lang.items.tea, PM.lang.items.hemp, PM.lang.items.sachet]",
+      );
+      g.run("PM.game.money = 100; purchaseIntel()");
+      g.run(
+        `PM.game.shipLevel = 1; PM.equipModule(${modById("brokers_network")})`,
+      );
+      g.run("PM.game.money = 100; purchaseIntel()");
+      const intel = g.run("PM.game.revealedIntel.map((i) => [i.port, i.item])");
+      assertEqual(intel.length, 3, `${lang}: three whispers were bought`);
+      g.run("completePhase1(); startPhase2()");
+      const cards = g.run(
+        "PM.game.customerCards.map((c) => [c.demandPort, c.resources.map((r) => r.type)])",
+      );
+      assertEqual(cards.length, 5, `${lang}: five orders appear`);
+      g.run("showRumorBoard()");
+      const board = g.state.modal;
+      intel.forEach(([port, item], i) => {
+        assertEqual(
+          cards[i][0],
+          port,
+          `${lang}: order ${i} stands at the whispered port`,
+        );
+        assert(
+          cards[i][1].includes(item),
+          `${lang}: order ${i} demands the whispered ${item}`,
+        );
+        const line = g.run(
+          `PM.lang.log.rumor(${JSON.stringify(port)}, ${JSON.stringify(item)})`,
+        );
+        assert(
+          g.logs().includes(line),
+          `${lang}: the whisper log prints exactly: ${line}`,
+        );
+        const boardLine = g.run(
+          `PM.lang.ui.rumor.rumorLine(${JSON.stringify(port)}, ${JSON.stringify(item)})`,
+        );
+        assert(
+          board.includes(boardLine),
+          `${lang}: the rumor board repeats: ${boardLine}`,
+        );
+      });
+    }
+  });
+
   check("the tutorial quotes the engine's own costs", () => {
     const g = freshGame();
     const fixed = g.run("PM.game.fixedCost");
@@ -702,7 +826,7 @@ function verificationSuite() {
     }
     const all = pages.join("\n");
     assert(
-      all.includes(`${fixed} Gold, every voyage, fixed`),
+      all.includes(`${fixed} Gold base, every voyage`),
       "maintenance figure",
     );
     assert(
@@ -944,15 +1068,7 @@ function smokeSuite() {
   section("smoke");
 
   check("every script parses", () => {
-    const dir = path.join(H.WEB_DIR, "js");
-    const files = [];
-    (function walk(d) {
-      for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-        const p = path.join(d, entry.name);
-        if (entry.isDirectory()) walk(p);
-        else if (entry.name.endsWith(".js")) files.push(p);
-      }
-    })(dir);
+    const files = jsFilesUnder(path.join(H.WEB_DIR, "js"));
     for (const file of files) {
       const res = spawnSync(process.execPath, ["--check", file], {
         encoding: "utf8",
@@ -1007,10 +1123,6 @@ function smokeSuite() {
       );
       const gaps = g.run("PM.auditHandlers()");
       assertEqual(gaps.length, 0, `unresolved handlers: ${gaps.join(", ")}`);
-      const missing = g.run(
-        `Object.keys(PM).filter((k) => k.endsWith("()")).length ? [] : []`,
-      );
-      assert(Array.isArray(missing), "audit returns a list");
     },
   );
 
@@ -1025,7 +1137,7 @@ function smokeSuite() {
 
 /* Integration suite */
 
-function compareScenario(lang, fixture, scenario, { silent } = {}) {
+function compareScenario(lang, fixture, scenario) {
   const spec = H.currentSpec(lang);
   const { result } = H.runScenario(spec, scenario);
   const expected = fixture.scenarios[scenario];
@@ -1038,7 +1150,6 @@ function compareScenario(lang, fixture, scenario, { silent } = {}) {
   for (let i = 0; i < result.hashes.length; i++) {
     if (result.hashes[i] !== expected.hashes[i]) {
       const snap = result.snaps[i];
-      const base = expected.final;
       const diff = H.firstDifference(
         JSON.stringify(expected.hashes),
         JSON.stringify(result.hashes),

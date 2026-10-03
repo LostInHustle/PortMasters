@@ -1,4 +1,5 @@
-/* Components: buttons, cards, resource rows, modals, panel boxes, effects. */
+/* Components: buttons, cards, resource and worker rows, draft cards, modals,
+   and the effect animations. */
 
 .btn {
   background: var(--blue);
@@ -66,7 +67,7 @@
   padding: 12px 24px;
   font-size: 14px;
 }
-/* The shipyard footer pair: one width for both buttons. */
+/* The module draft footer pair: one width for both buttons. */
 .btn-nav {
   min-width: 190px;
 }
@@ -151,6 +152,15 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
+}
+.welcome-links {
+  text-align: center;
+  font-size: 11px;
+  margin-top: 8px;
+}
+.welcome-links a {
+  color: var(--blue);
+  margin: 0 8px;
 }
 
 .modal-overlay {
