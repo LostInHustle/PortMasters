@@ -1,0 +1,170 @@
+/* Base layer: reset, page frame, header, panels, and the activity log. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--page);
+  color: var(--ink-navy);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#app {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 8px;
+  min-height: 100vh;
+}
+
+.header {
+  grid-column: 1 / -1;
+  background: var(--navy);
+  color: var(--gold);
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header h1 {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.header .subtitle {
+  color: var(--white);
+  font-size: 12px;
+}
+
+.header .shortcuts {
+  color: var(--blue-pale);
+  font-size: 10px;
+}
+
+.status-panel {
+  grid-row: 2;
+  background: var(--panel);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.status-section {
+  background: var(--panel);
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.status-section h3 {
+  color: var(--navy);
+  font-size: 13px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--blue);
+  padding-bottom: 4px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: var(--blue);
+}
+
+.stat-money {
+  color: var(--green);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.stat-score {
+  color: var(--ink-navy);
+}
+
+.inv-item {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.inv-item .icon {
+  margin-right: 4px;
+}
+
+.inv-item .name {
+  flex: 1;
+}
+
+.inv-item .count {
+  font-weight: bold;
+  min-width: 30px;
+  text-align: right;
+}
+
+.phase-panel {
+  grid-row: 2;
+  background: var(--panel);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+  position: relative;
+}
+
+.control-panel {
+  grid-column: 1 / -1;
+  background: var(--navy);
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.log-panel {
+  grid-column: 1 / -1;
+  background: var(--log-surface);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  padding: 8px;
+  height: 140px;
+  overflow-y: auto;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.log-entry {
+  padding: 2px 4px;
+  border-bottom: 1px dotted var(--hairline);
+}
+
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: 1fr;
+  }
+  .status-panel {
+    max-height: 300px;
+  }
+}

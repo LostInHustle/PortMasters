@@ -1,9 +1,6 @@
-# Python bytecode caches
-__pycache__/
-*.pyc
-
-# Runtime save files produced by the game
-portmasters_save.json
-
 # macOS filesystem metadata
 .DS_Store
+
+# Python bytecode from the launcher scripts
+__pycache__/
+*.pyc

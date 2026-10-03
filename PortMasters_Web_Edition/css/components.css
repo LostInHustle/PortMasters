@@ -1,0 +1,292 @@
+/* Components: buttons, cards, resource rows, modals, panel boxes, effects. */
+
+.btn {
+  background: var(--blue);
+  color: var(--white);
+  border: 2px solid;
+  border-color: var(--blue-light) var(--navy) var(--navy) var(--blue-light);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.1s;
+  user-select: none;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+.btn:active:not(:disabled) {
+  border-color: var(--navy) var(--blue-light) var(--blue-light) var(--navy);
+  transform: translateY(1px);
+}
+.btn:disabled {
+  background: var(--faint);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-success {
+  background: var(--green);
+  border-color: var(--green-light) var(--green-dark) var(--green-dark)
+    var(--green-light);
+}
+.btn-warning {
+  background: var(--orange);
+  border-color: var(--orange-light) var(--orange-dark) var(--orange-dark)
+    var(--orange-light);
+  color: var(--white);
+}
+.btn-danger {
+  background: var(--red);
+  border-color: var(--red-light) var(--red-dark) var(--red-dark)
+    var(--red-light);
+}
+.btn-gold {
+  background: var(--gold);
+  color: var(--ink-navy);
+  border-color: var(--gold-light) var(--gold-dark) var(--gold-dark)
+    var(--gold-light);
+}
+.btn-grey {
+  background: var(--grey);
+  border-color: var(--grey-light) var(--grey-dark) var(--grey-dark)
+    var(--grey-light);
+}
+/* Utility actions (Change Batch and friends): violet, so they read as a
+   distinct control class next to the gold, green, blue, and grey buttons. */
+.btn-utility {
+  background: var(--utility);
+  border-color: var(--utility-light) var(--utility-dark) var(--utility-dark)
+    var(--utility-light);
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+/* The shipyard footer pair: one width for both buttons. */
+.btn-nav {
+  min-width: 190px;
+}
+.btn-xl {
+  padding: 15px 30px;
+  font-size: 16px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  padding: 10px;
+}
+.card {
+  background: var(--panel);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-card);
+}
+.card-header {
+  background: var(--page);
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--blue);
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--navy);
+  text-align: center;
+}
+.card-body {
+  padding: 12px 14px;
+  flex: 1;
+}
+.card-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.resource-row .icon {
+  font-size: 16px;
+  margin-right: 6px;
+}
+.resource-row .name {
+  font-weight: bold;
+  min-width: var(--resource-name-w);
+}
+.resource-row .qty {
+  margin: 0 6px;
+}
+.resource-row .price {
+  color: var(--muted);
+  margin-left: auto;
+}
+.resource-row .inv-status {
+  margin-left: 8px;
+  font-size: 11px;
+}
+
+.hero-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--navy);
+  text-align: center;
+  margin: 20px 0 10px;
+}
+.subtitle-text {
+  font-size: 14px;
+  color: var(--blue);
+  text-align: center;
+  margin-bottom: 20px;
+}
+.center-block {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal {
+  background: var(--page);
+  border: 3px solid var(--blue);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: var(--modal-max-w);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-modal);
+}
+.modal h2 {
+  color: var(--navy);
+  margin-bottom: 16px;
+  text-align: center;
+}
+.modal pre {
+  background: var(--white);
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.boon-card,
+.module-card {
+  background: var(--panel);
+  border: 3px solid var(--blue);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.boon-card:hover,
+.module-card:hover {
+  transform: translateY(-4px);
+}
+.boon-icon,
+.module-icon {
+  font-size: 48px;
+  margin: 10px 0;
+}
+.boon-name,
+.module-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--navy);
+  margin: 8px 0;
+}
+.boon-desc,
+.module-desc {
+  font-size: 12px;
+  color: var(--ink);
+  margin: 10px 0;
+  min-height: 60px;
+}
+
+.separator {
+  height: 2px;
+  background: var(--blue);
+  margin: 16px 0;
+}
+.profit-positive {
+  color: var(--green);
+  font-weight: bold;
+}
+.profit-negative {
+  color: var(--red);
+  font-weight: bold;
+}
+
+#particles-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.shake {
+  animation: shake 0.3s;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-4px, -4px);
+  }
+  40% {
+    transform: translate(4px, 4px);
+  }
+  60% {
+    transform: translate(-2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+}
+
+.worker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+}
+
+.inv-section-title {
+  color: var(--blue);
+  font-weight: bold;
+  font-size: 11px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--blue);
+  margin: 6px 0 4px;
+}

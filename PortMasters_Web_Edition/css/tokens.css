@@ -1,0 +1,103 @@
+/* Design tokens.
+   Single source of truth for every colour, typeface, and per-edition measure.
+   Both editions load this file; the zh-CN block at the bottom carries the only
+   three values that differ between the English and Chinese builds. */
+:root {
+  /* Type and layout measures */
+  --font-ui: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  --font-mono: "Consolas", monospace;
+  --resource-name-w: 90px;
+  --modal-max-w: 650px;
+
+  /* Surfaces */
+  --page: #e6f2ff; /* page + modal background */
+  --panel: #f0f8ff; /* panels, cards, sections */
+  --log-surface: #f8f9fa; /* activity log */
+  --white: #ffffff;
+  --track: #ebebeb; /* progress track (tutorial, reputation) */
+
+  /* Ink */
+  --ink-navy: #1a237e; /* body copy, score, gold button text */
+  --ink: #333333; /* dense paragraph copy */
+  --muted: #666666; /* secondary text, grey button bevel */
+  --faint: #888888; /* disabled fill */
+  --hairline: #dddddd; /* hairline separators */
+
+  /* Brand */
+  --navy: #1a3c8c; /* header, control bar, headings, deep bevel */
+  --blue: #2e5aa7; /* primary blue: borders, buttons, accents */
+  --blue-light: #5a85d6; /* primary bevel highlight */
+  --blue-pale: #aac4e8; /* header shortcut text */
+
+  /* Gold, reserved for premium calls to action */
+  --gold: #ffd700;
+  --gold-light: #ffe766;
+  --gold-dark: #b39700;
+
+  /* Success */
+  --green: #4caf50;
+  --green-light: #7cd67f;
+  --green-dark: #2d7a30;
+
+  /* Warning button (orange) */
+  --orange: #ff9800;
+  --orange-light: #ffb84d;
+  --orange-dark: #b36b00;
+
+  /* Danger */
+  --red: #ff5252;
+  --red-light: #ff8585;
+  --red-dark: #c62828;
+
+  /* Neutral button */
+  --grey: #424242;
+  --grey-light: #666666;
+  --grey-dark: #222222;
+
+  /* Amber: one family for every attention callout (delay card, tips,
+     payroll, pending payments), distinct from the gold calls to action.
+     Inline markup uses these values as literals. */
+  --amber: #ffc107;
+  --amber-bg: #fff3cd;
+  --amber-ink: #856404;
+  --amber-accent: #ff9800;
+
+  /* Informational boxes */
+  --info: #2196f3;
+  --info-bg: #e3f2fd;
+  --info-ink: #0d47a1;
+  --success-bg: #e8f5e9;
+  --success-ink: #2d5a2d;
+  --pink: #e91e63;
+  --pink-bg: #fce4ec;
+  --pink-ink: #880e4f;
+
+  /* Utility action (Change Batch, refresh, and similar controls) */
+  --utility: #7e57c2;
+  --utility-light: #a883e0;
+  --utility-dark: #563d8a;
+
+  /* Phase identity, shared by the voyage strip, the tutorial grid, and the
+     welcome cards. The -fill shades are the same hues one step deeper, for
+     chips that carry white text. */
+  --phase-1: #4caf50;
+  --phase-2: #2196f3;
+  --phase-3: #ffa000;
+  --phase-4: #e91e63;
+  --phase-1-fill: #2e7d32;
+  --phase-2-fill: #1976d2;
+  --phase-3-fill: #ef6c00;
+  --phase-4-fill: #c2185b;
+
+  /* Effects */
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* Chinese edition: CJK type stack and the two tighter measures. */
+html:lang(zh-CN) {
+  --font-ui: "Microsoft YaHei", "PingFang SC", sans-serif;
+  --resource-name-w: 70px;
+  --modal-max-w: 600px;
+}
