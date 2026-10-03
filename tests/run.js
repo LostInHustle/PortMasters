@@ -264,6 +264,15 @@ function unitSuite() {
     assertEqual(state.inventory[run("PM.lang.items.tea")], 3, "tea");
   });
 
+  check("the state carries no retired fields", () => {
+    const keys = run("Object.keys(PM.createInitialState())");
+    const revived = keys.filter((k) => H.RETIRED_STATE_KEYS.has(k));
+    assert(
+      revived.length === 0,
+      `retired fields came back: ${revived.join(", ")}`,
+    );
+  });
+
   check("every pack key the engine reads exists in the pack", () => {
     const pack = g.run("PM.lang");
     const missing = [];
@@ -687,6 +696,57 @@ function verificationSuite() {
       g.state.modal.includes("Buy Rumor (2💰)"),
       "rumor board shows the same price",
     );
+  });
+
+  check("every revealed whisper returns as a matching order", () => {
+    for (const lang of Object.keys(H.ENTRIES)) {
+      const g = freshGame(lang);
+      g.run("startBoonDrafting()");
+      g.run("selectBoonById(PM.BOONS[0].id)");
+      // A fixed pool, so the single buy and the two for one buy both land.
+      g.run(
+        "PM.game.phase2DemandTags = [PM.lang.items.silk, PM.lang.items.tea, PM.lang.items.hemp, PM.lang.items.sachet]",
+      );
+      g.run("PM.game.money = 100; purchaseIntel()");
+      g.run(
+        `PM.game.shipLevel = 1; PM.equipModule(${modById("brokers_network")})`,
+      );
+      g.run("PM.game.money = 100; purchaseIntel()");
+      const intel = g.run("PM.game.revealedIntel.map((i) => [i.port, i.item])");
+      assertEqual(intel.length, 3, `${lang}: three whispers were bought`);
+      g.run("completePhase1(); startPhase2()");
+      const cards = g.run(
+        "PM.game.customerCards.map((c) => [c.demandPort, c.resources.map((r) => r.type)])",
+      );
+      assertEqual(cards.length, 5, `${lang}: five orders appear`);
+      g.run("showRumorBoard()");
+      const board = g.state.modal;
+      intel.forEach(([port, item], i) => {
+        assertEqual(
+          cards[i][0],
+          port,
+          `${lang}: order ${i} stands at the whispered port`,
+        );
+        assert(
+          cards[i][1].includes(item),
+          `${lang}: order ${i} demands the whispered ${item}`,
+        );
+        const line = g.run(
+          `PM.lang.log.rumor(${JSON.stringify(port)}, ${JSON.stringify(item)})`,
+        );
+        assert(
+          g.logs().includes(line),
+          `${lang}: the whisper log prints exactly: ${line}`,
+        );
+        const boardLine = g.run(
+          `PM.lang.ui.rumor.rumorLine(${JSON.stringify(port)}, ${JSON.stringify(item)})`,
+        );
+        assert(
+          board.includes(boardLine),
+          `${lang}: the rumor board repeats: ${boardLine}`,
+        );
+      });
+    }
   });
 
   check("the tutorial quotes the engine's own costs", () => {

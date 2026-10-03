@@ -76,7 +76,7 @@ The two editions share every line of game logic and styling. A language pack sup
 
 The game spans **8 Voyages**, each divided into **4 Phases**:
 
-- **Phase 1, Port Purchase**: Buy raw materials or finished goods at ports, and optionally buy demand rumors from the Broker's Rumor Board.
+- **Phase 1, Port Purchase**: Buy raw materials or finished goods at ports, and optionally buy demand rumors from the Broker's Rumor Board; each revealed rumor becomes a matching order in Phase 2.
 - **Phase 2, Trade Transaction**: Fulfill customer orders for gold and reputation.
 - **Phase 3, Maintenance & Wages**: Pay ship upkeep and artisan wages, and settle production.
 - **Phase 4, Shipyard & Modules**: Upgrade your ship to lower freight costs and unlock module slots.
@@ -166,7 +166,7 @@ The project ships a dependency free test suite that runs on Node 16 or newer:
 node tests/run.js
 ```
 
-It covers unit checks of the economy formulas, a probe for every ship module and every boon that pins down the effect each one has on the engine, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, verification checks that the figures on the screens match the money the engine actually moves and that no screen, log line, or entry page shows a dash character, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be recorded again with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
+It covers unit checks of the economy formulas, a probe for every ship module and every boon that pins down the effect each one has on the engine, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, verification checks that the figures on the screens match the money the engine actually moves, that every revealed rumor returns as a matching order, and that no screen, log line, or entry page shows a dash character, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be recorded again with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
 
 ---
 

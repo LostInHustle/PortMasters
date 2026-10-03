@@ -30,7 +30,6 @@
     game.modifierFlags = {};
     game.phase2DemandTags = [];
     game.revealedIntel = [];
-    game.intelOrderUsed = false;
     game.roundRevenue = 0;
     game.maintenanceCosts = 0;
     game.materialCosts = 0;
@@ -94,7 +93,6 @@
       if (!game.phase2DemandTags.includes(t)) game.phase2DemandTags.push(t);
     }
     game.revealedIntel = [];
-    game.intelOrderUsed = false;
     PM.log(L.log.phase1Header(game.currentRound));
     PM.log(L.log.fundsNow(game.money));
     game.resourceCards = [];
@@ -121,8 +119,9 @@
     game.completedOrders.clear();
     PM.log(L.log.phase2Header(game.currentRound));
     game.customerCards = [];
+    // Each revealed rumor claims the order at its own index.
     for (let i = 0; i < 5; i++) {
-      const o = PM.genMixedOrder();
+      const o = PM.genMixedOrder(i);
       o.id = i;
       game.customerCards.push(o);
     }

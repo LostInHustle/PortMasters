@@ -349,6 +349,8 @@
       if (game.money < game.intelCost) break;
       const item = PM.choice(game.phase2DemandTags);
       game.phase2DemandTags.splice(game.phase2DemandTags.indexOf(item), 1);
+      // The whisper is a promise the engine keeps: Phase 2 builds the order
+      // this rumor names, for exactly this item at exactly this port.
       const port = PM.choice(PM.PORTS);
       game.revealedIntel.push({ item, port });
       PM.log(L.log.rumor(port, item));

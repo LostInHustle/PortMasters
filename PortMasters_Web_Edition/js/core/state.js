@@ -49,7 +49,6 @@
       phase2DemandTags: [],
       revealedIntel: [],
       intelCost: PM.BASE_INTEL_COST,
-      intelOrderUsed: false,
       equippedModules: [],
       // The module offer is locked per round: the batch may be changed at
       // most once per round, and leaving or reentering the draft screen

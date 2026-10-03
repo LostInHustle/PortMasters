@@ -90,14 +90,21 @@ function hash(text) {
   return crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-/* Write-only fields the refactor retired from the game state. Both builds are
-   stripped before comparison so that dropping them does not read as a
-   behaviour change. See tests/README.md, "Intentional divergences".
+/* Write-only fields the game has retired over time: two counters and a
+   progress field the refactor dropped, and the intel latch the Broker's
+   Whisper fix replaced with index claimed orders. Both builds are stripped
+   before comparison so that dropping them does not read as a behaviour
+   change. See tests/README.md, "Intentional divergences".
    String values (module and boon names, descriptions copied into the draft
    batch) run through canonicalize too, so pack prose embedded in the state
    compares under the same terminology errata as the rendered panels. Object
    keys are left alone; the state's identifiers keep their names. */
-const RETIRED_STATE_KEYS = new Set(["totalRevenue", "totalCosts", "progress"]);
+const RETIRED_STATE_KEYS = new Set([
+  "totalRevenue",
+  "totalCosts",
+  "progress",
+  "intelOrderUsed",
+]);
 
 function stripRetired(value) {
   if (Array.isArray(value)) return value.map(stripRetired);
@@ -218,7 +225,7 @@ const BASELINE_ERRATA = [
   [/Revealed Intel:/, "Revealed Rumors:"],
   [
     /Revealed intel guarantees matching orders will appear/,
-    "Revealed rumors guarantee a matching order will appear",
+    "Every revealed rumor guarantees its matching order appears in Phase 2",
   ],
   [/Balance intel purchases/, "Balance rumor purchases"],
   [/revealed intel/, "revealed rumors"],
@@ -242,10 +249,10 @@ const BASELINE_ERRATA = [
   [/fixed rounds costs/, "fixed voyage costs"],
   /* Wording fixes: the VAT sidebar line loses its hyphen, the guide and the
      VAT hint say "finished goods" like the category panels do, the broker
-     footer promises the single guaranteed order the engine actually
-     generates, the Master's Apprentice boon describes the half wage it really
-     pays, and the freight hint stops printing a pointless "minus 0" at ship
-     level zero. */
+     footer promises the matching order the engine generates, the guide
+     promises one matching order per revealed rumor, the Master's Apprentice
+     boon describes the half wage it really pays, and the freight hint stops
+     printing a pointless "minus 0" at ship level zero. */
   [
     /VAT: 5% of finished-good profit margin/,
     "VAT: 5% of the profit margin on finished goods",
@@ -742,6 +749,7 @@ module.exports = {
   ENTRIES,
   PANEL_IDS,
   BASELINE_REV,
+  RETIRED_STATE_KEYS,
   entryPath,
   scriptSources,
   currentSpec,

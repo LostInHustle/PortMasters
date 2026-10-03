@@ -588,7 +588,7 @@ ${fmtItems(v.products.slice(2))}
 🔮 Broker's Whisper:
 • Phase 1: Click "Broker's Rumor Board" to open the window
 • Spend ${v.intelCost} Gold to buy a "rumor" about Phase 2 demand
-• Revealed rumors guarantee a matching order will appear
+• Every revealed rumor guarantees its matching order appears in Phase 2
 
 🔧 Ship Modules:
 • Phase 4: Upgrade your ship to unlock Module Slots
