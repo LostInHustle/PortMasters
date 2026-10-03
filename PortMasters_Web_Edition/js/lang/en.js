@@ -120,7 +120,7 @@
       master_apprentice: {
         name: "Master's Apprentice",
         icon: "🎓",
-        desc: "Hiring artisans costs 50% less this voyage.",
+        desc: "Artisans hired this voyage are paid half wages on their first voyage.",
       },
     },
 
@@ -324,7 +324,8 @@
         classLabel: "Ship Level",
         shipLevel: (n) => `${n}`,
         freight: "Freight",
-        freightHint: (discount) => `max(5, n×2 minus ${discount})`,
+        freightHint: (discount) =>
+          discount > 0 ? `max(5, n×2 minus ${discount})` : "max(5, n×2)",
         modules: "Modules",
         cargoHold: "📦 Cargo Hold",
         rawMaterials: "Raw Materials",
@@ -368,7 +369,7 @@
         costsMaintenance: "🔧 Maintenance: 15 Gold (fixed each voyage)",
         costsWages: "👥 Wages deducted at Phase 3, not on hire",
         taxesTitle: "🧾 Taxes Explained",
-        taxesVat: "VAT: 5% of finished-good profit margin",
+        taxesVat: "VAT: 5% of the profit margin on finished goods",
         taxesIncome: "Income Tax: 10% of voyage net profit",
         phasesTitle: "🔄 4 Phases per Voyage:",
         phasesBody:
@@ -376,7 +377,8 @@
         tipTitle: "💡 New Player Tip:",
         tipBody:
           " Rely on raw material orders early. Hire artisans only when you can sustain at least 2 voyages of wages. Always keep funds &gt; Maintenance + All Wages.",
-        footBroker: "🔮 Phase 1 Broker: buy demand rumors to guarantee orders",
+        footBroker:
+          "🔮 Phase 1 Broker: buy demand rumors to guarantee a matching order",
         footUpgrade:
           "🚢 Phase 4: upgrade ship → freight discounts + module slots",
         footKeys: "⌨️ Ctrl+S save | Ctrl+N next phase | F1 guide",
@@ -586,7 +588,7 @@ ${fmtItems(v.products.slice(2))}
 🔮 Broker's Whisper:
 • Phase 1: Click "Broker's Rumor Board" to open the window
 • Spend ${v.intelCost} Gold to buy a "rumor" about Phase 2 demand
-• Revealed rumors guarantee matching orders will appear
+• Revealed rumors guarantee a matching order will appear
 
 🔧 Ship Modules:
 • Phase 4: Upgrade your ship to unlock Module Slots
@@ -629,8 +631,8 @@ ${fmtItems(v.products.slice(2))}
 3. Balance rumor purchases with other investments
 
 🛒 Buying Strategy:
-1. Reserve funds for maintenance+wages first
-2. Select high value-for-money goods
+1. Reserve funds for maintenance and wages first
+2. Pick goods with the best value for your gold
 3. Prioritize port specialties + revealed rumors
 
 🤝 Trading Strategy:
@@ -641,7 +643,7 @@ ${fmtItems(v.products.slice(2))}
 ⚠️ Risk Control:
 1. Calculate fixed voyage costs: Maintenance + Wages
 2. Keep funds consistently > fixed costs
-3. Avoid over-expansion cash flow issues
+3. Avoid expanding faster than your funds allow
 
 💾 Save game progress frequently with Ctrl+S!`,
 
@@ -689,7 +691,7 @@ ${fmtItems(v.products.slice(2))}
         title: "⚠️ The artisan trap",
         content: (
           v,
-        ) => `<p>Artisans turn raw materials into high value finished goods and collect wages at each Phase 3. That part is simple. What catches most new players is this:</p>
+        ) => `<p>Artisans turn raw materials into premium finished goods and collect wages at each Phase 3. That part is simple. What catches most new players is this:</p>
 <div style="background:#C62828;color:#fff;border-radius:6px;padding:12px;margin:12px 0;text-align:center;font-size:14px;font-weight:bold;line-height:1.7">
   Assign a task this voyage.<br>Goods land at Phase 3, ready to sell next voyage.
 </div>

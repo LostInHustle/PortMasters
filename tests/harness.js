@@ -194,6 +194,8 @@ const BASELINE_ERRATA = [
     /(<button class="btn"[^>]*onclick="nextPhase\(\)">)⏭️ 继续航行(<\/button>)/g,
     "$1⏭️ 下一阶段$2",
   ],
+  /* The Mandarin freight hint drops "减去 0" at ship level zero too. */
+  [/max\(5, n×2 减去 0\)/g, "max(5, n×2)"],
   /* Global Mandarin word rules, applied after every specific rule above. */
   [/回合/g, "航程"],
   [/工人/g, "工匠"],
@@ -217,7 +219,7 @@ const BASELINE_ERRATA = [
   [/Revealed Intel:/, "Revealed Rumors:"],
   [
     /Revealed intel guarantees matching orders will appear/,
-    "Revealed rumors guarantee matching orders will appear",
+    "Revealed rumors guarantee a matching order will appear",
   ],
   [/Balance intel purchases/, "Balance rumor purchases"],
   [/revealed intel/, "revealed rumors"],
@@ -239,6 +241,19 @@ const BASELINE_ERRATA = [
     ", Linen Clothes, Cotton Clothes or Brocade(",
   ],
   [/fixed rounds costs/, "fixed voyage costs"],
+  /* Wording fixes: the VAT line loses its hyphen, the broker footer promises
+     the single guaranteed order the engine actually generates, the Master's
+     Apprentice boon describes the half wage it really pays, and the freight
+     hint stops printing a pointless "minus 0" at ship level zero. */
+  [
+    /VAT: 5% of finished-good profit margin/,
+    "VAT: 5% of the profit margin on finished goods",
+  ],
+  [
+    /buy demand rumors to guarantee orders/,
+    "buy demand rumors to guarantee a matching order",
+  ],
+  [/max\(5, n×2 minus 0\)/g, "max(5, n×2)"],
   /* Artisan name forms: singular first, skipping the unchanged formal names
      and the Master's Apprentice boon, then the plurals. */
   [/\bMaster\b(?!'s|\s+Weaver)/g, "Master Weaver"],
@@ -256,6 +271,12 @@ const BASELINE_ERRATA = [
   [/this round's/g, "this voyage's"],
   [/\bRound\b/g, "Voyage"],
   [/\bround\b/g, "voyage"],
+  /* After the word rules, so the raw baseline text ("Hiring workers costs 50%
+     less this round.") has already become the sentence this rule rewrites. */
+  [
+    /Hiring artisans costs 50% less this voyage\./,
+    "Artisans hired this voyage are paid half wages on their first voyage.",
+  ],
 ];
 
 /* Deliberate UI changes: every amber callout now shares one family, and the
@@ -284,6 +305,17 @@ const UI_DELTAS = [
   /* The refactor dropped btn-sm, a class no stylesheet ever defined; the
      button's inline style already set its size. */
   [/class="btn btn-sm"/g, 'class="btn"'],
+  /* The order card's printed Net deliberately changed: the shared engine now
+     folds Silk Road Monopoly's bonus into the figure before printing it, so
+     the two builds legitimately disagree on the number while a monopoly is
+     installed. Fold the amount to a token on both builds; the verification
+     suite pays the trade and checks the printed figure against the money
+     that actually moves. */
+  [
+    /(class="profit-(?:positive|negative)"[^>]*>[^<]*📊 (?:Net|净利): )-?\d+/g,
+    (m, head) => head + "N",
+  ],
+  [/\((?:Net |净赚)-?\d+💰\)/g, "(Net N💰)"],
 ];
 
 /* The shipyard footer pair. The refactor put Back to Shipyard first, sized

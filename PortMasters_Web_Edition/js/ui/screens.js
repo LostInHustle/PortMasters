@@ -328,7 +328,6 @@
             const completed = game.completedOrders.has(o.id);
             const hasSilk = PM.orderHasSilk(o);
             const transport = PM.calcTransportCost(o.totalItems, hasSilk);
-            let netProfit = o.reward - transport;
             let totalVat = 0;
             if (o.isProductOrder) {
               const product = o.resources[0].type;
@@ -337,8 +336,14 @@
                 o.reward / o.resources[0].required,
               );
               totalVat = unitVat * o.resources[0].required;
-              netProfit -= totalVat;
             }
+            // Mirrors completeOrder: VAT comes off first, then Silk Road
+            // Monopoly lifts the payout, so the printed Net is what the
+            // trade actually pays.
+            let payout = o.reward - totalVat;
+            if (PM.hasModule("silk_monopoly") && hasSilk && o.isProductOrder)
+              payout = Math.floor(payout * 1.2);
+            const netProfit = payout - transport;
             return `
             <div class="card">
               <div class="card-header">📍 ${o.demandPort} ${o.isProductOrder ? t.productDemand : t.rawDemand}</div>

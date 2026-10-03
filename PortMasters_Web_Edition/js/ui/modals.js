@@ -45,7 +45,8 @@
       fixedCost: PM.game.fixedCost,
       vatRate: PM.VAT_RATE * 100,
       incomeRate: PM.INCOME_TAX_RATE * 100,
-      intelCost: PM.BASE_INTEL_COST,
+      /* The live price, so a Broker's Network discount shows here too. */
+      intelCost: PM.game.intelCost,
     };
   }
 

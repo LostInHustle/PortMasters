@@ -32,7 +32,7 @@ Two small launcher scripts in the project root serve the game at a `localhost` a
 python3 PortMasters_v1.4.0.py
 ```
 
-The script starts a local web server for the `PortMasters_Web_Edition` folder, opens your default browser at `http://localhost:8020/`, and prints a ready message. The message also shows the address other devices on your network can use, so a phone or tablet on the same Wi-Fi can play too. macOS may ask once whether Python may accept incoming connections; choose Allow for network play, and prefer not to leave the server running on public Wi-Fi. Press `Ctrl+C` in the terminal to stop the server. If port 8020 is already taken, pass a different port as an argument, for example `python3 PortMasters_v1.4.0.py 8021`.
+The script starts a local web server for the `PortMasters_Web_Edition` folder, opens your default browser at `http://localhost:8020/`, and prints a ready message. The message also shows the address other devices on your network can use, so a phone or tablet on the same network can play too. macOS may ask once whether Python may accept incoming connections; choose Allow for network play, and prefer not to leave the server running on public networks. Press `Ctrl+C` in the terminal to stop the server. If port 8020 is already taken, pass a different port as an argument, for example `python3 PortMasters_v1.4.0.py 8021`.
 
 ### 🧱 Project Layout
 
@@ -166,7 +166,7 @@ The project ships a dependency free test suite that runs on Node 16 or newer:
 node tests/run.js
 ```
 
-It covers unit checks of the economy formulas, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be re-recorded with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
+It covers unit checks of the economy formulas, a probe for every ship module and every boon that pins down the effect each one has on the engine, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, verification checks that the figures on the screens match the money the engine actually moves and that no screen, log line, or entry page shows a dash character, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be recorded again with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
 
 ---
 
@@ -176,7 +176,7 @@ It covers unit checks of the economy formulas, smoke checks that every page load
 - **"Blank Page on Launch"**: make sure the `css/` and `js/` folders sit next to the entry HTML file, and open the page in a current browser.
 - **"Old Progress Looks Different"**: saves written before v1.4.0 still load; item names and save keys are unchanged.
 - **Launcher Says the Port Is in Use**: another program holds port 8020. Close it, or start the launcher with a free port, for example `python3 PortMasters_v1.4.0.py 8021`.
-- **"Network Address Does Not Open"**: `localhost` works but the printed network address does not. On macOS, allow incoming connections for Python when the firewall prompts (System Settings, Network, Firewall), and make sure the server was started with the current launcher: instances started before v1.4.0's LAN support listen on `localhost` only and need a restart. Guest and public Wi-Fi networks may block device-to-device traffic entirely.
+- **"Network Address Does Not Open"**: `localhost` works but the printed network address does not. On macOS, allow incoming connections for Python when the firewall prompts (System Settings, Network, Firewall), and make sure the server was started with the current launcher: instances started before v1.4.0's LAN support listen on `localhost` only and need a restart. Guest and public networks may block traffic between devices entirely.
 
 ---
 
@@ -194,7 +194,7 @@ It covers unit checks of the economy formulas, smoke checks that every page load
 - **Launch**: open `PortMasters_Web_Edition/PortMasters_v1.4.0.html` in a browser, or run `python3 PortMasters_v1.4.0.py` for a local server on port 8020, reachable from other devices on the same network
 - **Core Loop**: Buy ➔ Trade ➔ Pay Wages ➔ Upgrade
 - **Top Sellers**: Sachets & Brocade (watch VAT!)
-- **Save**: Auto-prompt or `Ctrl+S`
+- **Save**: automatic prompt or `Ctrl+S`
 - **Module Draft**: one batch change per voyage, navigation never rerolls
 - **Bankruptcy Warning**: Salary > Gold = Game Over
 - **Win Condition**: Complete 8 voyages, Rep ≥ 300

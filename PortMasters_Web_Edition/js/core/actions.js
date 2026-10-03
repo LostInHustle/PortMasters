@@ -339,6 +339,9 @@
     const count = PM.hasModule("brokers_network") ? 2 : 1;
     for (let i = 0; i < count; i++) {
       if (!game.phase2DemandTags.length) break;
+      // The second rumor is never bought on credit: stop once the purse can
+      // no longer cover the next one.
+      if (game.money < game.intelCost) break;
       const item = PM.choice(game.phase2DemandTags);
       game.phase2DemandTags.splice(game.phase2DemandTags.indexOf(item), 1);
       const port = PM.choice(PM.PORTS);

@@ -314,7 +314,8 @@
         classLabel: "船只等级",
         shipLevel: (n) => `${n}级`,
         freight: "运费",
-        freightHint: (discount) => `max(5, n×2 减去 ${discount})`,
+        freightHint: (discount) =>
+          discount > 0 ? `max(5, n×2 减去 ${discount})` : "max(5, n×2)",
         modules: "模块槽位",
         cargoHold: "📦 船舱货物",
         rawMaterials: "原材料",
