@@ -92,7 +92,11 @@ function hash(text) {
 
 /* Write-only fields the refactor retired from the game state. Both builds are
    stripped before comparison so that dropping them does not read as a
-   behaviour change. See tests/README.md, "Intentional divergences". */
+   behaviour change. See tests/README.md, "Intentional divergences".
+   String values (module and boon names, descriptions copied into the draft
+   batch) run through canonicalize too, so pack prose embedded in the state
+   compares under the same terminology errata as the rendered panels. Object
+   keys are left alone; the state's identifiers keep their names. */
 const RETIRED_STATE_KEYS = new Set(["totalRevenue", "totalCosts", "progress"]);
 
 function stripRetired(value) {
@@ -106,7 +110,7 @@ function stripRetired(value) {
     }
     return out;
   }
-  return value;
+  return typeof value === "string" ? canonicalize(value) : value;
 }
 
 /* The refactor replaced the compound inline handlers that reached into the
@@ -134,6 +138,124 @@ const BASELINE_ERRATA = [
   /* The Mandarin guide lost the intel price ("花费5金币"); the shared guide
      templates it from game.intelCost. */
   [/花费金币购买关于第2阶段需求的/g, "花费5金币购买关于第2阶段需求的"],
+
+  /* --- Terminology unification -------------------------------------------
+     Both packs now name the unit of play a Voyage / 航程, the hireable trade
+     an artisan / 工匠, the top rank King of Silk Road / 丝绸之路霸主, and
+     the trade goods by their full names. Every baseline spelling is rewritten
+     to the new one, so the two builds compare exactly. Specific rules run
+     before the global word rules below them. */
+
+  /* Mandarin: sentences that were rewritten, not word swapped. */
+  [
+    /本回合所有工人每回合额外多生产1件商品。/,
+    "本航程所有工匠额外多生产1件商品。",
+  ],
+  [/无法支付工人工资，工匠们罢工离去/, "无法支付工资，工匠罢工离去"],
+  [/至少2回合工资/, "至少2个航程的工资"],
+  [
+    /只有金币能覆盖至少两轮工资再加上其他账单，再考虑雇人。/,
+    "金币能覆盖至少两个航程的工资再加上其他账单后，再考虑雇人。",
+  ],
+  [/两轮工资/, "两个航程的工资"],
+  [/本回合收入/, "航程收入"],
+  [/阶段3：本回合结算/g, "阶段3：航程结算"],
+  [/分配任务 → 下一阶段3才产出成品/, "分配任务 → 成品在阶段3产出"],
+  [/航行八大航程，成为海上霸主！/, "历经八次航程，成为丝绸之路霸主！"],
+  [/荣登<strong>海上霸主<\/strong>/, "荣登<strong>丝绸之路霸主</strong>"],
+  [
+    /这次航程分配任务。<br>成品下次航程阶段3才出来，不是这次。/,
+    "本航程分配任务。<br>成品阶段3产出，下个航程才能出售。",
+  ],
+  [/（麻布织物、丝绸服饰、香囊）/, "（麻衣、布衣、绫罗绸缎、香囊）"],
+  [/欢迎来到PortMasters海上丝绸之路贸易大亨！/, "欢迎来到 PortMasters！"],
+  [/渲染管线异常 \(Render Pipeline Exception\)/, "引擎异常：渲染管线已停止"],
+  [/游戏结束!/g, "游戏结束！"],
+  [/运费公式/, "运费"],
+  [/🔧 船只模块 \(核心流派\)：/, "🔧 船只模块："],
+  [/花费金币以探听下一阶段的货物需求！/, "花费金币，探听阶段2的货物需求！"],
+  [/来自(.+?)的消息：对(.+?)的需求量很大！/g, "$1有消息：急需$2！"],
+  [/才能购买消息/, "才能购买密语"],
+  [/购买消息 \(/, "购买密语 ("],
+  [/已探听消息：/, "已探听的密语："],
+  [/尚未探听任何消息/, "尚未探听任何密语"],
+  [/探听到的消息将保证/, "探听到的密语将保证"],
+  [/尽早购买消息/, "尽早购买密语"],
+  [/平衡购买消息与/, "平衡购买密语与"],
+  [/探听到的消息货物/, "探听到的密语"],
+  [/购买情报，阶段2/, "购买密语，阶段2"],
+  /* Brokers Network module description, matching the English rule below. */
+  [/情报花费2金币。每次购买揭示2条密语。/g, "密语花费2金币，每次购买揭示2条。"],
+  [/👩‍🎨 大师/, "👩‍🎨 纺织大师"],
+  [/商船/g, "船只"],
+  /* The control panel's button only; the shipyard keeps 继续航行 for
+     "Continue Voyage", mirroring the English split. */
+  [
+    /(<button class="btn"[^>]*onclick="nextPhase\(\)">)⏭️ 继续航行(<\/button>)/g,
+    "$1⏭️ 下一阶段$2",
+  ],
+  /* Global Mandarin word rules, applied after every specific rule above. */
+  [/回合/g, "航程"],
+  [/工人/g, "工匠"],
+
+  /* English: rewritten sentences and phrases first. */
+  [
+    /Hemp purchase prices reduced by 2 Gold per unit\./,
+    "Hemp purchase prices reduced by 2 Gold per unit this voyage.",
+  ],
+  [/Sea Master/g, "King of Silk Road"],
+  [
+    /<span>Class<\/span><span class="stat-value">Level (\d+)<\/span>/g,
+    '<span>Ship Level</span><span class="stat-value">$1</span>',
+  ],
+  [/🚢 Vessel Status/, "🚢 Ship Status"],
+  [/Complete Management, Set Sail/, "Complete Management, Continue"],
+  [
+    /Intel costs 2 Gold\. Reveals 2 rumors per purchase\./,
+    "Rumor cost: 2 Gold. Each purchase reveals 2 rumors.",
+  ],
+  [/Revealed Intel:/, "Revealed Rumors:"],
+  [
+    /Revealed intel guarantees matching orders will appear/,
+    "Revealed rumors guarantee matching orders will appear",
+  ],
+  [/Balance intel purchases/, "Balance rumor purchases"],
+  [/revealed intel/, "revealed rumors"],
+  [
+    /The goods are ready next voyage, not this one\./,
+    "Goods land at Phase 3, ready to sell next voyage.",
+  ],
+  [
+    /\(Fabric, Silk Garment, Sachet\)/,
+    "(Linen Clothes, Cotton Clothes, Brocade, Sachet)",
+  ],
+  [/Makes Linen or Cotton Clothes/, "Makes Linen Clothes or Cotton Clothes"],
+  [
+    /Makes Linen, Cotton or Brocade/,
+    "Makes Linen Clothes, Cotton Clothes or Brocade",
+  ],
+  [
+    /, Linen, Cotton or Brocade\(/,
+    ", Linen Clothes, Cotton Clothes or Brocade(",
+  ],
+  [/fixed rounds costs/, "fixed voyage costs"],
+  /* Artisan name forms: singular first, skipping the unchanged formal names
+     and the Master's Apprentice boon, then the plurals. */
+  [/\bMaster\b(?!'s|\s+Weaver)/g, "Master Weaver"],
+  [/\bMasters\b/g, "Master Weavers"],
+  [/\b(?<!Sachet )Maker\b/g, "Sachet Maker"],
+  [/\b(?<!Sachet )Makers\b/g, "Sachet Makers"],
+  /* Generic hireable labour is an artisan now, matching 工匠. */
+  [/\bWorkers\b/g, "Artisans"],
+  [/\bworkers\b/g, "artisans"],
+  [/\bWorker\b/g, "Artisan"],
+  [/\bworker\b/g, "artisan"],
+  /* The unit of play is a Voyage now, matching 航程. */
+  [/\bRounds\b/g, "Voyages"],
+  [/\brounds\b/g, "voyages"],
+  [/this round's/g, "this voyage's"],
+  [/\bRound\b/g, "Voyage"],
+  [/\bround\b/g, "voyage"],
 ];
 
 /* Deliberate UI changes: every amber callout now shares one family, and the
@@ -371,7 +493,11 @@ function createGame(spec, opts = {}) {
       phase: String(game.phase),
       round: game.currentRound,
       game: stableJson(stripRetired(game)),
-      logs: stableJson(run(logsExpr).slice()),
+      logs: stableJson(
+        run(logsExpr)
+          .slice()
+          .map((m) => canonicalize(String(m))),
+      ),
       panels: PANEL_IDS.map((id) => canonicalize(state.panels[id] || "")),
       modal: canonicalize(state.modal),
     };

@@ -5,8 +5,6 @@
   const PM = (window.PM = window.PM || {});
 
   PM.lang = {
-    id: "en",
-
     /* Item names. These strings are the inventory keys and the keys inside a
        saved game, so they are part of the save format. */
     items: {
@@ -65,7 +63,7 @@
         prodName: "纺织大师",
         short: "纺织大师",
         plural: "纺织大师",
-        statusPlural: "大师",
+        statusPlural: "纺织大师",
         hireIcon: "👩‍🎨",
         icon: "👩‍🎨",
       },
@@ -84,22 +82,22 @@
       silk_wind: {
         name: "丝路顺风",
         icon: "🌬️",
-        desc: "本回合运输丝绸及成品时，运费减半。",
+        desc: "本航程运输丝绸及成品时，运费减半。",
       },
       favorable_tides: {
         name: "顺风顺水",
         icon: "🌊",
-        desc: "本回合基础运费减少4金币。",
+        desc: "本航程基础运费减少4金币。",
       },
       merchant_charm: {
         name: "商贾魅力",
         icon: "✨",
-        desc: "本回合港口采购所有商品享85折优惠。",
+        desc: "本航程港口采购所有商品享85折优惠。",
       },
       artisan_inspiration: {
         name: "匠人灵感",
         icon: "🔨",
-        desc: "本回合所有工人每回合额外多生产1件商品。",
+        desc: "本航程所有工匠额外多生产1件商品。",
       },
       emergency_loan: {
         name: "紧急钱庄",
@@ -109,17 +107,17 @@
       tax_shelter: {
         name: "免税令",
         icon: "📜",
-        desc: "本回合结算所得税率降至5%。",
+        desc: "本航程结算所得税率降至5%。",
       },
       hemp_monopoly: {
         name: "麻布专营",
         icon: "🧶",
-        desc: "本回合麻布采购单价降低2金币。",
+        desc: "本航程麻布采购单价降低2金币。",
       },
       master_apprentice: {
         name: "学徒传承",
         icon: "🎓",
-        desc: "本回合雇佣工匠工资减半。",
+        desc: "本航程雇佣工匠工资减半。",
       },
     },
 
@@ -137,7 +135,7 @@
       artisans_workshop: {
         name: "工匠工坊",
         icon: "🛠️",
-        desc: "工人产量+1。工资+20%。",
+        desc: "工匠产量+1。工资+20%。",
       },
       tax_evasion: {
         name: "避税账本",
@@ -152,7 +150,7 @@
       brokers_network: {
         name: "牙行网络",
         icon: "🕵️",
-        desc: "情报花费2金币。每次购买揭示2条密语。",
+        desc: "密语花费2金币，每次购买揭示2条。",
       },
       salvage_crane: {
         name: "打捞起重机",
@@ -200,31 +198,31 @@
         `   💰 报酬: ${reward}金币 | ⚓ 运费: ${transport}金币 = 📊 净利润: ${net}金币`,
       transactionsCompleted: (n) => `📊 已完成 ${n} 笔交易`,
 
-      cannotHire: "❌ 资金不足，无法雇佣工人！",
+      cannotHire: "❌ 资金不足，无法雇佣工匠！",
       hired: (icon, name, wage) =>
-        `${icon} 雇佣了一名${name}！工资: ${wage}金币/回合（每回合结算时支付）`,
+        `${icon} 雇佣了一名${name}！工资: ${wage}金币/航程（每航程结算时支付）`,
       cannotPaySeverance: (name, wage) =>
         `❌ 资金不足，无法支付${name}的遣散费: ${wage}金币`,
       dismissed: (name, wage) =>
         `💔 解雇了一名${name}，支付遣散费: ${wage}金币`,
-      wasMaking: (task) => `  该工人原本正在制作: ${task}`,
+      wasMaking: (task) => `  该工匠原本正在制作: ${task}`,
       materialShortage: (task) => `❌ 材料不足，无法生产${task}！`,
       taskAssigned: (icon, task, matTxt) =>
-        `📋 为工人分配任务：生产${icon}${task}（原料：${matTxt}）`,
-      allWorkersBusy: "❌ 所有工人都已分配任务！",
+        `📋 为工匠分配任务：生产${icon}${task}（原料：${matTxt}）`,
+      allWorkersBusy: "❌ 所有工匠都已分配任务！",
 
       producedBonus: (name, amt, icon, task) =>
         `✅ ${name}完成了 ${amt} 件${icon}${task}的制作！（加成）`,
       producedSkilled: (name, icon, task) =>
         `✅ ${name}(熟练)完成了2件${icon}${task}的制作！`,
       produced: (name, icon, task) => `✅ ${name}完成了${icon}${task}的制作！`,
-      promotion: (name) => `⭐ ${name}经验提升！现在每回合可生产2件产品！`,
+      promotion: (name) => `⭐ ${name}经验提升！现在每航程可生产2件产品！`,
 
       wagesPaid: (n, plural, amt) =>
         `💰 支付了${n}名${plural}的工资：${amt}金币`,
       wagesShortfall: (total, money) =>
         `⚠️ 资金不足！应付工资: ${total}金币，当前资金: ${money}金币`,
-      workersStrike: "💥 无法支付工人工资，工匠们罢工离去...",
+      workersStrike: "💥 无法支付工资，工匠罢工离去...",
       reputationCollapsed: "💥 商队信誉崩塌，被迫破产！",
 
       maintenancePaid: (cost) => `💸 支付了船只维护费: ${cost}金币`,
@@ -233,12 +231,11 @@
       fundsDepleted: "⚠️ 资金耗尽！无法继续航行...",
 
       noRumors: "🔮 牙行已无更多密语...",
-      rumorCost: (cost) => `❌ 需要${cost}金币才能购买消息`,
-      rumor: (port, item) =>
-        `🗣️ 牙行密语：'来自${port}的消息：对${item}的需求量很大！'`,
+      rumorCost: (cost) => `❌ 需要${cost}金币才能购买密语`,
+      rumor: (port, item) => `🗣️ 牙行密语：'${port}有消息：急需${item}！'`,
 
       shipUpgraded: (level) =>
-        `🎉 商船升级到 ${level}级！+1模块槽位，+5运费折扣`,
+        `🎉 船只升级到 ${level}级！+1模块槽位，+5运费折扣`,
       moduleSwapped: (oldName, newName) =>
         `🔄 将 ${oldName} 替换为 ${newName}！`,
       moduleInstalled: (name) => `✅ 安装了 ${name}！`,
@@ -249,14 +246,14 @@
       roundTotalCost: (c) => `💸 本航程总成本: ${c}金币`,
       roundMaintenance: (c) => `   🔧 维护费: ${c}金币`,
       roundMaterials: (c) => `   📦 材料费: ${c}金币`,
-      roundWages: (c) => `   👥 工人工资: ${c}金币`,
+      roundWages: (c) => `   👥 工匠工资: ${c}金币`,
       profitBeforeTax: (p) => `📈 税前净利润: ${p}金币`,
       incomeTaxPaid: (rate, tax) => `🏛️ 缴纳所得税（${rate}%）: ${tax}金币`,
       noIncomeTax: "🏛️ 无盈利，无需缴纳所得税",
       vatPaidRound: (v) => `🧾 本航程已缴增值税: ${v}金币`,
       preparingRound: (r) => `\n🔄=== 第${r}航程准备开始 ===`,
 
-      welcomeTitle: "⚓ 欢迎来到PortMasters海上丝绸之路贸易大亨！",
+      welcomeTitle: "⚓ 欢迎来到 PortMasters！",
       welcomeSail: "🚢 穿梭于各大港口之间，建立您的商业帝国！",
       welcomeHire: "👥 雇佣工匠，制作精美商品，获取更高利润！",
 
@@ -269,16 +266,16 @@
       tradingSkipped: "⏭️ 跳过了交易阶段",
       tradingEnded: (n) => `✅ 交易结束，共完成 ${n} 笔交易`,
 
-      productionHeader: "\n👥=== 处理工人生产 ===",
-      wagesHeader: "\n💰=== 支付工人工资 ===",
-      bankruptWages: "⚠️ 因无法支付工人工资而破产！",
+      productionHeader: "\n👥=== 处理工匠生产 ===",
+      wagesHeader: "\n💰=== 支付工匠工资 ===",
+      bankruptWages: "⚠️ 因无法支付工匠工资而破产！",
       phase3Header: (r) => `\n🔧=== 第${r}航程 | 阶段3: 船只维护 ===`,
       fundsZero: "⚠️ 资金为0，无法支付维护费！",
 
       phase4Header: (r) => `\n🚢=== 第${r}航程 | 阶段4: 船坞与模块 ===`,
       skippedShipyard: "⏭️ 跳过船坞操作",
 
-      gameOverTitle: "🎮 PortMasters：游戏结束!",
+      gameOverTitle: "🎮 PortMasters：游戏结束！",
       finalFunds: (m) => `💰 最终资金: ${m}金币`,
       finalReputation: (s) => `🏆 最终声望: ${s}`,
       totalTaxes: (t) => `🧾 累计缴税: ${t}金币`,
@@ -292,7 +289,7 @@
       guideTitle: "⚓ 航海指南",
       tipsTitle: "💡 贸易策略建议",
       unknownPhase: "🧭 风向未定...",
-      crashTitle: "⚠️ 渲染管线异常 (Render Pipeline Exception)",
+      crashTitle: "⚠️ 引擎异常：渲染管线已停止",
       crashRetry: "🔄 尝试重新渲染",
       savedAlert: "游戏进度已保存！",
       confirmRestart: "确定要重新开始海上丝绸之路贸易之旅吗？",
@@ -314,24 +311,24 @@
         funds: "💰 资金",
         reputation: "🏆 声望",
         vessel: "🚢 船只状态",
-        classLabel: "商船等级",
+        classLabel: "船只等级",
         shipLevel: (n) => `${n}级`,
-        freight: "运费公式",
+        freight: "运费",
         freightHint: (discount) => `max(5, n×2 减去 ${discount})`,
         modules: "模块槽位",
         cargoHold: "📦 船舱货物",
         rawMaterials: "原材料",
         finishedGoods: "成品",
         artisans: "工匠",
-        obligations: "⚠️ 本回合应付款项",
+        obligations: "⚠️ 本航程应付款项",
         maintenance: "🔧 维护费",
         wages: "👥 工资",
         wageCount: (n) => `（${n}名工匠）`,
         wageBreakdown: (n, label) => `↳ ${n}× ${label}`,
         goldShort: "金",
         totalDue: "💸 合计应付",
-        riskShortfall: "🚨 警告：资金可能不足以支付本回合结算费用！",
-        fundsSufficient: "✅ 资金充足，可支付本回合结算",
+        riskShortfall: "🚨 警告：资金可能不足以支付本航程结算费用！",
+        fundsSufficient: "✅ 资金充足，可支付本航程结算",
       },
 
       controls: {
@@ -340,14 +337,14 @@
         setSail: (r) => `🚢 开始第${r}航程`,
         draftingBoon: "🧭 抽取福缘中...",
         onVoyage: "🚢 航行中...",
-        nextPhase: "⏭️ 继续航行",
+        nextPhase: "⏭️ 下一阶段",
         guide: "📖 航海指南",
         save: "💾 保存进度",
         restart: "🔄 重新起航",
       },
 
       welcome: {
-        subtitle: "🌊 航行八大航程，成为海上霸主！",
+        subtitle: "🌊 历经八次航程，成为丝绸之路霸主！",
         continueVoyage: "📂 继续航行",
         setSail: "🚢 扬帆起航",
         tutorial: "📖 新手教程",
@@ -355,10 +352,10 @@
         startGoods: "📦 麻布×8，丝绸×5，茶叶×3",
         startFunds: "💰 初始资金 100 金币",
         delayTitle: "⏱️ 生产有延迟",
-        delayLine: "分配任务 → 下一阶段3才产出成品",
+        delayLine: "分配任务 → 成品在阶段3产出",
         delayNote: "工匠不会立刻生产！",
-        costsTitle: "💸 回合结算费用",
-        costsMaintenance: "🔧 维护费：每回合固定15金币",
+        costsTitle: "💸 航程结算费用",
+        costsMaintenance: "🔧 维护费：每航程固定15金币",
         costsWages: "👥 工资在阶段3扣除，不在雇佣时扣",
         taxesTitle: "🧾 税收说明",
         taxesVat: "增值税：成品销售利润的5%",
@@ -368,9 +365,9 @@
           "1️⃣ 港口采购 → 2️⃣ 贸易交易 → 3️⃣ 工资、产出与维护结算 → 4️⃣ 船坞升级",
         tipTitle: "💡 新手提示：",
         tipBody:
-          "早期以原材料订单为主。雇佣工匠前确保资金能支撑至少2回合工资。始终保持资金 &gt; 维护费 + 全部工资。",
+          "早期以原材料订单为主。雇佣工匠前确保资金能支撑至少2个航程的工资。始终保持资金 &gt; 维护费 + 全部工资。",
         footBroker: "🔮 阶段1牙行：购买密语，锁定保底订单",
-        footUpgrade: "🚢 阶段4升级商船：运费折扣 + 解锁模块槽",
+        footUpgrade: "🚢 阶段4升级船只：运费折扣 + 解锁模块槽",
         footKeys: "⌨️ Ctrl+S 保存 | Ctrl+N 下一阶段 | F1 帮助",
       },
 
@@ -419,10 +416,10 @@
         hireMasterDetail: "，麻衣、布衣 或 绫罗绸缎(3丝绸)，",
         hireMakerName: "🌸 香囊师",
         hireMakerDetail: "，香囊(1丝绸+2茶叶)，",
-        perRound: (wage) => `${wage}金币/回合`,
-        hireWeaverButton: (cost) => `👩‍🔧 雇佣织女 (${cost}💰/回合)`,
-        hireMasterButton: (cost) => `👩‍🎨 雇佣纺织大师 (${cost}💰/回合)`,
-        hireMakerButton: (cost) => `🌸 雇佣香囊师 (${cost}💰/回合)`,
+        perRound: (wage) => `${wage}金币/航程`,
+        hireWeaverButton: (cost) => `👩‍🔧 雇佣织女 (${cost}💰/航程)`,
+        hireMasterButton: (cost) => `👩‍🎨 雇佣纺织大师 (${cost}💰/航程)`,
+        hireMakerButton: (cost) => `🌸 雇佣香囊师 (${cost}💰/航程)`,
         statusTitle: "👥 工匠状态与任务分配",
         workerLine: (short, n, w) =>
           `${short}${n}: ${
@@ -450,7 +447,7 @@
       },
 
       maintenance: {
-        title: "🔧 阶段3：本回合结算",
+        title: "🔧 阶段3：航程结算",
         processedTitle: "✅ 已完成处理",
         production: "👷 工匠生产",
         done: "已完成 ✓",
@@ -462,7 +459,7 @@
         balanceTitle: "💹 资金概览",
         currentFunds: "当前资金",
         afterMaintenance: "支付维护费后",
-        roundRevenue: "本回合收入",
+        roundRevenue: "航程收入",
         payCost: (cost) => `💸 支付维护费: ${cost}金币`,
         forcePay: (money, cost) => `⚠️ 强制支付 (${money}/${cost}金币)`,
       },
@@ -485,7 +482,7 @@
         subtitle: "选择要安装或替换的船只模块。",
         install: "✅ 安装",
         swap: "🔄 替换",
-        allInstalled: "本回合抽取的模块都已安装完毕。",
+        allInstalled: "本航程抽取的模块都已安装完毕。",
         changeBatch: "🔄 更换牌组（每航程1次）",
         changeBatchUsed: "🔒 更换次数已用完",
         back: "⬅️ 返回船坞",
@@ -501,7 +498,7 @@
       bankruptcy: {
         title: "船队破产！",
         reasonDepleted: "资金耗尽，无法支付必要的运营费用",
-        reasonShortfall: "资金不足以支付维护费和工人工资",
+        reasonShortfall: "资金不足以支付维护费和工匠工资",
         roundsCompleted: "🌊 完成航程:",
         finalFunds: "💰 最终资金:",
         finalReputation: "🏆 最终声望:",
@@ -513,7 +510,7 @@
       },
 
       endgame: {
-        title: "🎮 游戏结束!",
+        title: "🎮 游戏结束！",
         finalReputation: (score) => `🏆 最终声望: ${score}`,
         finalFunds: (money) => `💰 最终资金: ${money}金币`,
         rank: (rating) => `📈 商人评级: ${rating}`,
@@ -522,11 +519,11 @@
 
       rumor: {
         title: "🗣️ 牙行密语板",
-        subtitle: "花费金币以探听下一阶段的货物需求！",
-        buy: (cost) => `🔮 购买消息 (${cost}💰)`,
-        revealedTitle: "📜 已探听消息：",
+        subtitle: "花费金币，探听阶段2的货物需求！",
+        buy: (cost) => `🔮 购买密语 (${cost}💰)`,
+        revealedTitle: "📜 已探听的密语：",
         rumorLine: (port, item) => `• 🗣️ '${port} 急需 ${item}'`,
-        empty: "✨ 尚未探听任何消息... 花费金币聆听牙行的密语吧。",
+        empty: "✨ 尚未探听任何密语... 花费金币聆听牙行的密语吧。",
         close: "关闭面板",
       },
 
@@ -559,9 +556,9 @@
 成品：${fmtItems(v.products)}
 
 👥 工匠系统：
-• 织女（${v.weaverWage}金币/回合）：制作麻衣或布衣
-• 纺织大师（${v.masterWage}金币/回合）：制作麻衣、布衣或绫罗绸缎
-• 香囊师（${v.makerWage}金币/回合）：制作香囊
+• 织女（${v.weaverWage}金币/航程）：制作麻衣或布衣
+• 纺织大师（${v.masterWage}金币/航程）：制作麻衣、布衣或绫罗绸缎
+• 香囊师（${v.makerWage}金币/航程）：制作香囊
 
 🧾 税收系统：
 • 增值税：成品销售利润的${v.vatRate}%
@@ -570,10 +567,10 @@
 🔮 牙行密语：
 • 第1阶段：点击"牙行密语板"打开独立窗口
 • 花费${v.intelCost}金币购买关于第2阶段需求的"密语"
-• 探听到的消息将保证生成对应的保底订单
+• 探听到的密语将保证生成对应的保底订单
 
-🔧 船只模块 (核心流派)：
-• 第4阶段：升级商船以解锁"模块槽位"
+🔧 船只模块：
+• 第4阶段：升级船只以解锁"模块槽位"
 • 抽取并安装强大的模块，创造独特的协同效应
 • 模块牌组每航程仅可更换一次
 • 随时替换模块，根据当前局势调整您的商业帝国！
@@ -582,7 +579,7 @@
 1. 港口采购：在各大港口购买原材料 (+ 牙行密语)
 2. 贸易交易：完成原材料或成品订单
 3. 船只维护：支付维护费 & 结算工匠生产
-4. 船坞升级：升级商船并安装模块
+4. 船坞升级：升级船只并安装模块
 
 ⌨️ 快捷键：
 • Ctrl+S：保存游戏
@@ -598,24 +595,24 @@
 
 💰 资金管理：
 1. 确保始终有足够备用金支付所有费用
-2. 维护费 + 工人工资是每回合固定支出
+2. 维护费 + 工匠工资是每航程固定支出
 3. 计算总支出后再决定采购量
 
 👥 工匠管理：
-1. 织女工资: ${v.weaverWage}金币/回合
-2. 纺织大师工资: ${v.masterWage}金币/回合
-3. 香囊师工资: ${v.makerWage}金币/回合
-4. 量力而行，不要雇佣过多工人
+1. 织女工资: ${v.weaverWage}金币/航程
+2. 纺织大师工资: ${v.masterWage}金币/航程
+3. 香囊师工资: ${v.makerWage}金币/航程
+4. 量力而行，不要雇佣过多工匠
 
 🔮 牙行密语策略：
-1. 如果资金充裕，尽早购买消息
+1. 如果资金充裕，尽早购买密语
 2. 囤积探听到的货物，保证第2阶段利润
-3. 平衡购买消息与其他投资的资金分配
+3. 平衡购买密语与其他投资的资金分配
 
 🛒 采购策略：
 1. 预留维护费+工资后再采购
 2. 选择性价比高的商品组合
-3. 优先购买港口特产 + 探听到的消息货物
+3. 优先购买港口特产 + 探听到的密语
 
 🤝 交易策略：
 1. 优先完成利润高的订单
@@ -623,7 +620,7 @@
 3. 成品订单利润高但需缴增值税
 
 ⚠️ 风险控制：
-1. 计算每回合固定支出：维护费 + 工人工资
+1. 计算每航程固定支出：维护费 + 工匠工资
 2. 确保资金始终 > 固定支出
 3. 不要过度扩张导致资金链断裂
 
@@ -638,7 +635,7 @@
       },
       {
         title: "🏆 你在玩什么",
-        content: `<p>八次航程结束后，声望最高的人荣登<strong>海上霸主</strong>。声望来自贸易盈利和完成的订单。</p>
+        content: `<p>八次航程结束后，声望最高的人荣登<strong>丝绸之路霸主</strong>。声望来自贸易盈利和完成的订单。</p>
 <p>有一条规则压过其他所有规则：<strong>不能破产</strong>。金币归零，游戏立即结束。没有挽回的机会。</p>
 <p>初始资金是 <strong>100 金币</strong>。够用，但容不下粗心大意。</p>`,
       },
@@ -649,14 +646,14 @@
   <div style="background:#E8F5E9;border-radius:6px;padding:10px;border-left:3px solid #4CAF50"><strong>1️⃣ 采购</strong><br><span style="font-size:12px;color:#444">在港口补充货物</span></div>
   <div style="background:#E3F2FD;border-radius:6px;padding:10px;border-left:3px solid #2196F3"><strong>2️⃣ 贸易</strong><br><span style="font-size:12px;color:#444">出货给买家赚利润</span></div>
   <div style="background:#FFF3CD;border-radius:6px;padding:10px;border-left:3px solid #FFC107"><strong>3️⃣ 结算</strong><br><span style="font-size:12px;color:#444">工匠产出，账单一起来</span></div>
-  <div style="background:#FCE4EC;border-radius:6px;padding:10px;border-left:3px solid #E91E63"><strong>4️⃣ 升级</strong><br><span style="font-size:12px;color:#444">在船坞强化商船</span></div>
+  <div style="background:#FCE4EC;border-radius:6px;padding:10px;border-left:3px solid #E91E63"><strong>4️⃣ 升级</strong><br><span style="font-size:12px;color:#444">在船坞强化船只</span></div>
 </div>
 <p style="font-size:12px;color:#666;margin:4px 0 0">按 <kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">Ctrl+N</kbd> 可以快速跳到下一阶段。</p>`,
       },
       {
         title: "🏪 阶段1：采购",
         content: `<p>港口市场有麻布、丝绸和茶叶，价格每次航程都不同。低价买入，阶段2卖出，赚差价。就这么简单。</p>
-<p>有个功能值得记一下：<strong>牙行密语</strong>。花少量金币购买情报，阶段2就能保证出现对应的买家订单。当你已经备好某类货又想确保有人接单时很好用。</p>
+<p>有个功能值得记一下：<strong>牙行密语</strong>。花少量金币购买密语，阶段2就能保证出现对应的买家订单。当你已经备好某类货又想确保有人接单时很好用。</p>
 <div style="background:#FFF3CD;border:1px solid #FFC107;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
   💡 头两三次航程先做原材料订单。当航程买当航程卖，不用等，没风险。
 </div>`,
@@ -666,7 +663,7 @@
         content: `<p>买家订单出现，拿货对上就行。每张订单写明需要什么货、给多少报酬、运费多少。扣完运费和税，剩下的是你的利润。</p>
 <p>一个阶段内货够的话，可以同时接好几张订单。</p>
 <div style="background:#E3F2FD;border:1px solid #2196F3;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
-  📌 <strong>成品</strong>（麻布织物、丝绸服饰、香囊）利润是原材料的两三倍。但加工需要工匠，而且要等整整一个航程才能出货。这个坑下一步讲。
+  📌 <strong>成品</strong>（麻衣、布衣、绫罗绸缎、香囊）利润是原材料的两三倍。但加工需要工匠，而且要等整整一个航程才能出货。这个坑下一步讲。
 </div>`,
       },
       {
@@ -675,9 +672,9 @@
           v,
         ) => `<p>雇工匠能解锁高利润成品，每次阶段3结算工资。规则本身不难。几乎每个新手没想到的是这一点：</p>
 <div style="background:#C62828;color:#fff;border-radius:6px;padding:12px;margin:12px 0;text-align:center;font-size:14px;font-weight:bold;line-height:1.7">
-  这次航程分配任务。<br>成品下次航程阶段3才出来，不是这次。
+  本航程分配任务。<br>成品阶段3产出，下个航程才能出售。
 </div>
-<p style="font-size:13px;color:#333;line-height:1.6">织女（${v.weaverWage}金）、纺织大师（${v.masterWage}金）、香囊师（${v.makerWage}金），<strong>每次航程都要扣工资</strong>，哪怕没在干活。只有金币能覆盖至少两轮工资再加上其他账单，再考虑雇人。</p>`,
+<p style="font-size:13px;color:#333;line-height:1.6">织女（${v.weaverWage}金）、纺织大师（${v.masterWage}金）、香囊师（${v.makerWage}金），<strong>每次航程都要扣工资</strong>，哪怕没在干活。金币能覆盖至少两个航程的工资再加上其他账单后，再考虑雇人。</p>`,
       },
       {
         title: "💸 阶段3：结算",
@@ -694,7 +691,7 @@
     <span style="font-size:12px;color:#444">每人每次航程 ${v.weaverWage} 至 ${v.makerWage} 金币</span>
   </div>
 </div>
-<p style="font-size:13px;color:#333">右侧状态栏的<strong>本回合应付款项</strong>面板实时显示欠多少钱，花钱之前先看一眼。这里断供就是直接破产。</p>`,
+<p style="font-size:13px;color:#333">右侧状态栏的<strong>本航程应付款项</strong>面板实时显示欠多少钱，花钱之前先看一眼。这里断供就是直接破产。</p>`,
       },
       {
         title: "🚢 可以出发了",
@@ -702,7 +699,7 @@
 <ul style="padding-left:18px;line-height:2.1;font-size:14px">
   <li>先做原材料订单。快钱，没有后遗症。</li>
   <li>手头金币始终比阶段3账单多出<strong>至少 30 金币</strong>。</li>
-  <li>只有能撑<strong>两轮工资</strong>的时候再雇工匠。</li>
+  <li>只有能撑<strong>两个航程的工资</strong>的时候再雇工匠。</li>
   <li>阶段4的船只升级收益很快显现，不要跳过。</li>
   <li><kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">Ctrl+S</kbd> 保存进度， <kbd style="background:#eee;border:1px solid #ccc;padding:1px 6px;border-radius:3px">F1</kbd> 查看完整规则</li>
 </ul>

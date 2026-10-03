@@ -1,6 +1,6 @@
 # 🚢 PortMasters
 
-> 🌍 **Bilingual Documentation** | [🇨🇳 查看中文文档](README_zh-CN.md)
+> 🌍 **Bilingual Documentation** | [🇨🇳 Chinese Documentation](README_zh-CN.md)
 
 ---
 
@@ -19,35 +19,53 @@ Files:
 - `PortMasters_Web_Edition/PortMasters_v1.4.0.html` (English)
 - `PortMasters_Web_Edition/PortMasters_MandarinEdition_v1.4.0.html` (Simplified Chinese)
 
-No server, no build step, no dependencies. Double click either entry file to open it in any modern browser. The entry pages load their stylesheets and scripts from the `css/` and `js/` folders beside them, so keep the `PortMasters_Web_Edition` folder together when copying or moving it. Progress is saved in the browser's local storage. On first launch the game shows a short beginner tutorial with a step by step guide to your first voyage; press F1 at any time for the full rulebook.
+No build step and no dependencies. Double click either entry file to open it in any modern browser. The entry pages load their stylesheets and scripts from the `css/` and `js/` folders beside them, so keep the `PortMasters_Web_Edition` folder together when copying or moving it. Progress is saved in the browser's local storage. On first launch the game shows a short beginner tutorial with a step by step guide to your first voyage; press F1 at any time for the full rulebook.
+
+### 🚀 Optional Local Server
+
+Two small launcher scripts in the project root serve the game at a `localhost` address on port 8020 for players who prefer that over opening the files directly. They use only the Python standard library, so they run on any Python 3.8 or newer with nothing to install:
+
+- `PortMasters_v1.4.0.py` opens the English edition.
+- `PortMasters_MandarinEdition_v1.4.0.py` opens the Simplified Chinese edition.
+
+```bash
+python3 PortMasters_v1.4.0.py
+```
+
+The script starts a local web server for the `PortMasters_Web_Edition` folder, opens your default browser at `http://localhost:8020/`, and prints a ready message. The message also shows the address other devices on your network can use, so a phone or tablet on the same Wi-Fi can play too. macOS may ask once whether Python may accept incoming connections; choose Allow for network play, and prefer not to leave the server running on public Wi-Fi. Press `Ctrl+C` in the terminal to stop the server. If port 8020 is already taken, pass a different port as an argument, for example `python3 PortMasters_v1.4.0.py 8021`.
 
 ### 🧱 Project Layout
 
 ```
-PortMasters_Web_Edition/
-├── PortMasters_v1.4.0.html                  # English entry page
-├── PortMasters_MandarinEdition_v1.4.0.html  # Simplified Chinese entry page
-├── css/
-│   ├── tokens.css        # colour and sizing variables
-│   ├── base.css          # layout, panels, typography
-│   └── components.css    # buttons, cards, modals, effect animations
-└── js/
-    ├── lang/
-    │   ├── en.js         # English language pack
-    │   └── zh.js         # Simplified Chinese language pack
-    ├── core/
-    │   ├── utils.js      # random helpers, escaping, logging
-    │   ├── content.js    # neutral content tables, expanded per language
-    │   ├── state.js      # initial state, save and load
-    │   ├── economy.js    # costs, taxes, order and card generation
-    │   ├── actions.js    # purchases, hiring, production, wages
-    │   ├── effects.js    # sound, screen shake, particles
-    │   └── phases.js     # the phase machine, boons, module drafting
-    ├── ui/
-    │   ├── render.js     # the four main panels
-    │   ├── screens.js    # one renderer per phase
-    │   └── modals.js     # guide, rumor board, tips, tutorial
-    └── main.js           # boot, keyboard shortcuts, handler wiring
+PortMasters/
+├── PortMasters_v1.4.0.py                    # English launcher for the local server
+├── PortMasters_MandarinEdition_v1.4.0.py    # Simplified Chinese launcher
+├── README.md, README_zh-CN.md               # this documentation, in both languages
+├── tests/                                   # Node test suite (see section 7)
+└── PortMasters_Web_Edition/
+    ├── PortMasters_v1.4.0.html                  # English entry page
+    ├── PortMasters_MandarinEdition_v1.4.0.html  # Simplified Chinese entry page
+    ├── css/
+    │   ├── tokens.css        # colour and sizing variables
+    │   ├── base.css          # layout, panels, typography
+    │   └── components.css    # buttons, cards, modals, effect animations
+    └── js/
+        ├── lang/
+        │   ├── en.js         # English language pack
+        │   └── zh.js         # Simplified Chinese language pack
+        ├── core/
+        │   ├── utils.js      # random helpers, escaping, logging
+        │   ├── content.js    # neutral content tables, expanded per language
+        │   ├── state.js      # initial state, save and load
+        │   ├── economy.js    # costs, taxes, order and card generation
+        │   ├── actions.js    # purchases, hiring, production, wages
+        │   ├── effects.js    # sound, screen shake, particles
+        │   └── phases.js     # the phase machine, boons, module drafting
+        ├── ui/
+        │   ├── render.js     # the four main panels
+        │   ├── screens.js    # one renderer per phase
+        │   └── modals.js     # guide, rumor board, tips, tutorial
+        └── main.js           # boot, keyboard shortcuts, handler wiring
 ```
 
 The two editions share every line of game logic and styling. A language pack supplies the strings, item names, and prose templates; the English and Chinese pages differ only in which pack they load and a few language specific style overrides.
@@ -67,9 +85,9 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 ### ⚓ Ship Upgrades & Modules
 
 - Upgrading the ship (up to level 3) adds one module slot per level and raises the freight discount.
-- **8 module types** exist: Smugglers Hold, Bulk Hauler Rigging, Artisans Workshop, Tax Evasion Ledger, Silk Road Monopoly, Brokers Network, Salvage Crane, and Overdrive Engine. Each bends a different rule of the economy to create synergies.
+- **8 module types** exist: Smuggler's Hold, Bulk Hauler Rigging, Artisan's Workshop, Tax Evasion Ledger, Silk Road Monopoly, Broker's Network, Salvage Crane, and Overdrive Engine. Each bends a different rule of the economy to create synergies.
 - Phase 4 offers a **draft batch of 3 modules**. You may install one, or swap one for an equipped module, as often as you like during the phase.
-- **The draft batch may be changed exactly once per round.** Leaving the draft screen and returning shows the same batch; it never rerolls on its own. A button on the draft screen spends the single change, and is disabled afterwards until the next round.
+- **The draft batch may be changed exactly once per voyage.** Leaving the draft screen and returning shows the same batch; it never rerolls on its own. A button on the draft screen spends the single change, and is disabled afterwards until the next voyage.
 
 ### 📦 Resources
 
@@ -81,14 +99,14 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
   - `Linen Clothes`, simple clothing (crafted by Weaver).
   - `Cotton Clothes`, mid tier clothing (crafted by Weaver).
   - `Brocade`, high value fabric (crafted by Master Weaver).
-  - `Sachet`, luxury fragrant pouch (crafted by Maker).
+  - `Sachet`, luxury fragrant pouch (crafted by Sachet Maker).
 
-### 👷 Worker System
+### 👷 Artisan System
 
-- **Weavers**: Craft Linen & Cotton clothes. Wage: 8 Gold/Round.
-- **Master Weavers**: Craft Linen, Cotton & Brocade. Wage: 12 Gold/Round.
-- **Sachet Makers**: Craft Sachets only. Wage: 20 Gold/Round.
-- **Skilling Up**: Workers gain efficiency after producing enough items, doubling output at a 50% higher wage. Hired workers keep any hire discount from the active boon for their first wage payment.
+- **Weavers**: Make Linen Clothes or Cotton Clothes. Wage: 8 Gold/Voyage.
+- **Master Weavers**: Make Linen Clothes, Cotton Clothes, or Brocade. Wage: 12 Gold/Voyage.
+- **Sachet Makers**: Make Sachets only. Wage: 20 Gold/Voyage.
+- **Skilling Up**: Artisans gain efficiency after producing enough items, doubling output at a 50% higher wage. Hired artisans keep any hire discount from the active boon for their first wage payment.
 
 ### 💰 Taxes & Finance
 
@@ -105,7 +123,7 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 - `Ctrl + S` saves the game.
 - `Ctrl + N` advances to the next phase.
-- `Ctrl + H` opens the worker management interface during Phase 1.
+- `Ctrl + H` opens the artisan management interface during Phase 1.
 - `Ctrl + R` restarts the game.
 - `F1` opens the full instructions.
 
@@ -121,9 +139,9 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 1. **Balance Expenses**: Never spend all gold on purchases. Always reserve funds for wages and maintenance to avoid bankruptcy.
 2. **Upgrade Early**: Ship upgrades significantly reduce long term shipping costs. Invest surplus gold early.
-3. **Optimize Workers**: Train workers to "Skilled" status before dismissing them. Their doubled output maximizes ROI per round.
+3. **Optimize Artisans**: Train artisans to "Skilled" status before dismissing them. Their doubled output maximizes ROI per voyage.
 4. **Product Selection**: Finished goods yield higher profit margins than raw materials, but factor in the VAT.
-5. **Module Discipline**: You get one batch change per round, so install or swap first, then decide whether the single reroll is worth it.
+5. **Module Discipline**: You get one batch change per voyage, so install or swap first, then decide whether the single reroll is worth it.
 6. **Tax Planning**: Estimate potential Income Tax before accepting high reward orders.
 
 ---
@@ -132,7 +150,7 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 After **8 Voyages**, the game ends with a final evaluation based on **Reputation**:
 
-- **Rep ≥ 300**: 👑 King of the Silk Road
+- **Rep ≥ 300**: 👑 King of Silk Road
 - **Rep ≥ 200**: 🏆 Maritime Tycoon
 - **Rep ≥ 100**: ⭐ Successful Merchant
 - **Rep ≥ 50**: 👍 Qualified Trader
@@ -157,6 +175,8 @@ It covers unit checks of the economy formulas, smoke checks that every page load
 - **"Cannot Save Game"**: allow the site to store data if the browser asks, and check that local storage is not blocked in private browsing windows.
 - **"Blank Page on Launch"**: make sure the `css/` and `js/` folders sit next to the entry HTML file, and open the page in a current browser.
 - **"Old Progress Looks Different"**: saves written before v1.4.0 still load; item names and save keys are unchanged.
+- **Launcher Says the Port Is in Use**: another program holds port 8020. Close it, or start the launcher with a free port, for example `python3 PortMasters_v1.4.0.py 8021`.
+- **"Network Address Does Not Open"**: `localhost` works but the printed network address does not. On macOS, allow incoming connections for Python when the firewall prompts (System Settings, Network, Firewall), and make sure the server was started with the current launcher: instances started before v1.4.0's LAN support listen on `localhost` only and need a restart. Guest and public Wi-Fi networks may block device-to-device traffic entirely.
 
 ---
 
@@ -171,11 +191,11 @@ It covers unit checks of the economy formulas, smoke checks that every page load
 
 ## 📌 Quick Reference
 
-- **Launch**: open `PortMasters_Web_Edition/PortMasters_v1.4.0.html` in a browser
+- **Launch**: open `PortMasters_Web_Edition/PortMasters_v1.4.0.html` in a browser, or run `python3 PortMasters_v1.4.0.py` for a local server on port 8020, reachable from other devices on the same network
 - **Core Loop**: Buy ➔ Trade ➔ Pay Wages ➔ Upgrade
 - **Top Sellers**: Sachets & Brocade (watch VAT!)
 - **Save**: Auto-prompt or `Ctrl+S`
-- **Module Draft**: one batch change per round, navigation never rerolls
+- **Module Draft**: one batch change per voyage, navigation never rerolls
 - **Bankruptcy Warning**: Salary > Gold = Game Over
 - **Win Condition**: Complete 8 voyages, Rep ≥ 300
 

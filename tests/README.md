@@ -16,9 +16,9 @@ node tests/run.js --update   # re-record the baseline fixtures
 **Integration** is a differential harness. It loads the pre refactor build from git revision `782a060` (`git show`), runs it and the current build side by side in Node `vm` contexts with a seeded random number generator, and drives both through their own rendered buttons by parsing `onclick` attributes, never by calling internal functions directly. After every action it hashes the game state, the log, and all four panels. Five scenarios run per language:
 
 - `boot`: the first frame after load.
-- `merchant`: a full 8 round game that buys cheap lots and hires workers.
+- `merchant`: a full 8 voyage game that buys cheap lots and hires artisans.
 - `hoarder`: a full game that starts the boon draft but never buys or hires.
-- `reload`: plays several rounds, saves, then rebuilds a fresh page from the stored payload and plays on.
+- `reload`: plays several voyages, saves, then rebuilds a fresh page from the stored payload and plays on.
 - `keys`: exercises the Ctrl+S, Ctrl+N, Ctrl+H, and F1 shortcuts.
 
 Two more integration checks cover the save format directly: a save and load round trip of the full state, and that restarting mid game yields exactly the position of a fresh boot.
@@ -42,5 +42,6 @@ These are the known, deliberate differences between the baseline and the refacto
 7. **The shipyard button pair.** Back to Shipyard moved to the left, both buttons became large, and Change Batch took the utility colour. `canonicalizeShipyardPair` reduces the two buttons to handler, label, and disabled state, then sorts them, so order, class names, and colour classes no longer matter while labels, handlers, and disabled state still must match.
 8. **Removed `btn-sm` class.** One assign button carried a `btn-sm` class that no stylesheet ever defined; its inline style already set the size. The class is gone and `UI_DELTAS` drops it from the baseline markup.
 9. **Restart clears the staged module.** The baseline restart left a module staged for a swap in place. The refactor clears it, so a restart equals a fresh boot; the integration check "restart returns the game to its opening position" locks this in.
+10. **Unified terminology.** Both packs now name the unit of play a Voyage / 航程, the hireable trade an artisan / 工匠, the top rank King of Silk Road / 丝绸之路霸主, and the trade goods by their full names (Linen Clothes, Cotton Clothes, Brocade, Sachet / 麻衣、布衣、绫罗绸缎、香囊). `BASELINE_ERRATA` rewrites every baseline spelling to the new one so the two builds still compare exactly. The rules apply to panels and modals, to each log line, and to string values inside the game state (module and boon descriptions are copied into the draft batch). Sentences that were rewritten rather than word swapped are matched as whole phrases; the global word rules (Round/round, Worker/worker, 回合, 工人) run after every specific phrase rule so partial rewrites cannot double apply.
 
 Two things the harness records but does not compare: browser alerts (kept as `alert()` calls by design) and the `_draftBatch` portion of the save payload during the reload scenario (draft state is runtime only and intentionally not persisted).

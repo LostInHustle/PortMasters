@@ -8,8 +8,6 @@
   const PM = (window.PM = window.PM || {});
 
   PM.lang = {
-    id: "en",
-
     /* Item names. These strings are the inventory keys and the keys inside a
        saved game, so they are part of the save format. */
     items: {
@@ -65,19 +63,19 @@
       },
       master: {
         name: "Master Weaver",
-        prodName: "Master",
-        short: "Master",
-        plural: "Masters",
-        statusPlural: "Masters",
+        prodName: "Master Weaver",
+        short: "Master Weaver",
+        plural: "Master Weavers",
+        statusPlural: "Master Weavers",
         hireIcon: "👩‍🎨",
         icon: "👩‍🎨",
       },
       sachet_maker: {
         name: "Sachet Maker",
-        prodName: "Maker",
-        short: "Maker",
-        plural: "Makers",
-        statusPlural: "Makers",
+        prodName: "Sachet Maker",
+        short: "Sachet Maker",
+        plural: "Sachet Makers",
+        statusPlural: "Sachet Makers",
         hireIcon: "🌸",
         icon: "🌸",
       },
@@ -87,22 +85,22 @@
       silk_wind: {
         name: "Silk Winds",
         icon: "🌬️",
-        desc: "Transport cost for Silk & Silk products is halved this round.",
+        desc: "Transport cost for Silk & Silk products is halved this voyage.",
       },
       favorable_tides: {
         name: "Favorable Tides",
         icon: "🌊",
-        desc: "Base transport cost reduced by 4 Gold this round.",
+        desc: "Base transport cost reduced by 4 Gold this voyage.",
       },
       merchant_charm: {
         name: "Merchant's Charm",
         icon: "✨",
-        desc: "15% discount on all port purchases this round.",
+        desc: "15% discount on all port purchases this voyage.",
       },
       artisan_inspiration: {
         name: "Artisan's Inspiration",
         icon: "🔨",
-        desc: "All workers produce +1 extra item this round.",
+        desc: "All artisans produce +1 extra item this voyage.",
       },
       emergency_loan: {
         name: "Emergency Loan",
@@ -112,17 +110,17 @@
       tax_shelter: {
         name: "Tax Shelter",
         icon: "📜",
-        desc: "Income tax rate reduced to 5% this round.",
+        desc: "Income tax rate reduced to 5% this voyage.",
       },
       hemp_monopoly: {
         name: "Hemp Monopoly",
         icon: "🧶",
-        desc: "Hemp purchase prices reduced by 2 Gold per unit.",
+        desc: "Hemp purchase prices reduced by 2 Gold per unit this voyage.",
       },
       master_apprentice: {
         name: "Master's Apprentice",
         icon: "🎓",
-        desc: "Hiring workers costs 50% less this round.",
+        desc: "Hiring artisans costs 50% less this voyage.",
       },
     },
 
@@ -140,7 +138,7 @@
       artisans_workshop: {
         name: "Artisan's Workshop",
         icon: "🛠️",
-        desc: "Workers produce +1 item. Wages +20%.",
+        desc: "Artisans produce +1 item. Wages +20%.",
       },
       tax_evasion: {
         name: "Tax Evasion Ledger",
@@ -155,7 +153,7 @@
       brokers_network: {
         name: "Broker's Network",
         icon: "🕵️",
-        desc: "Intel costs 2 Gold. Reveals 2 rumors per purchase.",
+        desc: "Rumor cost: 2 Gold. Each purchase reveals 2 rumors.",
       },
       salvage_crane: {
         name: "Salvage Crane",
@@ -203,18 +201,18 @@
         `   💰 Reward: ${reward} Gold | ⚓ Freight: ${transport} Gold = 📊 Net Profit: ${net} Gold`,
       transactionsCompleted: (n) => `📊 Completed ${n} transactions`,
 
-      cannotHire: "❌ Insufficient funds to hire workers!",
+      cannotHire: "❌ Insufficient funds to hire artisans!",
       hired: (icon, name, wage) =>
-        `${icon} Hired a ${name}! Wage: ${wage} Gold / Round (paid at round end)`,
+        `${icon} Hired a ${name}! Wage: ${wage} Gold / Voyage (paid at voyage end)`,
       cannotPaySeverance: (name, wage) =>
         `❌ Insufficient funds for ${name}'s severance: ${wage} Gold`,
       dismissed: (name, wage) =>
         `💔 Dismissed a ${name}. Severance: ${wage} Gold`,
-      wasMaking: (task) => `  This worker was making: ${task}`,
+      wasMaking: (task) => `  This artisan was making: ${task}`,
       materialShortage: (task) => `❌ Material shortage to produce ${task}!`,
       taskAssigned: (icon, task, matTxt) =>
         `📋 Assigned: Produce ${icon}${task} (Req: ${matTxt})`,
-      allWorkersBusy: "❌ All workers are already assigned tasks!",
+      allWorkersBusy: "❌ All artisans are already assigned tasks!",
 
       producedBonus: (name, amt, icon, task) =>
         `✅ ${name} finished ${amt}× ${icon}${task}! (Bonus)`,
@@ -222,13 +220,13 @@
         `✅ Skilled ${name} finished 2× ${icon}${task}!`,
       produced: (name, icon, task) => `✅ ${name} finished ${icon}${task}!`,
       promotion: (name) =>
-        `⭐ ${name} Promotion! Can now produce 2 items per round!`,
+        `⭐ ${name} Promotion! Can now produce 2 items per voyage!`,
 
       wagesPaid: (n, plural, amt) =>
         `💰 Paid wages for ${n} ${plural}: ${amt} Gold`,
       wagesShortfall: (total, money) =>
         `⚠️ Insufficient funds! Needed: ${total} Gold, Have: ${money} Gold`,
-      workersStrike: "💥 Could not pay wages, workers strike...",
+      workersStrike: "💥 Could not pay wages, artisans strike...",
       reputationCollapsed: "💥 Reputation collapsed, forced bankruptcy!",
 
       maintenancePaid: (cost) => `💸 Paid Ship Maintenance Fee: ${cost} Gold`,
@@ -248,9 +246,9 @@
       moduleInstalled: (name) => `✅ Installed ${name}!`,
       noEmptySlots: "❌ No empty slots! Must swap.",
 
-      roundSettlement: (round) => `\n📊=== Round ${round} Settlement ===`,
-      roundRevenue: (g) => `💰 Revenue this round: ${g} Gold`,
-      roundTotalCost: (c) => `💸 Total Cost this round: ${c} Gold`,
+      roundSettlement: (round) => `\n📊=== Voyage ${round} Settlement ===`,
+      roundRevenue: (g) => `💰 Revenue this voyage: ${g} Gold`,
+      roundTotalCost: (c) => `💸 Total Cost this voyage: ${c} Gold`,
       roundMaintenance: (c) => `   🔧 Maintenance: ${c} Gold`,
       roundMaterials: (c) => `   📦 Materials: ${c} Gold`,
       roundWages: (c) => `   👥 Wages: ${c} Gold`,
@@ -258,32 +256,33 @@
       incomeTaxPaid: (rate, tax) =>
         `🏛️ Income Tax Paid (${rate}%): ${tax} Gold`,
       noIncomeTax: "🏛️ No profit, no income tax due",
-      vatPaidRound: (v) => `🧾 VAT Paid this round: ${v} Gold`,
-      preparingRound: (r) => `\n🔄=== Preparing for Round ${r} ===`,
+      vatPaidRound: (v) => `🧾 VAT Paid this voyage: ${v} Gold`,
+      preparingRound: (r) => `\n🔄=== Preparing for Voyage ${r} ===`,
 
       welcomeTitle: "⚓ Welcome to PortMasters!",
       welcomeSail: "🚢 Sail across ports, build your business empire!",
       welcomeHire:
         "👥 Hire artisans to craft valuable goods for higher profits!",
 
-      phase1Header: (r) => `\n⚓=== Round ${r} | Phase 1: Port Purchase ===`,
+      phase1Header: (r) => `\n⚓=== Voyage ${r} | Phase 1: Port Purchase ===`,
       fundsNow: (m) => `💰 Current Funds: ${m} Gold`,
       purchasingSkipped: "⏭️ Purchasing skipped",
       purchasingEnded: (n) => `✅ Purchasing ended, bought ${n} batches`,
 
       phase2Header: (r) =>
-        `\n🤝=== Round ${r} | Phase 2: Trade Transaction ===`,
+        `\n🤝=== Voyage ${r} | Phase 2: Trade Transaction ===`,
       tradingSkipped: "⏭️ Trading skipped",
       tradingEnded: (n) => `✅ Trading ended, completed ${n} trades`,
 
-      productionHeader: "\n👥=== Processing Worker Production ===",
-      wagesHeader: "\n💰=== Paying Worker Wages ===",
+      productionHeader: "\n👥=== Processing Artisan Production ===",
+      wagesHeader: "\n💰=== Paying Artisan Wages ===",
       bankruptWages: "⚠️ Bankruptcy due to inability to pay wages!",
-      phase3Header: (r) => `\n🔧=== Round ${r} | Phase 3: Ship Maintenance ===`,
+      phase3Header: (r) =>
+        `\n🔧=== Voyage ${r} | Phase 3: Ship Maintenance ===`,
       fundsZero: "⚠️ Funds at 0, cannot pay maintenance!",
 
       phase4Header: (r) =>
-        `\n🚢=== Round ${r} | Phase 4: Shipyard & Modules ===`,
+        `\n🚢=== Voyage ${r} | Phase 4: Shipyard & Modules ===`,
       skippedShipyard: "⏭️ Skipped Shipyard Actions",
 
       gameOverTitle: "🎮 PortMasters: Game Over!",
@@ -321,9 +320,9 @@
         roundOf: (r, m) => `${r}/${m}`,
         funds: "💰 Funds",
         reputation: "🏆 Reputation",
-        vessel: "🚢 Vessel Status",
-        classLabel: "Class",
-        shipLevel: (n) => `Level ${n}`,
+        vessel: "🚢 Ship Status",
+        classLabel: "Ship Level",
+        shipLevel: (n) => `${n}`,
         freight: "Freight",
         freightHint: (discount) => `max(5, n×2 minus ${discount})`,
         modules: "Modules",
@@ -331,15 +330,15 @@
         rawMaterials: "Raw Materials",
         finishedGoods: "Finished Goods",
         artisans: "Artisans",
-        obligations: "⚠️ Round End Obligations",
+        obligations: "⚠️ Voyage End Obligations",
         maintenance: "🔧 Maintenance",
         wages: "👥 Wages",
-        wageCount: (n) => ` (${n} workers)`,
+        wageCount: (n) => ` (${n} artisans)`,
         wageBreakdown: (n, label) => `↳ ${n}× ${label}`,
         goldShort: "g",
         totalDue: "💸 Total Due",
-        riskShortfall: "🚨 Risk: Funds may fall short at round end!",
-        fundsSufficient: "✅ Funds sufficient for round end",
+        riskShortfall: "🚨 Risk: Funds may fall short at voyage end!",
+        fundsSufficient: "✅ Funds sufficient for voyage end",
       },
 
       controls: {
@@ -355,7 +354,7 @@
       },
 
       welcome: {
-        subtitle: "🌊 Eight Voyages await, become the Sea Master!",
+        subtitle: "🌊 Eight Voyages await, become the King of Silk Road!",
         continueVoyage: "📂 Continue Voyage",
         setSail: "🚢 Set Sail",
         tutorial: "📖 New Player Tutorial",
@@ -364,19 +363,19 @@
         startFunds: "💰 100 Gold starting funds",
         delayTitle: "⏱️ Production Delay",
         delayLine: "Assign task now → item arrives at Phase 3",
-        delayNote: "Workers don't produce instantly!",
-        costsTitle: "💸 Round End Costs",
-        costsMaintenance: "🔧 Maintenance: 15 Gold (fixed each round)",
+        delayNote: "Artisans don't produce instantly!",
+        costsTitle: "💸 Voyage End Costs",
+        costsMaintenance: "🔧 Maintenance: 15 Gold (fixed each voyage)",
         costsWages: "👥 Wages deducted at Phase 3, not on hire",
         taxesTitle: "🧾 Taxes Explained",
         taxesVat: "VAT: 5% of finished-good profit margin",
-        taxesIncome: "Income Tax: 10% of round net profit",
+        taxesIncome: "Income Tax: 10% of voyage net profit",
         phasesTitle: "🔄 4 Phases per Voyage:",
         phasesBody:
           " 1️⃣ Buy at Ports → 2️⃣ Fill Trade Orders → 3️⃣ Wages, Production & Maintenance → 4️⃣ Upgrade Ship",
         tipTitle: "💡 New Player Tip:",
         tipBody:
-          " Rely on raw material orders early. Hire artisans only when you can sustain at least 2 rounds of wages. Always keep funds &gt; Maintenance + All Wages.",
+          " Rely on raw material orders early. Hire artisans only when you can sustain at least 2 voyages of wages. Always keep funds &gt; Maintenance + All Wages.",
         footBroker: "🔮 Phase 1 Broker: buy demand rumors to guarantee orders",
         footUpgrade:
           "🚢 Phase 4: upgrade ship → freight discounts + module slots",
@@ -422,19 +421,20 @@
         payrollLine: (icon, n, label, wage) =>
           `${icon} ${n}× ${label} (base ${wage}g)`,
         totalWages: "💸 Total Wages Due",
-        hireTitle: "🔨 Hire Workers",
+        hireTitle: "🔨 Hire Artisans",
         hireWeaverName: "👩‍🔧 Weaver",
         hireWeaverDetail:
           ", Linen Clothes(2 Hemp) or Cotton Clothes(2 Hemp+1 Silk), ",
         hireMasterName: "👩‍🎨 Master Weaver",
-        hireMasterDetail: ", Linen, Cotton or Brocade(3 Silk), ",
+        hireMasterDetail:
+          ", Linen Clothes, Cotton Clothes or Brocade(3 Silk), ",
         hireMakerName: "🌸 Sachet Maker",
         hireMakerDetail: ", Sachet(1 Silk+2 Tea), ",
-        perRound: (wage) => `${wage} Gold/round`,
-        hireWeaverButton: (cost) => `👩‍🔧 Hire Weaver (${cost}💰/round)`,
-        hireMasterButton: (cost) => `👩‍🎨 Hire Master (${cost}💰/round)`,
-        hireMakerButton: (cost) => `🌸 Hire Maker (${cost}💰/round)`,
-        statusTitle: "👥 Worker Status & Tasks",
+        perRound: (wage) => `${wage} Gold/voyage`,
+        hireWeaverButton: (cost) => `👩‍🔧 Hire Weaver (${cost}💰/voyage)`,
+        hireMasterButton: (cost) => `👩‍🎨 Hire Master Weaver (${cost}💰/voyage)`,
+        hireMakerButton: (cost) => `🌸 Hire Sachet Maker (${cost}💰/voyage)`,
+        statusTitle: "👥 Artisan Status & Tasks",
         workerLine: (short, n, w) =>
           `${short} ${n}: ${
             w.task
@@ -444,7 +444,7 @@
         dismiss: (wage) => `Dismiss (${wage}💰)`,
         makeTask: (task, mats) => `Make ${task} (Need ${mats})`,
         count: (n) => `${n}`,
-        complete: "✅ Complete Management, Set Sail",
+        complete: "✅ Complete Management, Continue",
       },
 
       orders: {
@@ -462,11 +462,11 @@
       },
 
       maintenance: {
-        title: "🔧 Phase 3: Round Settlement",
+        title: "🔧 Phase 3: Voyage Settlement",
         processedTitle: "✅ Already Processed",
-        production: "👷 Worker Production",
+        production: "👷 Artisan Production",
         done: "Completed ✓",
-        wagesPaid: (n) => `💰 Wages Paid (${n} worker${n !== 1 ? "s" : ""})`,
+        wagesPaid: (n) => `💰 Wages Paid (${n} artisan${n !== 1 ? "s" : ""})`,
         pendingTitle: "⏳ Pending Payment",
         maintenanceFee: "🔧 Ship Maintenance Fee",
         penaltyNote: (fixed, penalty) =>
@@ -474,7 +474,7 @@
         balanceTitle: "💹 Balance Summary",
         currentFunds: "Current Funds",
         afterMaintenance: "After Maintenance",
-        roundRevenue: "Round Revenue",
+        roundRevenue: "Voyage Revenue",
         payCost: (cost) => `💸 Pay Maintenance: ${cost} Gold`,
         forcePay: (money, cost) => `⚠️ Force Pay (${money}/${cost} Gold)`,
       },
@@ -498,8 +498,8 @@
         install: "✅ Install",
         swap: "🔄 Swap",
         allInstalled:
-          "Every module in this round's batch is already installed.",
-        changeBatch: "🔄 Change Batch (1 per Round)",
+          "Every module in this voyage's batch is already installed.",
+        changeBatch: "🔄 Change Batch (1 per Voyage)",
         changeBatchUsed: "🔒 Batch Change Used",
         back: "⬅️ Back to Shipyard",
       },
@@ -516,7 +516,7 @@
         reasonDepleted:
           "Funds depleted, unable to pay essential operational costs",
         reasonShortfall: "Insufficient funds to cover maintenance and wages",
-        roundsCompleted: "🌊 Rounds Completed:",
+        roundsCompleted: "🌊 Voyages Completed:",
         finalFunds: "💰 Final Funds:",
         finalReputation: "🏆 Final Reputation:",
         shipLevel: "🚢 Ship Level:",
@@ -538,7 +538,7 @@
         title: "🗣️ Broker's Rumor Board",
         subtitle: "Spend gold to reveal Phase 2 demand rumors!",
         buy: (cost) => `🔮 Buy Rumor (${cost}💰)`,
-        revealedTitle: "📜 Revealed Intel:",
+        revealedTitle: "📜 Revealed Rumors:",
         rumorLine: (port, item) => `• 🗣️ '${port} wants ${item}'`,
         empty:
           "✨ No rumors revealed yet... Spend gold to listen to the Broker's whispers.",
@@ -574,10 +574,10 @@ Raw Materials: ${fmtItems(v.resources)}
 Finished Goods: ${fmtItems(v.products.slice(0, 2))},
 ${fmtItems(v.products.slice(2))}
 
-👥 Worker System:
-• Weaver (${v.weaverWage} Gold/Round): Makes Linen or Cotton Clothes
-• Master (${v.masterWage} Gold/Round): Makes Linen, Cotton or Brocade
-• Sachet Maker (${v.makerWage} Gold/Round): Makes Sachets
+👥 Artisan System:
+• Weaver (${v.weaverWage} Gold/Voyage): Makes Linen Clothes or Cotton Clothes
+• Master Weaver (${v.masterWage} Gold/Voyage): Makes Linen Clothes, Cotton Clothes or Brocade
+• Sachet Maker (${v.makerWage} Gold/Voyage): Makes Sachets
 
 🧾 Tax System:
 • VAT: ${v.vatRate}% on finished product profit margin
@@ -586,12 +586,12 @@ ${fmtItems(v.products.slice(2))}
 🔮 Broker's Whisper:
 • Phase 1: Click "Broker's Rumor Board" to open the window
 • Spend ${v.intelCost} Gold to buy a "rumor" about Phase 2 demand
-• Revealed intel guarantees matching orders will appear
+• Revealed rumors guarantee matching orders will appear
 
 🔧 Ship Modules:
 • Phase 4: Upgrade your ship to unlock Module Slots
 • Draft powerful modules to create unique synergies
-• The module offer batch may be changed once per round
+• The module offer batch may be changed once per voyage
 • Swap modules to adapt to your current run!
 
 🌊 Voyage Phases:
@@ -603,7 +603,7 @@ ${fmtItems(v.products.slice(2))}
 ⌨️ Shortcuts:
 • Ctrl+S: Save Game
 • Ctrl+N: Next Phase
-• Ctrl+H: Manage Workers
+• Ctrl+H: Manage Artisans
 • Ctrl+R: Restart
 • F1: Instructions
 
@@ -614,24 +614,24 @@ ${fmtItems(v.products.slice(2))}
 
 💰 Financial Management:
 1. Always maintain reserve funds for expenses
-2. Maintenance + Wages are fixed rounds costs
+2. Maintenance + Wages are fixed voyage costs
 3. Calculate total expenditure before buying
 
-👥 Worker Management:
-1. Weaver Wage: ${v.weaverWage} Gold / Round
-2. Master Wage: ${v.masterWage} Gold / Round
-3. Maker Wage: ${v.makerWage} Gold / Round
+👥 Artisan Management:
+1. Weaver Wage: ${v.weaverWage} Gold / Voyage
+2. Master Weaver Wage: ${v.masterWage} Gold / Voyage
+3. Sachet Maker Wage: ${v.makerWage} Gold / Voyage
 4. Hire only as needed
 
 🔮 Broker's Whisper Strategy:
 1. Buy rumors early if you have spare gold
 2. Hoard revealed items to guarantee Phase 2 profits
-3. Balance intel purchases with other investments
+3. Balance rumor purchases with other investments
 
 🛒 Buying Strategy:
 1. Reserve funds for maintenance+wages first
 2. Select high value-for-money goods
-3. Prioritize port specialties + revealed intel
+3. Prioritize port specialties + revealed rumors
 
 🤝 Trading Strategy:
 1. Prioritize highest profit orders
@@ -639,7 +639,7 @@ ${fmtItems(v.products.slice(2))}
 3. Finished orders yield high profit but incur VAT
 
 ⚠️ Risk Control:
-1. Calculate fixed round costs: Maintenance + Wages
+1. Calculate fixed voyage costs: Maintenance + Wages
 2. Keep funds consistently > fixed costs
 3. Avoid over-expansion cash flow issues
 
@@ -654,7 +654,7 @@ ${fmtItems(v.products.slice(2))}
       },
       {
         title: "🏆 What you're playing for",
-        content: `<p>After eight voyages, the player with the highest score wins the title of <strong>Sea Master</strong>. Score comes from trade profits and fulfilled orders.</p>
+        content: `<p>After eight voyages, the player with the highest score wins the title of <strong>King of Silk Road</strong>. Score comes from trade profits and fulfilled orders.</p>
 <p>One rule overrides everything else: <strong>do not go bankrupt</strong>. Hit zero gold and the game ends immediately. There is no coming back from it.</p>
 <p>Starting gold is <strong>100</strong>. That is enough to get going, but not enough to be careless with.</p>`,
       },
@@ -682,7 +682,7 @@ ${fmtItems(v.products.slice(2))}
         content: `<p>Trade orders appear and you match your cargo to them. Each one shows the goods needed, the reward, and the shipping fee. Your take is whatever is left after fees and tax.</p>
 <p>You can fill as many orders as your cargo allows in a single phase.</p>
 <div style="background:#E3F2FD;border:1px solid #2196F3;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
-  📌 <strong>Finished goods</strong> (Fabric, Silk Garment, Sachet) pay two to three times more than raw materials. The catch is they need artisans, and artisans take a full voyage to deliver. That is covered next.
+  📌 <strong>Finished goods</strong> (Linen Clothes, Cotton Clothes, Brocade, Sachet) pay two to three times more than raw materials. The catch is they need artisans, and artisans take a full voyage to deliver. That is covered next.
 </div>`,
       },
       {
@@ -691,9 +691,9 @@ ${fmtItems(v.products.slice(2))}
           v,
         ) => `<p>Artisans turn raw materials into high value finished goods and collect wages at each Phase 3. That part is simple. What catches most new players is this:</p>
 <div style="background:#C62828;color:#fff;border-radius:6px;padding:12px;margin:12px 0;text-align:center;font-size:14px;font-weight:bold;line-height:1.7">
-  Assign a task this voyage.<br>The goods are ready next voyage, not this one.
+  Assign a task this voyage.<br>Goods land at Phase 3, ready to sell next voyage.
 </div>
-<p style="font-size:13px;color:#333;line-height:1.6">Weavers (${v.weaverWage}g), Master Weavers (${v.masterWage}g), and Sachet Makers (${v.makerWage}g) all charge wages <strong>every voyage</strong>, even when idle. Only hire once you have enough gold to cover at least two rounds of wages alongside your other bills.</p>`,
+<p style="font-size:13px;color:#333;line-height:1.6">Weavers (${v.weaverWage}g), Master Weavers (${v.masterWage}g), and Sachet Makers (${v.makerWage}g) all charge wages <strong>every voyage</strong>, even when idle. Only hire once you have enough gold to cover at least two voyages of wages alongside your other bills.</p>`,
       },
       {
         title: "💸 Phase 3: Settlement",
@@ -712,7 +712,7 @@ ${fmtItems(v.products.slice(2))}
     <span style="font-size:12px;color:#444">${v.weaverWage} to ${v.makerWage} Gold per person per voyage</span>
   </div>
 </div>
-<p style="font-size:13px;color:#333">The <strong>Round End Obligations</strong> panel in the sidebar shows exactly what is owed. Check it before spending anything. Running dry here ends the run on the spot.</p>`,
+<p style="font-size:13px;color:#333">The <strong>Voyage End Obligations</strong> panel in the sidebar shows exactly what is owed. Check it before spending anything. Running dry here ends the run on the spot.</p>`,
       },
       {
         title: "🚢 You are ready",

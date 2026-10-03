@@ -1,2 +1,6 @@
 # macOS filesystem metadata
 .DS_Store
+
+# Python bytecode from the launcher scripts
+__pycache__/
+*.pyc
