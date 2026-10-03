@@ -32,7 +32,7 @@ Two small launcher scripts in the project root serve the game at a `localhost` a
 python3 PortMasters_v1.4.0.py
 ```
 
-The script starts a local web server for the `PortMasters_Web_Edition` folder, opens your default browser at `http://localhost:8020/`, and prints a ready message. The message also shows the address other devices on your network can use, so a phone or tablet on the same network can play too. macOS may ask once whether Python may accept incoming connections; choose Allow for network play, and prefer not to leave the server running on public networks. Press `Ctrl+C` in the terminal to stop the server. If port 8020 is already taken, pass a different port as an argument, for example `python3 PortMasters_v1.4.0.py 8021`.
+The script starts a local web server for the `PortMasters_Web_Edition` folder, opens your default browser at the edition's entry page (`http://localhost:8020/` also works and redirects to it), and prints a ready message. When a local network address is detected, the message also shows the address other devices on your network can use, so a phone or tablet on the same network can play too. macOS may ask once whether Python may accept incoming connections; choose Allow for network play, and prefer not to leave the server running on public networks. Press `Ctrl+C` in the terminal to stop the server. If port 8020 is already taken, pass a different port as an argument, for example `python3 PortMasters_v1.4.0.py 8021`.
 
 ### 🧱 Project Layout
 
@@ -46,7 +46,7 @@ PortMasters/
     ├── PortMasters_v1.4.0.html                  # English entry page
     ├── PortMasters_MandarinEdition_v1.4.0.html  # Simplified Chinese entry page
     ├── css/
-    │   ├── tokens.css        # colour and sizing variables
+    │   ├── tokens.css        # color and sizing variables
     │   ├── base.css          # layout, panels, typography
     │   └── components.css    # buttons, cards, modals, effect animations
     └── js/
@@ -123,7 +123,7 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 - `Ctrl + S` saves the game.
 - `Ctrl + N` advances to the next phase.
-- `Ctrl + H` opens the artisan management interface during Phase 1.
+- `Ctrl + H` finishes Phase 1 and opens the artisan management screen.
 - `Ctrl + R` restarts the game.
 - `F1` opens the full instructions.
 
@@ -166,7 +166,7 @@ The project ships a dependency free test suite that runs on Node 16 or newer:
 node tests/run.js
 ```
 
-It covers unit checks of the economy formulas, a probe for every ship module and every boon that pins down the effect each one has on the engine, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, verification checks that the figures on the screens match the money the engine actually moves, that every revealed rumor returns as a matching order, and that no screen, log line, or entry page shows a dash character, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be recorded again with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
+It covers unit checks of the economy formulas, a probe for every ship module and every boon that pins down the effect each one has on the engine, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, verification checks that the figures on the screens match the money the engine actually moves, that every revealed rumor returns as a matching order, and that no screen, log line, or entry page shows a dash character, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/`; after an intentional gameplay or UI change, first encode it as a canonicalization rule in `tests/harness.js` (the intentional divergences in `tests/README.md` show how), then record the fixtures again with `node tests/run.js --update` and review the diff. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
 
 ---
 
@@ -194,7 +194,7 @@ It covers unit checks of the economy formulas, a probe for every ship module and
 - **Launch**: open `PortMasters_Web_Edition/PortMasters_v1.4.0.html` in a browser, or run `python3 PortMasters_v1.4.0.py` for a local server on port 8020, reachable from other devices on the same network
 - **Core Loop**: Buy ➔ Trade ➔ Pay Wages ➔ Upgrade
 - **Top Sellers**: Sachets & Brocade (watch VAT!)
-- **Save**: automatic prompt or `Ctrl+S`
+- **Save**: `Ctrl+S`, or the launch prompt to continue a detected save
 - **Module Draft**: one batch change per voyage, navigation never rerolls
 - **Bankruptcy Warning**: Salary > Gold = Game Over
 - **Win Condition**: Complete 8 voyages, Rep ≥ 300

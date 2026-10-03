@@ -1,4 +1,5 @@
-/* One renderer per game phase. Every string comes from the language pack. */
+/* One renderer per game phase. Nearly every string comes from the language
+   pack; the brand title and a few glyphs are written inline. */
 "use strict";
 (function () {
   const PM = (window.PM = window.PM || {});
@@ -323,22 +324,11 @@
             const completed = game.completedOrders.has(o.id);
             const hasSilk = PM.orderHasSilk(o);
             const transport = PM.calcTransportCost(o.totalItems, hasSilk);
-            let totalVat = 0;
-            if (o.isProductOrder) {
-              const product = o.resources[0].type;
-              const unitVat = PM.calcVAT(
-                product,
-                o.reward / o.resources[0].required,
-              );
-              totalVat = unitVat * o.resources[0].required;
-            }
-            // Mirrors completeOrder: VAT comes off first, then Silk Road
-            // Monopoly lifts the payout, so the printed Net is what the
-            // trade actually pays.
-            let payout = o.reward - totalVat;
-            if (PM.hasModule("silk_monopoly") && hasSilk && o.isProductOrder)
-              payout = Math.floor(payout * 1.2);
-            const netProfit = payout - transport;
+            const { totalVat, netProfit } = PM.orderPayout(
+              o,
+              hasSilk,
+              transport,
+            );
             return `
             <div class="card">
               <div class="card-header">📍 ${o.demandPort} ${o.isProductOrder ? t.productDemand : t.rawDemand}</div>
@@ -381,7 +371,7 @@
   function renderMaintenance(p) {
     const game = PM.game;
     const t = L.ui.maintenance;
-    const cost = game.fixedCost + game.maintenancePenalty;
+    const cost = PM.maintenanceCost();
     const canAfford = game.money >= cost;
     const balanceAfter = game.money - cost;
     const nWorkers = PM.totalArtisans();
@@ -428,9 +418,7 @@
     const game = PM.game;
     const t = L.ui.shipyard;
     const canUpgrade = game.shipLevel < 3;
-    const upgCost = canUpgrade
-      ? game.shipUpgradeCost[game.shipLevel] + game.shipUpgradePenalty
-      : 0;
+    const upgCost = PM.shipUpgradePrice();
     const affordable = game.money >= upgCost;
     const canDraft = game.shipLevel > 0;
     const slotsFull =

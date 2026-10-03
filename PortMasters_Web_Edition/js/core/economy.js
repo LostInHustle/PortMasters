@@ -55,6 +55,38 @@
     return tax;
   }
 
+  /* The maintenance charge for this voyage. */
+  function maintenanceCost() {
+    return PM.game.fixedCost + PM.game.maintenancePenalty;
+  }
+
+  /* The price of the next ship upgrade, 0 at the top ship level. */
+  function shipUpgradePrice() {
+    const game = PM.game;
+    return game.shipLevel >= 3
+      ? 0
+      : game.shipUpgradeCost[game.shipLevel] + game.shipUpgradePenalty;
+  }
+
+  /* The payout math a completed order performs. VAT comes off the reward
+     first, then Silk Road Monopoly lifts a product order's payout; transport
+     is settled separately, so the caller passes the figure it charged. The
+     random module hooks (salvage crane, tax audit) stay in completeOrder. */
+  function orderPayout(order, hasSilk, transport) {
+    let totalVat = 0;
+    let payout = order.reward;
+    if (order.isProductOrder) {
+      const product = order.resources[0].type;
+      const unitVat = PM.calcVAT(product, payout / order.resources[0].required);
+      totalVat = unitVat * order.resources[0].required;
+      payout -= totalVat;
+    }
+    if (PM.hasModule("silk_monopoly") && hasSilk && order.isProductOrder) {
+      payout = Math.floor(payout * 1.2);
+    }
+    return { totalVat, payout, netProfit: payout - transport };
+  }
+
   function getCardFinalCost(card) {
     const game = PM.game;
     let cost = card.totalCost;
@@ -225,6 +257,9 @@
   PM.calcTransportCost = calcTransportCost;
   PM.calcVAT = calcVAT;
   PM.calcIncomeTax = calcIncomeTax;
+  PM.maintenanceCost = maintenanceCost;
+  PM.shipUpgradePrice = shipUpgradePrice;
+  PM.orderPayout = orderPayout;
   PM.getCardFinalCost = getCardFinalCost;
   PM.getHireCost = getHireCost;
   PM.calcWorkerWage = calcWorkerWage;

@@ -1,8 +1,9 @@
 /* Content tables.
    Prices, probabilities, recipes, and modifiers live here once, keyed by
    language-neutral ids. buildContent() then expands them with the active
-   language pack into the name-keyed tables the rest of the engine reads, which
-   is what keeps save files (keyed by display name) compatible per edition. */
+   language pack into the name-keyed tables the rest of the engine reads.
+   Saves are keyed by those display names too, so a save file only resolves
+   in the edition whose pack wrote it. */
 "use strict";
 (function () {
   const PM = (window.PM = window.PM || {});
@@ -50,8 +51,8 @@
   PM.VAT_RATE = 0.05;
   PM.INCOME_TAX_RATE = 0.1;
 
-  /* Order matters: the draft draws walk these tables in sequence, so their
-     order is part of the game's random stream. */
+  /* The boon and module drafts walk these tables in entry order, so the order
+     is part of the game's random stream and must not be rearranged. */
   const BOON_TABLE = [
     { id: "silk_wind", modifiers: { transport_silk_discount: 0.5 } },
     { id: "favorable_tides", modifiers: { transport_flat_discount: 4 } },

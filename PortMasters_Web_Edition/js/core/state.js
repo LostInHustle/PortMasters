@@ -50,9 +50,9 @@
       revealedIntel: [],
       intelCost: PM.BASE_INTEL_COST,
       equippedModules: [],
-      // The module offer is locked per round: the batch may be changed at
-      // most once per round, and leaving or reentering the draft screen
-      // never rerolls it.
+      // The module offer is locked per voyage: the batch can be changed at
+      // most once, and leaving or reentering the draft screen never rerolls
+      // it.
       _draftBatch: null,
       _draftChoices: null,
       _draftChangesLeft: 1,
@@ -71,8 +71,8 @@
       purchasedCards: Array.from(game.purchasedCards),
       completedOrders: Array.from(game.completedOrders),
     });
-    // The module draft batch and its change allowance are per round runtime
-    // state, so they are never persisted.
+    // The module draft batch and its change allowance are runtime state, so
+    // they are never persisted.
     delete data._draftBatch;
     delete data._draftChoices;
     delete data._draftChangesLeft;
@@ -94,9 +94,8 @@
       Object.assign(game, d);
       game.purchasedCards = new Set(d.purchasedCards || []);
       game.completedOrders = new Set(d.completedOrders || []);
-      // Draft state is per round runtime state, so a loaded save starts with
-      // a fresh batch and a full change allowance. A save made on the draft
-      // screens returns to the shipyard instead.
+      // A loaded save starts with a fresh batch and a full change allowance.
+      // A save made on the draft screens returns to the shipyard instead.
       game._draftBatch = null;
       game._draftChoices = null;
       game._draftChangesLeft = 1;

@@ -58,6 +58,19 @@ function loadFixture(lang) {
   return JSON.parse(fs.readFileSync(fixturePath(lang), "utf8"));
 }
 
+/* Every .js file under a directory, recursively. */
+function jsFilesUnder(dir) {
+  const files = [];
+  (function walk(d) {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, entry.name);
+      if (entry.isDirectory()) walk(p);
+      else if (entry.name.endsWith(".js")) files.push(p);
+    }
+  })(dir);
+  return files;
+}
+
 function recordFixture(lang, rev) {
   const spec = H.baselineSpec(lang, rev);
   const scenarios = {};
@@ -102,15 +115,7 @@ function resolvePath(obj, parts) {
    A use is satisfied when any candidate resolves. Catches typos that would
    otherwise surface as "undefined" inside rendered markup. */
 function packKeysUsed() {
-  const dir = path.join(H.WEB_DIR, "js");
-  const files = [];
-  (function walk(d) {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      const p = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(p);
-      else if (entry.name.endsWith(".js")) files.push(p);
-    }
-  })(dir);
+  const files = jsFilesUnder(path.join(H.WEB_DIR, "js"));
 
   const uses = [];
   for (const file of files) {
@@ -762,7 +767,7 @@ function verificationSuite() {
     }
     const all = pages.join("\n");
     assert(
-      all.includes(`${fixed} Gold, every voyage, fixed`),
+      all.includes(`${fixed} Gold base, every voyage`),
       "maintenance figure",
     );
     assert(
@@ -1004,15 +1009,7 @@ function smokeSuite() {
   section("smoke");
 
   check("every script parses", () => {
-    const dir = path.join(H.WEB_DIR, "js");
-    const files = [];
-    (function walk(d) {
-      for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-        const p = path.join(d, entry.name);
-        if (entry.isDirectory()) walk(p);
-        else if (entry.name.endsWith(".js")) files.push(p);
-      }
-    })(dir);
+    const files = jsFilesUnder(path.join(H.WEB_DIR, "js"));
     for (const file of files) {
       const res = spawnSync(process.execPath, ["--check", file], {
         encoding: "utf8",
@@ -1067,10 +1064,6 @@ function smokeSuite() {
       );
       const gaps = g.run("PM.auditHandlers()");
       assertEqual(gaps.length, 0, `unresolved handlers: ${gaps.join(", ")}`);
-      const missing = g.run(
-        `Object.keys(PM).filter((k) => k.endsWith("()")).length ? [] : []`,
-      );
-      assert(Array.isArray(missing), "audit returns a list");
     },
   );
 
@@ -1085,7 +1078,7 @@ function smokeSuite() {
 
 /* Integration suite */
 
-function compareScenario(lang, fixture, scenario, { silent } = {}) {
+function compareScenario(lang, fixture, scenario) {
   const spec = H.currentSpec(lang);
   const { result } = H.runScenario(spec, scenario);
   const expected = fixture.scenarios[scenario];
@@ -1098,7 +1091,6 @@ function compareScenario(lang, fixture, scenario, { silent } = {}) {
   for (let i = 0; i < result.hashes.length; i++) {
     if (result.hashes[i] !== expected.hashes[i]) {
       const snap = result.snaps[i];
-      const base = expected.final;
       const diff = H.firstDifference(
         JSON.stringify(expected.hashes),
         JSON.stringify(result.hashes),

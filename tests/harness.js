@@ -26,6 +26,10 @@ const ENTRIES = {
    byte for byte comparison against the refactored build possible. */
 const BASELINE_REV = "782a060";
 
+/* Every scenario replays from this seed unless a caller overrides it, so both
+   builds draw the same random numbers in the same order. */
+const DEFAULT_SEED = 20241002;
+
 function entryPath(lang) {
   return path.join(WEB_DIR, ENTRIES[lang]);
 }
@@ -202,6 +206,30 @@ const BASELINE_ERRATA = [
   ],
   /* The Mandarin freight hint drops "减去 0" at ship level zero too. */
   [/max\(5, n×2 减去 0\)/g, "max(5, n×2)"],
+  /* More rewrites kept in step with the English pack: the bankruptcy log
+     names reputation (声望) like the rest of the pack, the silk boon covers
+     silk bearing goods only, Master's Apprentice states the first wage
+     settlement, the idle status says 熟练 like the working status, the two
+     net profit labels agree, the tips say 运费, the market line mentions the
+     finished goods lots, the maintenance lines say 基础, and the upgrade
+     button names the freight discount in full. */
+  [
+    /本回合运输丝绸及成品时，运费减半。/g,
+    "本航程运输丝绸及含丝绸成品时，运费减半。",
+  ],
+  [/本回合雇佣工匠工资减半。/g, "本航程雇佣的工匠，首次结算工资减半。"],
+  [/💥 商队信誉崩塌，被迫破产！/g, "💥 声望崩塌，被迫破产！"],
+  [/🔧 维护费：每回合固定15金币/g, "🔧 维护费：每航程基础15金币"],
+  [/⭐熟练工/g, "⭐熟练"],
+  [/📊 净利: /g, "📊 净利润: "],
+  [/\(净赚/g, "(净利润"],
+  [/注意运输成本对利润的影响/g, "注意运费对利润的影响"],
+  [
+    /港口市场有麻布、丝绸和茶叶，价格每次航程都不同。/g,
+    "港口市场主要出售麻布、丝绸和茶叶，偶尔也会有整批成品，价格每次航程都不同。",
+  ],
+  [/每次航程固定 (?=\d)/g, "每次航程基础 "],
+  [/\+5 折扣/g, "+5 运费折扣"],
   /* Global Mandarin word rules, applied after every specific rule above. */
   [/回合/g, "航程"],
   [/工人/g, "工匠"],
@@ -270,6 +298,39 @@ const BASELINE_ERRATA = [
     "buy demand rumors to guarantee a matching order",
   ],
   [/max\(5, n×2 minus 0\)/g, "max(5, n×2)"],
+  /* Wording fixes matching the Mandarin rules above: the shipyard and its
+     logs name the freight discount in full, the sidebar row says Module Slots
+     like the guide does, the maintenance lines say base because Overdrive
+     Engine adds a penalty, the tutorial tracks reputation rather than score,
+     the market line covers the finished goods lots, and the silk boon spells
+     out Silk products instead of an ampersand. */
+  /* The raw baseline says "this round" here (the word is only rewritten to
+     "voyage" by the global word rules further down), so this rule matches the
+     pre rewrite spelling and replaces the whole sentence in one step. */
+  [
+    /Transport cost for Silk & Silk products is halved this round\./g,
+    "Transport cost for Silk and Silk products is halved this voyage.",
+  ],
+  [/\+5 Discount/g, "+5 Freight Discount"],
+  [/⚓ Discount:/g, "⚓ Freight Discount:"],
+  [/<span>Modules<\/span>/g, "<span>Module Slots</span>"],
+  [
+    /🔧 Maintenance: 15 Gold \(fixed each round\)/g,
+    "🔧 Maintenance: 15 Gold base per voyage",
+  ],
+  [/Gold, every voyage, fixed/g, "Gold base, every voyage"],
+  [
+    /the player with the highest score wins/g,
+    "the player with the highest reputation wins",
+  ],
+  [
+    /\. Score comes from trade profits and fulfilled orders\./g,
+    ". Reputation comes from trade profits and fulfilled orders.",
+  ],
+  [
+    /The port market has Hemp, Silk, and Tea at prices that shift every voyage\./g,
+    "The port market mostly sells Hemp, Silk, and Tea, with the occasional lot of finished goods, at prices that shift every voyage.",
+  ],
   /* Artisan name forms: singular first, skipping the unchanged formal names
      and the Master's Apprentice boon, then the plurals. */
   [/\bMaster\b(?!'s|\s+Weaver)/g, "Master Weaver"],
@@ -328,10 +389,10 @@ const UI_DELTAS = [
      suite pays the trade and checks the printed figure against the money
      that actually moves. */
   [
-    /(class="profit-(?:positive|negative)"[^>]*>[^<]*📊 (?:Net|净利): )-?\d+/g,
+    /(class="profit-(?:positive|negative)"[^>]*>[^<]*📊 (?:Net|净利润): )-?\d+/g,
     (m, head) => head + "N",
   ],
-  [/\((?:Net |净赚)-?\d+💰\)/g, "(Net N💰)"],
+  [/\((?:Net |净利润)-?\d+💰\)/g, "(Net N💰)"],
 ];
 
 /* The shipyard footer pair. The refactor put Back to Shipyard first, sized
@@ -406,8 +467,6 @@ function createGame(spec, opts = {}) {
     panels: {},
     modal: "",
     alerts: [],
-    confirms: [],
-    warns: [],
     errors: [],
   };
   const listeners = { document: {}, window: {} };
@@ -459,7 +518,7 @@ function createGame(spec, opts = {}) {
 
   const consoleStub = {
     log: noop,
-    warn: (...a) => state.warns.push(a.map(String).join(" ")),
+    warn: noop,
     error: (...a) => state.errors.push(a.map(String).join(" ")),
   };
 
@@ -481,10 +540,7 @@ function createGame(spec, opts = {}) {
         delete store[k];
       },
     },
-    confirm: (msg) => {
-      state.confirms.push(String(msg));
-      return opts.confirm === undefined ? true : opts.confirm;
-    },
+    confirm: () => (opts.confirm === undefined ? true : opts.confirm),
     alert: (msg) => state.alerts.push(String(msg)),
     setTimeout: () => 0,
     clearTimeout: noop,
@@ -502,18 +558,11 @@ function createGame(spec, opts = {}) {
 
   const context = vm.createContext(sandbox);
   // Math has to be patched from inside the context: the global's intrinsics are
-  // not reachable as properties of the contextified sandbox object.
-  const seed = opts.seed === undefined ? 20241002 : opts.seed;
-  vm.runInContext(
-    `Math.random = (function () {
-       let s = ${seed} >>> 0;
-       return function () {
-         s = (s * 1664525 + 1013904223) >>> 0;
-         return s / 4294967296;
-       };
-     })();`,
-    context,
-  );
+  // not reachable as properties of the contextified sandbox object. The
+  // sequence itself comes from seededRandom so both builds draw identically.
+  const seed = opts.seed === undefined ? DEFAULT_SEED : opts.seed;
+  sandbox.__rng = seededRandom(seed);
+  vm.runInContext("Math.random = __rng;", context);
 
   for (const src of spec.sources) {
     vm.runInContext(src.code, context, { filename: src.name });
@@ -655,7 +704,7 @@ function playScripted(g, opts = {}) {
 
 /* A single run used for every comparison: load, dismiss the tutorial, play. */
 function runScenario(spec, scenario, opts = {}) {
-  const seed = opts.seed === undefined ? 20241002 : opts.seed;
+  const seed = opts.seed === undefined ? DEFAULT_SEED : opts.seed;
   const g = createGame(spec, {
     seed,
     store: opts.store,
@@ -675,11 +724,11 @@ function runScenario(spec, scenario, opts = {}) {
   g.run("closeTutorial()");
 
   if (scenario === "merchant") {
-    return { g, result: playScripted(g, { hires: 1, seed }) };
+    return { g, result: playScripted(g, { hires: 1 }) };
   }
   if (scenario === "hoarder") {
     g.run("startBoonDrafting()");
-    const r = playScripted(g, { buysPerRound: 0, hires: 0, seed });
+    const r = playScripted(g, { buysPerRound: 0, hires: 0 });
     return { g, result: r };
   }
   if (scenario === "reload") {
@@ -688,13 +737,12 @@ function runScenario(spec, scenario, opts = {}) {
       buysPerRound: 3,
       hires: 1,
       maxSteps: 60,
-      seed,
     });
     g.run("saveGame()");
     const saved = Object.assign({}, g.store);
     const g2 = createGame(spec, { seed, store: saved, confirm: true });
     g2.fireLoad();
-    const second = playScripted(g2, { buysPerRound: 3, hires: 0, seed });
+    const second = playScripted(g2, { buysPerRound: 3, hires: 0 });
     return {
       g: g2,
       result: {
@@ -754,9 +802,7 @@ module.exports = {
   scriptSources,
   currentSpec,
   baselineSpec,
-  seededRandom,
   stableJson,
-  hash,
   parseButtons,
   createGame,
   playScripted,

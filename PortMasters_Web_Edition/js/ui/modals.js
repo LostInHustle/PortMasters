@@ -20,7 +20,7 @@
     if (onClose) onClose();
   }
 
-  /* The three wage figures the guide and the tips both quote. */
+  /* The three wage figures the guide, the tips, and the tutorial all quote. */
   function wageValues() {
     return {
       weaverWage: PM.WAGES.weaver,
@@ -29,9 +29,9 @@
     };
   }
 
-  /* The numbers the guides quote, pulled from the live tables so the text can
-     never drift from the rules again. Price entries are [name, range] pairs,
-     the range preformatted the way the prose spells it out. */
+  /* The numbers the guide and the tutorial quote, pulled from the live tables
+     so the text always matches the rules. Price entries are [name, range]
+     pairs, the range preformatted the way the prose spells it out. */
   function guideValues() {
     const t = L.items;
     const priced = (names, rangeOf) =>
@@ -94,8 +94,6 @@
     <div style="text-align:center; margin-top:16px"><button class="btn" onclick="closeModal()">${L.ui.close}</button></div>`);
   }
 
-  let _tutStep = 0;
-
   /* Tutorial steps that quote balance numbers take them as a parameter, so a
      rebalance cannot leave the text behind. */
   function tutorialContent(step) {
@@ -106,7 +104,7 @@
   function showTutorial(step) {
     const TUTORIAL_STEPS = L.tutorial;
     const t = L.ui.tutorial;
-    _tutStep = step === undefined ? 0 : step;
+    const _tutStep = step === undefined ? 0 : step;
     const total = TUTORIAL_STEPS.length;
     const s = TUTORIAL_STEPS[_tutStep];
     const pct = Math.round(((_tutStep + 1) / total) * 100);

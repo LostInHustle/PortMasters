@@ -1,8 +1,10 @@
 /* English language pack.
-   Every user-visible string in the game lives here. The engine reads this
-   object through PM.lang, so an edition is defined entirely by which pack its
-   entry page loads. Item names double as inventory and save keys, which is why
-   they must stay stable once a pack has shipped. */
+   Nearly every string the engine shows to players lives here; the entry page
+   headers, the brand title, and a few glyphs are written directly into the
+   markup. The engine reads this object through PM.lang, so an edition is
+   defined entirely by which pack its entry page loads. Item names double as
+   inventory and save keys, which is why they must stay stable once a pack has
+   shipped. */
 "use strict";
 (function () {
   const PM = (window.PM = window.PM || {});
@@ -48,9 +50,10 @@
       sachet: "#FF1493",
     },
 
-    /* Each artisan type needs several name forms: the formal name for hire and
-       dismissal logs, the short name used while producing and in wage rows,
-       and the plural for the cargo hold and payroll summaries. */
+    /* Each artisan type needs several name forms: name for the hire and
+       dismissal logs, prodName for the production log, short for the status
+       list and wage rows, plural for the wage summary line, and statusPlural
+       for the cargo hold. hireIcon and icon carry the matching glyphs. */
     workerTypes: {
       weaver: {
         name: "Weaver",
@@ -85,7 +88,7 @@
       silk_wind: {
         name: "Silk Winds",
         icon: "🌬️",
-        desc: "Transport cost for Silk & Silk products is halved this voyage.",
+        desc: "Transport cost for Silk and Silk products is halved this voyage.",
       },
       favorable_tides: {
         name: "Favorable Tides",
@@ -240,7 +243,7 @@
         `🗣️ Broker's Whisper: 'Word from ${port}: High demand for ${item}!'`,
 
       shipUpgraded: (level) =>
-        `🎉 Ship Upgraded to Level ${level}! +1 Module Slot, +5 Discount`,
+        `🎉 Ship Upgraded to Level ${level}! +1 Module Slot, +5 Freight Discount`,
       moduleSwapped: (oldName, newName) =>
         `🔄 Swapped ${oldName} for ${newName}!`,
       moduleInstalled: (name) => `✅ Installed ${name}!`,
@@ -326,7 +329,7 @@
         freight: "Freight",
         freightHint: (discount) =>
           discount > 0 ? `max(5, n×2 minus ${discount})` : "max(5, n×2)",
-        modules: "Modules",
+        modules: "Module Slots",
         cargoHold: "📦 Cargo Hold",
         rawMaterials: "Raw Materials",
         finishedGoods: "Finished Goods",
@@ -366,7 +369,7 @@
         delayLine: "Assign task now → item arrives at Phase 3",
         delayNote: "Artisans don't produce instantly!",
         costsTitle: "💸 Voyage End Costs",
-        costsMaintenance: "🔧 Maintenance: 15 Gold (fixed each voyage)",
+        costsMaintenance: "🔧 Maintenance: 15 Gold base per voyage",
         costsWages: "👥 Wages deducted at Phase 3, not on hire",
         taxesTitle: "🧾 Taxes Explained",
         taxesVat: "VAT: 5% of the profit margin on finished goods",
@@ -484,11 +487,11 @@
       shipyard: {
         title: "🚢 Shipyard & Module Rigging",
         shipLevel: (level, discount) =>
-          `🚢 Ship Level: ${level} | ⚓ Discount: ${discount} Gold`,
+          `🚢 Ship Level: ${level} | ⚓ Freight Discount: ${discount} Gold`,
         moduleSlots: (n, slots) => `🔌 Module Slots: ${n} / ${slots}`,
         noModules: "No modules installed. Upgrade ship to unlock slots!",
         upgrade: (next, cost) =>
-          `⚓ Upgrade Ship (Lvl ${next}), Cost: ${cost} Gold | +1 Slot, +5 Discount`,
+          `⚓ Upgrade Ship (Lvl ${next}), Cost: ${cost} Gold | +1 Slot, +5 Freight Discount`,
         draftSwap: "🔄 Draft & Swap Module (Slots Full)",
         draftInstall: "🔧 Draft & Install Module",
         continueVoyage: "⏭️ Continue Voyage",
@@ -656,7 +659,7 @@ ${fmtItems(v.products.slice(2))}
       },
       {
         title: "🏆 What you're playing for",
-        content: `<p>After eight voyages, the player with the highest score wins the title of <strong>King of Silk Road</strong>. Score comes from trade profits and fulfilled orders.</p>
+        content: `<p>After eight voyages, the player with the highest reputation wins the title of <strong>King of Silk Road</strong>. Reputation comes from trade profits and fulfilled orders.</p>
 <p>One rule overrides everything else: <strong>do not go bankrupt</strong>. Hit zero gold and the game ends immediately. There is no coming back from it.</p>
 <p>Starting gold is <strong>100</strong>. That is enough to get going, but not enough to be careless with.</p>`,
       },
@@ -673,7 +676,7 @@ ${fmtItems(v.products.slice(2))}
       },
       {
         title: "🏪 Phase 1: Buying",
-        content: `<p>The port market has Hemp, Silk, and Tea at prices that shift every voyage. Buy now, sell in Phase 2. That is the core loop.</p>
+        content: `<p>The port market mostly sells Hemp, Silk, and Tea, with the occasional lot of finished goods, at prices that shift every voyage. Buy now, sell in Phase 2. That is the core loop.</p>
 <p>One thing worth knowing about: the <strong>Broker</strong>. Pay a small fee for a demand rumor and a specific trade order is <em>guaranteed</em> to appear when Phase 2 opens. Useful when you have stocked a particular good and want to make sure a buyer shows up.</p>
 <div style="background:#FFF3CD;border:1px solid #FFC107;border-radius:6px;padding:9px;font-size:13px;margin-top:10px;line-height:1.5">
   💡 For the first two or three voyages, stick to raw materials. They sell the same voyage you buy them. No waiting and no risk.
@@ -706,7 +709,7 @@ ${fmtItems(v.products.slice(2))}
   <div style="background:#E3F2FD;border-radius:6px;padding:10px;text-align:center">
     <div style="font-size:22px;margin-bottom:4px">🔧</div>
     <strong>Ship Maintenance</strong><br>
-    <span style="font-size:12px;color:#444">${v.fixedCost} Gold, every voyage, fixed</span>
+    <span style="font-size:12px;color:#444">${v.fixedCost} Gold base, every voyage</span>
   </div>
   <div style="background:#FCE4EC;border-radius:6px;padding:10px;text-align:center">
     <div style="font-size:22px;margin-bottom:4px">👥</div>

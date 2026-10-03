@@ -22,7 +22,7 @@
     }
   }
 
-  /* One cargo row per good: icon, name, and count in the good's own colour. */
+  /* One cargo row per good: icon, name, and count in the good's own color. */
   function inventoryRows(names) {
     const inventory = PM.game.inventory;
     return names
@@ -76,7 +76,7 @@
         sachet: _sw,
         total: _pendWages,
       } = PM.pendingWages();
-      const _pendMaint = game.fixedCost + game.maintenancePenalty;
+      const _pendMaint = PM.maintenanceCost();
       const _pendTotal = _pendWages + _pendMaint;
       const _safe = game.money >= _pendTotal;
       const _nW = PM.totalArtisans();

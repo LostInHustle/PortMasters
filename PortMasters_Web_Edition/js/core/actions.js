@@ -4,15 +4,15 @@
   const PM = (window.PM = window.PM || {});
   const L = PM.lang;
 
-  /* One entry per trade: the roster that holds its workers, and the label the
-     production log uses for them. */
+  /* One entry per trade: the artisan type id and the roster that holds that
+     trade's artisans. */
   const WORKER_TYPES = [
     { type: "weaver", roster: "weavers" },
     { type: "master", roster: "masterWeavers" },
     { type: "sachet_maker", roster: "sachetMakers" },
   ];
 
-  /* The roster that holds one worker type. */
+  /* The roster that holds one artisan type. */
   function workerList(type) {
     const entry = WORKER_TYPES.find((w) => w.type === type);
     return PM.game[entry.roster];
@@ -23,7 +23,7 @@
     return WORKER_TYPES.reduce((n, w) => n + PM.game[w.roster].length, 0);
   }
 
-  /* What each trade is owed this round. Read-only: rendering must not disturb
+  /* What each trade is owed this voyage. Read-only: rendering must not disturb
      the hire discounts that payWages settles. */
   function pendingWages() {
     const game = PM.game;
@@ -35,7 +35,8 @@
     return { weaver, master, sachet, total: weaver + master + sachet };
   }
 
-  /* Goods that travel with the silk surcharge. */
+  /* Goods that count as silk cargo for the Silk Winds transport discount and
+     the Silk Road Monopoly lift. */
   function orderHasSilk(order) {
     const silkGoods = [
       L.items.silk,
@@ -115,13 +116,9 @@
     const hasSilk = orderHasSilk(order);
     let transport = PM.calcTransportCost(order.totalItems, hasSilk);
     for (const r of order.resources) game.inventory[r.type] -= r.required;
-    let reward = order.reward;
-    let totalVat = 0;
+    const { totalVat, payout } = PM.orderPayout(order, hasSilk, transport);
+    const reward = payout;
     if (order.isProductOrder) {
-      const product = order.resources[0].type;
-      const unitVat = PM.calcVAT(product, reward / order.resources[0].required);
-      totalVat = unitVat * order.resources[0].required;
-      reward -= totalVat;
       game.vatPaid += totalVat;
       PM.log(L.log.salesVat(totalVat));
     }
@@ -129,7 +126,6 @@
     game.materialCosts += transport;
     const origTransport = transport;
     if (PM.hasModule("silk_monopoly") && hasSilk && order.isProductOrder) {
-      reward = Math.floor(reward * 1.2);
       PM.log(L.log.silkMonopoly);
     }
     if (PM.hasModule("salvage_crane") && Math.random() < 0.3) {
@@ -311,7 +307,7 @@
 
   function payMaintenance() {
     const game = PM.game;
-    const cost = game.fixedCost + game.maintenancePenalty;
+    const cost = PM.maintenanceCost();
     if (game.money >= cost) {
       game.money -= cost;
       game.maintenanceCosts += cost;
@@ -362,7 +358,7 @@
   function upgradeShip() {
     const game = PM.game;
     if (game.shipLevel >= 3) return;
-    const cost = game.shipUpgradeCost[game.shipLevel] + game.shipUpgradePenalty;
+    const cost = PM.shipUpgradePrice();
     if (game.money < cost) {
       alert(L.ui.needGold(cost));
       return;

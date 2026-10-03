@@ -1,4 +1,4 @@
-/* The phase machine: round flow, boon drafting, module drafting, and the
+/* The phase machine: voyage flow, boon drafting, module drafting, and the
    endgame and bankruptcy transitions. */
 "use strict";
 (function () {
@@ -135,8 +135,8 @@
     startPhase3();
   }
 
-  /* The one way a run ends early: the voyage is over and the bankruptcy
-     screen takes the phase. */
+  /* Bankruptcy: the only way a run ends before the final voyage. Sets gameOver
+     and hands the phase to the bankruptcy screen. */
   function declareBankruptcy() {
     const game = PM.game;
     game.gameOver = true;
