@@ -8,6 +8,8 @@
 
 欢迎来到 **PortMasters（港口大师）**！扬帆起航于大航海时代，穿梭于历史悠久的海上丝绸之路上。管理资源，雇佣工匠制作高价值商品，在繁华港口完成贸易订单，并应对税收与维护成本等经济挑战。你的目标是在 8 次航程中积累财富与声望，成为终极商业巨头。
 
+续作**《港口大师 2》**已在线开航，带来更多新玩法：[portmasters2.onrender.com](https://portmasters2.onrender.com/)。
+
 ---
 
 ## 🛠️ 2. 运行游戏
@@ -183,6 +185,7 @@ node tests/run.js
 ## 🤝 9. 版权与许可
 
 - **开发者**：`Joe Zhou, Aaron Zhu`
+- **开发者主页**：[Aaron Zhu 的个人主页与作品](https://funny-youngster.github.io/aaronzhu-tech/aaronzhu)
 - **版本**：`v1.4.0`
 - **语言支持**：英文与简体中文
 - **许可协议**：MIT 开源协议。允许自由使用、修改及分发，适用于个人或商业项目。

@@ -385,6 +385,8 @@
         footUpgrade:
           "🚢 Phase 4: upgrade ship → freight discounts + module slots",
         footKeys: "⌨️ Ctrl+S save | Ctrl+N next phase | F1 guide",
+        linkPortmasters2: "🎮 Play PortMasters 2",
+        linkDeveloper: "👤 Developer: Aaron Zhu",
       },
 
       boon: {

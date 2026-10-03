@@ -393,10 +393,14 @@ const UI_DELTAS = [
     (m, head) => head + "N",
   ],
   [/\((?:Net |净利润)-?\d+💰\)/g, "(Net N💰)"],
+  /* The welcome screen closes with community links the baseline never had.
+     The rule only matches the new markup, so the baseline side is untouched
+     and the fixtures regenerate unchanged. See tests/README.md. */
+  [/<div class="welcome-links">[\s\S]*?<\/div>/g, ""],
 ];
 
 /* The shipyard footer pair. The refactor put Back to Shipyard first, sized
-   the two buttons alike, and moved Change Batch to the utility colour, so
+   the two buttons alike, and moved Change Batch to the utility color, so
    each button is reduced to its handler, label, and state, and the pair is
    sorted before comparison. */
 function canonicalizeShipyardPair(html) {

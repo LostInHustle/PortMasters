@@ -89,7 +89,10 @@ function updateFixtures() {
   fs.mkdirSync(FIXTURE_DIR, { recursive: true });
   for (const lang of ["en", "zh"]) {
     const fixture = recordFixture(lang, H.BASELINE_REV);
-    fs.writeFileSync(fixturePath(lang), JSON.stringify(fixture, null, 1));
+    fs.writeFileSync(
+      fixturePath(lang),
+      JSON.stringify(fixture, null, 2) + "\n",
+    );
     console.log(`recorded tests/fixtures/baseline-${lang}.json`);
   }
 }
@@ -657,6 +660,37 @@ function verificationSuite() {
       assert(panel.includes(`${item}×${inv[item]}`), `starting ${item} count`);
     }
   });
+
+  check(
+    "the welcome screen links out to PortMasters 2 and the developer",
+    () => {
+      // The fixture comparison deliberately never sees these links (see the
+      // divergences list in tests/README.md), so this check owns them.
+      for (const lang of Object.keys(H.ENTRIES)) {
+        const g = freshGame(lang);
+        g.run("PM.render()");
+        const panel = g.state.panels["phase-panel"];
+        const t = g.run("PM.lang.ui.welcome");
+        const anchors =
+          panel.match(
+            /<a href="[^"]+" target="_blank" rel="noopener">[^<]*<\/a>/g,
+          ) || [];
+        assert(anchors.length === 2, `${lang}: exactly two community links`);
+        assert(
+          panel.includes(
+            `<a href="https://portmasters2.onrender.com/" target="_blank" rel="noopener">${t.linkPortmasters2}</a>`,
+          ),
+          `${lang}: the PortMasters 2 link and label`,
+        );
+        assert(
+          panel.includes(
+            `<a href="https://funny-youngster.github.io/aaronzhu-tech/aaronzhu" target="_blank" rel="noopener">${t.linkDeveloper}</a>`,
+          ),
+          `${lang}: the developer link and label`,
+        );
+      }
+    },
+  );
 
   check("the guide quotes the live wage, tax, and rumor tables", () => {
     const g = freshGame();

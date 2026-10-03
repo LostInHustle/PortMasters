@@ -372,6 +372,8 @@
         footBroker: "🔮 阶段1牙行：购买密语，锁定保底订单",
         footUpgrade: "🚢 阶段4升级船只：运费折扣 + 解锁模块槽",
         footKeys: "⌨️ Ctrl+S 保存 | Ctrl+N 下一阶段 | F1 帮助",
+        linkPortmasters2: "🎮 试玩《港口大师 2》",
+        linkDeveloper: "👤 开发者：Aaron Zhu",
       },
 
       boon: {

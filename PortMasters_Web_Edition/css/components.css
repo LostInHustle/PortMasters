@@ -153,6 +153,15 @@
   margin: 0 auto;
   padding: 20px;
 }
+.welcome-links {
+  text-align: center;
+  font-size: 11px;
+  margin-top: 8px;
+}
+.welcome-links a {
+  color: var(--blue);
+  margin: 0 8px;
+}
 
 .modal-overlay {
   position: fixed;

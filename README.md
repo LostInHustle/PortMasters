@@ -8,6 +8,8 @@
 
 Welcome to **PortMasters**! Set sail during the Golden Age of exploration along the historic Maritime Silk Road. Manage resources, hire artisans to craft valuable goods, fulfill trade orders at bustling ports, and navigate economic challenges like taxes and maintenance costs. Your goal is to accumulate wealth and reputation across 8 voyages to become the ultimate trading mogul.
 
+**PortMasters 2**, the online successor to this edition, adds new features and is playable now at [portmasters2.onrender.com](https://portmasters2.onrender.com/).
+
 ---
 
 ## 🛠️ 2. Running the Game
@@ -183,6 +185,7 @@ It covers unit checks of the economy formulas, a probe for every ship module and
 ## 🤝 9. Credits & License
 
 - **Developer**: `Joe Zhou, Aaron Zhu`
+- **Developer page**: [Aaron Zhu's profile and other projects](https://funny-youngster.github.io/aaronzhu-tech/aaronzhu)
 - **Version**: `v1.4.0`
 - **Language Support**: English & Simplified Chinese
 - **License**: MIT License. Free to use, modify, and distribute for personal or commercial projects.

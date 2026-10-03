@@ -5,6 +5,13 @@
   const PM = (window.PM = window.PM || {});
   const L = PM.lang;
 
+  /* The two outbound links on the welcome screen. They are not game data, so
+     they live here rather than in the packs, and both editions share them. */
+  const LINKS = {
+    portmasters2: "https://portmasters2.onrender.com/",
+    developer: "https://funny-youngster.github.io/aaronzhu-tech/aaronzhu",
+  };
+
   function renderWelcome(p) {
     const hasSave = !!localStorage.getItem(PM.SAVE_KEY);
     const t = L.ui.welcome;
@@ -50,6 +57,10 @@
           <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">${t.footBroker}</div>
           <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">${t.footUpgrade}</div>
           <div style="flex:1;background:#F0F8FF;border-radius:4px;padding:8px">${t.footKeys}</div>
+        </div>
+        <div class="welcome-links">
+          <a href="${LINKS.portmasters2}" target="_blank" rel="noopener">${t.linkPortmasters2}</a>
+          <a href="${LINKS.developer}" target="_blank" rel="noopener">${t.linkDeveloper}</a>
         </div>
       </div>
     </div>`;
