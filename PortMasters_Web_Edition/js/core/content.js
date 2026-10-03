@@ -1,9 +1,9 @@
 /* Content tables.
-   Prices, probabilities, recipes, and modifiers live here once, keyed by
-   language-neutral ids. buildContent() then expands them with the active
-   language pack into the name-keyed tables the rest of the engine reads.
-   Saves are keyed by those display names too, so a save file only resolves
-   in the edition whose pack wrote it. */
+   Prices, probabilities, recipes, modifiers, and the glyph and color tables
+   live here once, keyed by language-neutral ids. buildContent() then expands
+   them with the active language pack into the name-keyed tables the rest of
+   the engine reads. Saves are keyed by those display names too, so a save
+   file only resolves in the edition whose pack wrote it. */
 "use strict";
 (function () {
   const PM = (window.PM = window.PM || {});
@@ -46,6 +46,28 @@
 
   const WAGES = { weaver: 8, master: 12, sachet_maker: 20 };
 
+  /* The glyphs and colors goods render with. Both editions share them, so
+     they live here rather than in duplicate inside each pack. */
+  const ICON_TABLE = {
+    hemp: "🧶",
+    silk: "👘",
+    tea: "🍵",
+    linen_clothes: "👔",
+    cotton_clothes: "👕",
+    brocade: "👗",
+    sachet: "🌸",
+  };
+
+  const COLOR_TABLE = {
+    hemp: "#8B7355",
+    silk: "#DC143C",
+    tea: "#228B22",
+    linen_clothes: "#D2691E",
+    cotton_clothes: "#4169E1",
+    brocade: "#8B008B",
+    sachet: "#FF1493",
+  };
+
   /* Rates and fees the rules text quotes as well as the engine applies. */
   PM.BASE_INTEL_COST = 5;
   PM.VAT_RATE = 0.05;
@@ -81,8 +103,8 @@
     PM.ICONS = {};
     PM.COLORS = {};
     for (const id of ITEM_IDS) {
-      PM.ICONS[nameOf(id)] = L.icons[id];
-      PM.COLORS[nameOf(id)] = L.colors[id];
+      PM.ICONS[nameOf(id)] = ICON_TABLE[id];
+      PM.COLORS[nameOf(id)] = COLOR_TABLE[id];
     }
 
     PM.RESOURCES = RESOURCE_IDS.map(nameOf);

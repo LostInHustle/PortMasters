@@ -9,7 +9,7 @@ node tests/run.js --update   # record the baseline fixtures again
 
 ## What it covers
 
-**Unit** checks the economy formulas against their documented numbers (transport floors, VAT, income tax, wage tables), verifies that the content tables stay consistent with each other, that the opening position matches the documented starting state, and that every key the engine reads exists in the language pack (the check walks the English pack; the Mandarin pack is exercised by the both-language integration and hygiene runs).
+**Unit** checks the economy formulas against their documented numbers (transport floors, VAT, income tax, wage tables), verifies that the content tables stay consistent with each other, that the opening position matches the documented starting state, and that every key the engine reads exists in the language pack (the check walks the English pack, and a parity check keeps both packs key for key identical; the Mandarin pack's values are exercised by the both-language integration and hygiene runs).
 
 **Effects** carries one probe per ship module and per boon. Each probe drives a fresh game and asserts the facts the effect is supposed to produce (a discount, a surcharge, a halved wage, a refund on a lucky roll, and so on). A coverage check compares the probe tables with `PM.MODULES` and `PM.BOONS`, so a new module or boon cannot ship without its effect being pinned down.
 

@@ -26,26 +26,6 @@
       hangzhou: "杭州港",
     },
 
-    icons: {
-      hemp: "🧶",
-      silk: "👘",
-      tea: "🍵",
-      linen_clothes: "👔",
-      cotton_clothes: "👕",
-      brocade: "👗",
-      sachet: "🌸",
-    },
-
-    colors: {
-      hemp: "#8B7355",
-      silk: "#DC143C",
-      tea: "#228B22",
-      linen_clothes: "#D2691E",
-      cotton_clothes: "#4169E1",
-      brocade: "#8B008B",
-      sachet: "#FF1493",
-    },
-
     /* Each artisan type needs several name forms: name for the hire and
        dismissal logs, prodName for the production log, short for the status
        list and wage rows, plural for the wage summary line, and statusPlural

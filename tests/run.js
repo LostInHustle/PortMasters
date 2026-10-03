@@ -297,6 +297,31 @@ function unitSuite() {
     );
   });
 
+  check("both language packs define the same keys", () => {
+    // The check above walks the English pack; this one keeps the Mandarin
+    // pack from silently lagging behind on a key no scenario happens to
+    // render. Values are exercised by the both-language integration runs.
+    const keysOf = (game) => {
+      const out = [];
+      const walk = (node, prefix) => {
+        for (const [k, v] of Object.entries(node)) {
+          const p = prefix ? `${prefix}.${k}` : k;
+          if (v && typeof v === "object" && !Array.isArray(v)) walk(v, p);
+          else out.push(p);
+        }
+      };
+      walk(game.run("PM.lang"), "");
+      return out;
+    };
+    const en = keysOf(freshGame("en"));
+    const zh = new Set(keysOf(freshGame("zh")));
+    const missing = en.filter((k) => !zh.has(k));
+    assert(
+      missing.length === 0,
+      `the zh pack is missing: ${missing.join(", ") || "none"}`,
+    );
+  });
+
   check("pack fills every engine table", () => {
     assert(
       run("PM.BOONS.every((b) => b.name && b.icon && b.desc)"),
