@@ -10,48 +10,47 @@ Welcome to **PortMasters**! Set sail during the Golden Age of exploration along 
 
 ---
 
-## 🛠️ 2. Editions & Running
+## 🛠️ 2. Running the Game
 
-Version **v1.4.0** ships in two equivalent editions, each available in English and Simplified Chinese.
-
-### 🐍 Python Edition (tkinter)
-
-Files:
-
-- `PortMasters_v1.4.0.py` (English)
-- `PortMasters_MandarinEdition_v1.4.0.py` (Simplified Chinese)
-
-Requirements:
-
-- **Python 3.8+** installed on your machine.
-- **No external libraries required.** Uses standard `tkinter`, `json`, `random` modules.
-- **OS:** Windows, macOS, or Linux.
-
-Steps to run:
-
-1. Download or clone the project folder.
-2. Open your terminal or command prompt.
-3. Navigate to the project directory.
-4. Run the build you want:
-   ```bash
-   python PortMasters_v1.4.0.py
-   ```
-   or
-   ```bash
-   python PortMasters_MandarinEdition_v1.4.0.py
-   ```
-5. Enjoy your voyage! 🌊
-
-Progress is stored in `portmasters_save.json` next to the script. A detected save prompts you to continue on launch.
-
-### 🌐 Web Edition (single file HTML)
+Version **v1.4.0** is a web game with two entry pages, English and Simplified Chinese, running on one shared engine.
 
 Files:
 
 - `PortMasters_Web_Edition/PortMasters_v1.4.0.html` (English)
 - `PortMasters_Web_Edition/PortMasters_MandarinEdition_v1.4.0.html` (Simplified Chinese)
 
-No server, no build step, no dependencies. Double click either file to open it in any modern browser. Progress is saved in the browser's local storage. On first launch the web edition shows a short beginner tutorial with a step by step guide to your first voyage; press F1 at any time for the full rulebook.
+No server, no build step, no dependencies. Double click either entry file to open it in any modern browser. The entry pages load their stylesheets and scripts from the `css/` and `js/` folders beside them, so keep the `PortMasters_Web_Edition` folder together when copying or moving it. Progress is saved in the browser's local storage. On first launch the game shows a short beginner tutorial with a step by step guide to your first voyage; press F1 at any time for the full rulebook.
+
+### 🧱 Project Layout
+
+```
+PortMasters_Web_Edition/
+├── PortMasters_v1.4.0.html                  # English entry page
+├── PortMasters_MandarinEdition_v1.4.0.html  # Simplified Chinese entry page
+├── css/
+│   ├── tokens.css        # colour and sizing variables
+│   ├── base.css          # layout, panels, typography
+│   └── components.css    # buttons, cards, modals, effect animations
+└── js/
+    ├── lang/
+    │   ├── en.js         # English language pack
+    │   └── zh.js         # Simplified Chinese language pack
+    ├── core/
+    │   ├── utils.js      # random helpers, escaping, logging
+    │   ├── content.js    # neutral content tables, expanded per language
+    │   ├── state.js      # initial state, save and load
+    │   ├── economy.js    # costs, taxes, order and card generation
+    │   ├── actions.js    # purchases, hiring, production, wages
+    │   ├── effects.js    # sound, screen shake, particles
+    │   └── phases.js     # the phase machine, boons, module drafting
+    ├── ui/
+    │   ├── render.js     # the four main panels
+    │   ├── screens.js    # one renderer per phase
+    │   └── modals.js     # guide, rumor board, tips, tutorial
+    └── main.js           # boot, keyboard shortcuts, handler wiring
+```
+
+The two editions share every line of game logic and styling. A language pack supplies the strings, item names, and prose templates; the English and Chinese pages differ only in which pack they load and a few language specific style overrides.
 
 ---
 
@@ -106,7 +105,7 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 - `Ctrl + S` saves the game.
 - `Ctrl + N` advances to the next phase.
-- `Ctrl + H` opens the worker management interface.
+- `Ctrl + H` opens the worker management interface during Phase 1.
 - `Ctrl + R` restarts the game.
 - `F1` opens the full instructions.
 
@@ -114,7 +113,7 @@ The game spans **8 Voyages**, each divided into **4 Phases**:
 
 - Click buttons to confirm actions (Buy, Trade, Upgrade).
 - Scroll within panels to view inventory lists.
-- The web edition opens the beginner tutorial automatically on first launch; it can be skipped and reopened from the welcome screen.
+- The game opens the beginner tutorial automatically on first launch; it can be skipped and reopened from the welcome screen.
 
 ---
 
@@ -141,26 +140,38 @@ After **8 Voyages**, the game ends with a final evaluation based on **Reputation
 
 ---
 
-## 🛡️ 7. Troubleshooting
+## 🧪 7. Tests
 
-- **"Cannot Save Game"**: Ensure the project folder has write permissions. Check if antivirus software is blocking JSON file creation. In the web edition, allow the site to store data if the browser asks.
-- **"Game Crashes on Launch"**: Verify Python version is 3.8+. Older OS versions may lack bundled `tkinter` components. If the web edition shows a blank page, try a current browser.
-- **"Black Screen / UI Issues"**: Update your graphics driver or run with admin privileges if DPI scaling causes rendering issues.
+The project ships a dependency free test suite that runs on Node 16 or newer:
+
+```bash
+node tests/run.js
+```
+
+It covers unit checks of the economy formulas, smoke checks that every page loads only files that exist and that the engine boots with a complete handler surface, and integration scenarios that replay full games in both languages and compare every rendered panel, log line, and game state against recordings taken from the pre refactor build. The recordings live in `tests/fixtures/` and can be re-recorded with `node tests/run.js --update` after an intentional gameplay or UI change. See `tests/README.md` for the full details and the list of intentional differences between the old and new builds.
 
 ---
 
-## 🤝 8. Credits & License
+## 🛡️ 8. Troubleshooting
+
+- **"Cannot Save Game"**: allow the site to store data if the browser asks, and check that local storage is not blocked in private browsing windows.
+- **"Blank Page on Launch"**: make sure the `css/` and `js/` folders sit next to the entry HTML file, and open the page in a current browser.
+- **"Old Progress Looks Different"**: saves written before v1.4.0 still load; item names and save keys are unchanged.
+
+---
+
+## 🤝 9. Credits & License
 
 - **Developer**: `Joe Zhou, Aaron Zhu`
 - **Version**: `v1.4.0`
-- **Language Support**: English & Simplified Chinese, in both editions
+- **Language Support**: English & Simplified Chinese
 - **License**: MIT License. Free to use, modify, and distribute for personal or commercial projects.
 
 ---
 
 ## 📌 Quick Reference
 
-- **Launch**: `python PortMasters_v1.4.0.py`, or open the web edition HTML file in a browser
+- **Launch**: open `PortMasters_Web_Edition/PortMasters_v1.4.0.html` in a browser
 - **Core Loop**: Buy ➔ Trade ➔ Pay Wages ➔ Upgrade
 - **Top Sellers**: Sachets & Brocade (watch VAT!)
 - **Save**: Auto-prompt or `Ctrl+S`
