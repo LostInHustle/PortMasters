@@ -59,9 +59,7 @@
       <div class="inv-section-title">${t.finishedGoods}</div>
       ${inventoryRows(PM.PRODUCTS)}
       ${
-        game.weavers.length ||
-        game.masterWeavers.length ||
-        game.sachetMakers.length
+        PM.totalArtisans() > 0
           ? `
         <div class="inv-section-title">${t.artisans}</div>
         <div class="inv-item"><span class="name">👩‍🔧 ${L.workerTypes.weaver.statusPlural}</span><span class="count">${game.weavers.length}</span></div>
@@ -81,10 +79,7 @@
       const _pendMaint = game.fixedCost + game.maintenancePenalty;
       const _pendTotal = _pendWages + _pendMaint;
       const _safe = game.money >= _pendTotal;
-      const _nW =
-        game.weavers.length +
-        game.masterWeavers.length +
-        game.sachetMakers.length;
+      const _nW = PM.totalArtisans();
       html += `
     <div class="status-section" style="border-color:${_safe ? "#2E5AA7" : "#FF5252"}">
       <h3>${t.obligations}</h3>
@@ -125,14 +120,16 @@
     const game = PM.game;
     const c = document.getElementById("control-panel");
     const b = L.ui.controls;
-    let startText, startDisabled, startAction, nextText, nextDisabled;
+    /* Anything a branch below does not override is the quiet default: a
+       disabled "on voyage" start button and a disabled continue. */
+    let startText = b.onVoyage;
+    let startDisabled = true;
+    let startAction = "";
+    let nextText = b.continue;
+    let nextDisabled = true;
 
     if (game.gameOver) {
       startText = b.gameOver;
-      startDisabled = true;
-      startAction = "";
-      nextText = b.continue;
-      nextDisabled = true;
     } else if (game.phase === 0) {
       // A pack may flesh this label out with the voyage number.
       startText =
@@ -141,26 +138,11 @@
           : b.setSail;
       startDisabled = false;
       startAction = "startBoonDrafting()";
-      nextText = b.continue;
-      nextDisabled = true;
     } else if (game.phase === 5) {
       startText = b.draftingBoon;
-      startDisabled = true;
-      startAction = "";
-      nextText = b.continue;
-      nextDisabled = true;
     } else if ([1, 2, 3, 4, "worker_mgmt"].includes(game.phase)) {
-      startText = b.onVoyage;
-      startDisabled = true;
-      startAction = "";
       nextText = b.nextPhase;
       nextDisabled = false;
-    } else {
-      startText = b.onVoyage;
-      startDisabled = true;
-      startAction = "";
-      nextText = b.continue;
-      nextDisabled = true;
     }
 
     c.innerHTML = `

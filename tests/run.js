@@ -48,7 +48,7 @@ function section(title) {
   console.log(`\n${title}`);
 }
 
-/* --- fixtures ---------------------------------------------------------- */
+/* Fixtures */
 
 function fixturePath(lang) {
   return path.join(FIXTURE_DIR, `baseline-${lang}.json`);
@@ -81,7 +81,7 @@ function updateFixtures() {
   }
 }
 
-/* --- unit suite -------------------------------------------------------- */
+/* Unit suite */
 
 const L_KEY_RE = /(?<![.\w$])L((?:\.[A-Za-z_$][\w$]*)+)/g;
 const ALIAS_RE = /const\s+(\w+)\s*=\s*(L(?:\.[A-Za-z_$][\w$]*)+)\s*;/g;
@@ -293,7 +293,7 @@ function unitSuite() {
   });
 }
 
-/* --- effects suite ------------------------------------------------------ */
+/* Effects suite */
 
 /* One probe per module and per boon: a function of `run` returning
    [label, actual, expected] facts read from a fresh game. Coverage is
@@ -571,7 +571,7 @@ function effectsSuite() {
   }
 }
 
-/* --- verification suite ------------------------------------------------- */
+/* Verification suite */
 
 /* The screens must show the numbers the engine will actually charge. Each
    figure test clicks the button it read and compares the money that moved to
@@ -938,7 +938,7 @@ function verificationSuite() {
   });
 }
 
-/* --- smoke suite ------------------------------------------------------- */
+/* Smoke suite */
 
 function smokeSuite() {
   section("smoke");
@@ -1023,7 +1023,7 @@ function smokeSuite() {
   });
 }
 
-/* --- integration suite ------------------------------------------------- */
+/* Integration suite */
 
 function compareScenario(lang, fixture, scenario, { silent } = {}) {
   const spec = H.currentSpec(lang);
@@ -1119,7 +1119,7 @@ function integrationSuite() {
   });
 }
 
-/* --- main -------------------------------------------------------------- */
+/* Main */
 
 function main() {
   if (process.argv.includes("--update")) {

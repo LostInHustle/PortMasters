@@ -54,11 +54,11 @@ PortMasters/
         │   ├── en.js         # English language pack
         │   └── zh.js         # Simplified Chinese language pack
         ├── core/
-        │   ├── utils.js      # random helpers, escaping, logging
+        │   ├── utils.js      # random helpers, ranks, logging, escaping
         │   ├── content.js    # neutral content tables, expanded per language
         │   ├── state.js      # initial state, save and load
-        │   ├── economy.js    # costs, taxes, order and card generation
-        │   ├── actions.js    # purchases, hiring, production, wages
+        │   ├── economy.js    # costs, taxes, orders, cards, module draft
+        │   ├── actions.js    # purchases, hiring, production, wages, modules
         │   ├── effects.js    # sound, screen shake, particles
         │   └── phases.js     # the phase machine, boons, module drafting
         ├── ui/

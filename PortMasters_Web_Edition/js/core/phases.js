@@ -136,6 +136,15 @@
     startPhase3();
   }
 
+  /* The one way a run ends early: the voyage is over and the bankruptcy
+     screen takes the phase. */
+  function declareBankruptcy() {
+    const game = PM.game;
+    game.gameOver = true;
+    game.phase = "bankruptcy";
+    PM.render();
+  }
+
   function startPhase3() {
     const game = PM.game;
     game.phase = 3;
@@ -145,29 +154,22 @@
     const wageResult = PM.payWages();
     if (wageResult === "bankruptcy") {
       PM.log(L.log.bankruptWages);
-      game.gameOver = true;
-      game.phase = "bankruptcy";
-      PM.render();
+      declareBankruptcy();
       return;
     }
     PM.log(L.log.phase3Header(game.currentRound));
     if (game.money <= 0) {
       PM.log(L.log.fundsZero);
-      game.gameOver = true;
-      game.phase = "bankruptcy";
-      PM.render();
+      declareBankruptcy();
       return;
     }
     PM.render();
   }
 
   function doMaintenance() {
-    const game = PM.game;
     const r = PM.payMaintenance();
     if (r === "bankruptcy") {
-      game.gameOver = true;
-      game.phase = "bankruptcy";
-      PM.render();
+      declareBankruptcy();
       return;
     }
     startPhase4();

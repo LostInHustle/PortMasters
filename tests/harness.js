@@ -139,12 +139,11 @@ const BASELINE_ERRATA = [
      templates it from game.intelCost. */
   [/花费金币购买关于第2阶段需求的/g, "花费5金币购买关于第2阶段需求的"],
 
-  /* --- Terminology unification -------------------------------------------
-     Both packs now name the unit of play a Voyage / 航程, the hireable trade
-     an artisan / 工匠, the top rank King of Silk Road / 丝绸之路霸主, and
-     the trade goods by their full names. Every baseline spelling is rewritten
-     to the new one, so the two builds compare exactly. Specific rules run
-     before the global word rules below them. */
+  /* Terminology unification. Both packs now name the unit of play a Voyage /
+     航程, the hireable trade an artisan / 工匠, the top rank King of Silk
+     Road / 丝绸之路霸主, and the trade goods by their full names. Every
+     baseline spelling is rewritten to the new one, so the two builds compare
+     exactly. Specific rules run before the global word rules below them. */
 
   /* Mandarin: sentences that were rewritten, not word swapped. */
   [
@@ -241,13 +240,23 @@ const BASELINE_ERRATA = [
     ", Linen Clothes, Cotton Clothes or Brocade(",
   ],
   [/fixed rounds costs/, "fixed voyage costs"],
-  /* Wording fixes: the VAT line loses its hyphen, the broker footer promises
-     the single guaranteed order the engine actually generates, the Master's
-     Apprentice boon describes the half wage it really pays, and the freight
-     hint stops printing a pointless "minus 0" at ship level zero. */
+  /* Wording fixes: the VAT sidebar line loses its hyphen, the guide and the
+     VAT hint say "finished goods" like the category panels do, the broker
+     footer promises the single guaranteed order the engine actually
+     generates, the Master's Apprentice boon describes the half wage it really
+     pays, and the freight hint stops printing a pointless "minus 0" at ship
+     level zero. */
   [
     /VAT: 5% of finished-good profit margin/,
     "VAT: 5% of the profit margin on finished goods",
+  ],
+  [
+    /VAT: 5% on finished product profit margin/,
+    "VAT: 5% on finished goods profit margin",
+  ],
+  [
+    /VAT applies when selling finished products/,
+    "VAT applies when selling finished goods",
   ],
   [
     /buy demand rumors to guarantee orders/,

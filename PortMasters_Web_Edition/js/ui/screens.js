@@ -190,10 +190,7 @@
       sachet: _sw,
       total: _totalWages,
     } = PM.pendingWages();
-    const _nW =
-      game.weavers.length +
-      game.masterWeavers.length +
-      game.sachetMakers.length;
+    const _nW = PM.totalArtisans();
     p.innerHTML = `
     <div class="center-block">
       <div class="hero-title">${t.title}</div>
@@ -259,9 +256,7 @@
       </div>
 
       ${
-        game.weavers.length ||
-        game.masterWeavers.length ||
-        game.sachetMakers.length
+        PM.totalArtisans() > 0
           ? `
         <div class="separator"></div>
         <div style="background:#F0F8FF; border:2px solid #2E5AA7; border-radius:8px; padding:16px; margin:16px 0">
@@ -389,10 +384,7 @@
     const cost = game.fixedCost + game.maintenancePenalty;
     const canAfford = game.money >= cost;
     const balanceAfter = game.money - cost;
-    const nWorkers =
-      game.weavers.length +
-      game.masterWeavers.length +
-      game.sachetMakers.length;
+    const nWorkers = PM.totalArtisans();
     p.innerHTML = `
     <div class="center-block">
       <div class="hero-title">${t.title}</div>

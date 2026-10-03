@@ -18,6 +18,11 @@
     return PM.game[entry.roster];
   }
 
+  /* Every hired artisan across all trades. */
+  function totalArtisans() {
+    return WORKER_TYPES.reduce((n, w) => n + PM.game[w.roster].length, 0);
+  }
+
   /* What each trade is owed this round. Read-only: rendering must not disturb
      the hire discounts that payWages settles. */
   function pendingWages() {
@@ -398,6 +403,7 @@
   }
 
   PM.pendingWages = pendingWages;
+  PM.totalArtisans = totalArtisans;
   PM.orderHasSilk = orderHasSilk;
   PM.applyBoon = applyBoon;
   PM.purchaseCardById = purchaseCardById;

@@ -183,7 +183,7 @@
         `❌ Insufficient funds! Need ${cost} Gold, Have ${money} Gold`,
       boughtProduct: (port, icon, type, qty, price, matCost, cost) =>
         `🛒 Bought Product at ${port}: ${icon}${type}×${qty} (@${price} Gold/item, Mat Cost ${matCost} Gold), Total ${cost} Gold`,
-      productVatHint: "   💡 Tip: VAT applies when selling finished products",
+      productVatHint: "   💡 Tip: VAT applies when selling finished goods",
       /* One purchased lot inside the purchase log line. */
       priceEach: (price) => `(${price} Gold/item)`,
       boughtAt: (port, txt, cost) =>
@@ -582,7 +582,7 @@ ${fmtItems(v.products.slice(2))}
 • Sachet Maker (${v.makerWage} Gold/Voyage): Makes Sachets
 
 🧾 Tax System:
-• VAT: ${v.vatRate}% on finished product profit margin
+• VAT: ${v.vatRate}% on finished goods profit margin
 • Income Tax: ${v.incomeRate}% on voyage net profit
 
 🔮 Broker's Whisper:

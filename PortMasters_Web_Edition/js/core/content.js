@@ -50,8 +50,8 @@
   PM.VAT_RATE = 0.05;
   PM.INCOME_TAX_RATE = 0.1;
 
-  /* Order matters: boons and modules are drawn with weightedChoice, so the
-     sequence below is part of the game's random stream. */
+  /* Order matters: the draft draws walk these tables in sequence, so their
+     order is part of the game's random stream. */
   const BOON_TABLE = [
     { id: "silk_wind", modifiers: { transport_silk_discount: 0.5 } },
     { id: "favorable_tides", modifiers: { transport_flat_discount: 4 } },

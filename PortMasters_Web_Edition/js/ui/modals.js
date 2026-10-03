@@ -20,6 +20,15 @@
     if (onClose) onClose();
   }
 
+  /* The three wage figures the guide and the tips both quote. */
+  function wageValues() {
+    return {
+      weaverWage: PM.WAGES.weaver,
+      masterWage: PM.WAGES.master,
+      makerWage: PM.WAGES.sachet_maker,
+    };
+  }
+
   /* The numbers the guides quote, pulled from the live tables so the text can
      never drift from the rules again. Price entries are [name, range] pairs,
      the range preformatted the way the prose spells it out. */
@@ -39,9 +48,7 @@
         [t.linen_clothes, t.cotton_clothes, t.brocade, t.sachet],
         (n) => PM.PRODUCT_PRICES[n],
       ),
-      weaverWage: PM.WAGES.weaver,
-      masterWage: PM.WAGES.master,
-      makerWage: PM.WAGES.sachet_maker,
+      ...wageValues(),
       fixedCost: PM.game.fixedCost,
       vatRate: PM.VAT_RATE * 100,
       incomeRate: PM.INCOME_TAX_RATE * 100,
@@ -83,11 +90,7 @@
   function showTips() {
     showModal(`
     <h2>${L.ui.tipsTitle}</h2>
-    <pre>${L.tips({
-      weaverWage: PM.WAGES.weaver,
-      masterWage: PM.WAGES.master,
-      makerWage: PM.WAGES.sachet_maker,
-    })}</pre>
+    <pre>${L.tips(wageValues())}</pre>
     <div style="text-align:center; margin-top:16px"><button class="btn" onclick="closeModal()">${L.ui.close}</button></div>`);
   }
 
